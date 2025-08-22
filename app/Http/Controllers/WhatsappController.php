@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+
+class WhatsAppController extends Controller
+{
+    public function sendMessages($phoneNumber, $message = null, $bukti_pendaftaran = null)
+    {
+        $client = new Client(['timeout' => 15]);
+        $apiKey = "SGIKDRJTT0MDQRVX";
+        $numberKey = "f49e10YYE2Gee1hb";
+        $headers = ['Content-Type' => 'application/json'];
+
+        $responses = [];
+
+        if (empty($phoneNumber)) {
+            return ['error' => 'Phone number is empty'];
+        }
+
+        try {
+            // Kirim pesan teks dulu (jika ada)
+            if (!empty($message)) {
+                $payload = [
+                    "api_key"    => $apiKey,
+                    "number_key" => $numberKey,
+                    "phone_no"   => $phoneNumber,
+                    "message"    => $message,
+                ];
+
+                $resp = $client->post('https://api.watzap.id/v1/send_message', [
+                    'headers' => $headers,
+                    'json'    => $payload,
+                ]);
+
+                $responses[] = json_decode((string)$resp->getBody(), true);
+            }
+
+            // Kirim file PDF jika ada
+            if (!empty($bukti_pendaftaran)) {
+                if (strpos($bukti_pendaftaran, 'storage/') === 0) {
+                    $fileUrl = env('APP_URL') . $bukti_pendaftaran;
+                } else {
+                    $fileUrl = asset('storage/data/bukti_pendaftaran/' . $bukti_pendaftaran);
+                }
+
+                try {
+                    $head = $client->head($fileUrl, ['http_errors' => false, 'timeout' => 10]);
+                    $status = $head->getStatusCode();
+                    if ($status < 200 || $status >= 400) {
+                        $responses[] = [
+                            'error' => 'File not publicly accessible',
+                            'url' => $fileUrl,
+                            'http_code' => $status,
+                        ];
+                    } else {
+                        $payloadFile = [
+                            "api_key"    => $apiKey,
+                            "number_key" => $numberKey,
+                            "phone_no"   => $phoneNumber,
+                            "url"        => $fileUrl,
+                            "caption"    => "Berikut bukti pendaftaran Anda dalam format PDF.",
+                        ];
+
+                        $respFile = $client->post('https://api.watzap.id/v1/send_file_url', [
+                            'headers' => $headers,
+                            'json'    => $payloadFile,
+                        ]);
+
+                        $responses[] = json_decode((string)$respFile->getBody(), true);
+                    }
+                } catch (\Exception $e) {
+                    $responses[] = ['error' => 'HEAD check failed: ' . $e->getMessage(), 'url' => $fileUrl];
+                }
+            }
+        } catch (RequestException $e) {
+            $body = $e->hasResponse() ? (string) $e->getResponse()->getBody() : $e->getMessage();
+            $responses[] = ['exception' => $body];
+        }
+
+        return $responses;
+    }
+}
