@@ -45,13 +45,8 @@
                                         <td>{{ \Carbon\Carbon::parse($item->tanggal_lahir)->diff(\Carbon\Carbon::create(2026,7,1))->format('%y tahun %m bulan') }}</td>
                                         <td>
                                             <!-- File Akta Kelahiran -->
-                                            <a href="{{ asset($item->akta_kelahiran_path) }}" target="_blank" class="me-2" title="Akta Kelahiran">
-                                                <i class="bi bi-file-earmark-text-fill text-info fs-5"></i> Akta
-                                            </a>
-
-                                            <a href="{{ asset($item->kartu_keluarga_path) }}" target="_blank" class="me-2" title="Kartu Keluarga">
-                                                <i class="bi bi-file-earmark-text-fill text-info fs-5"></i> KK
-                                            </a>
+                                            <a href="{{ asset('storage/' . ($item->akta_kelahiran_path ?? '')) }}" target="_blank">Akta</a>
+                                            <a href="{{ asset('storage/' . ($item->kartu_keluarga_path ?? '')) }}" target="_blank">KK</a>
                                         </td>
                                         <td>
                                             @if($item->status == 'pending')
