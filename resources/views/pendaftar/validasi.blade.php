@@ -58,7 +58,7 @@
                     </div>
 
                     <div>
-                        <img src="{{ asset($pendaftar->foto_murid_path ?? 'images/default-foto.jpg') }}"
+                        <img src="{{ asset('storage/' . ($pendaftar->foto_murid_path ?? 'images/default-foto.jpg')) }}"
                             alt="Foto Peserta"
                             style="width:3cm; height:4cm; object-fit:cover; border:1px solid #333;">
                     </div>
