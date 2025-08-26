@@ -77,11 +77,10 @@ class PendaftarController extends Controller
 
             Pendaftar::create($data);
 
-            // Redirect ke halaman success.blade.php
             return view('notif.success')->with('message', 'Pendaftaran berhasil! Data Anda telah tersimpan.');
 
         } catch (\Exception $e) {
-            // Jika ada error selain validasi (misalnya DB error), arahkan ke error.blade.php
+            Log::error('Error saat menyimpan pendaftaran: ' . $e->getMessage());
             return view('notif.error')->with('message', 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
         }
     }
@@ -100,42 +99,71 @@ class PendaftarController extends Controller
 
     public function update($id)
     {
-        $pendaftar = Pendaftar::findOrFail($id);
+        try {
+            $pendaftar = Pendaftar::findOrFail($id);
 
-        $pdf = Pdf::loadView('pendaftar.validasi_pdf', compact('pendaftar'));
+            // Siapkan data untuk PDF dengan mapping yang benar
+            $peserta = (object) [
+                'nama' => $pendaftar->nama_murid,
+                'no_pendaftaran' => $pendaftar->no_pendaftaran,
+                'nisn' => $pendaftar->nisn,
+                'asal_sekolah' => $pendaftar->asal_sekolah,
+                'tanggal_lahir' => $pendaftar->tanggal_lahir,
+                'alamat' => $pendaftar->alamat,
+                'unit' => $pendaftar->unit,
+                'nama_ayah' => $pendaftar->nama_ayah,
+                'nama_ibu' => $pendaftar->nama_ibu,
+                'foto' => basename($pendaftar->foto_murid_path ?? 'default.jpg'),
+            ];
 
-        $fileName = 'bukti_pendaftaran_' . $pendaftar->id . '.pdf';
-        $filePath = 'data/bukti_pendaftaran/' . $fileName;
+            $tahunAjaran = '2026/2027'; // Bisa dibuat dinamis atau dari config
 
-        Storage::disk('public')->put($filePath, $pdf->output());
+            // Generate PDF
+            $pdf = Pdf::loadView('pendaftar.validasi_pdf', compact('peserta', 'tahunAjaran'))
+                     ->setPaper('a4', 'portrait');
 
-        $pendaftar->bukti_pendaftaran = $fileName;
-        $pendaftar->bukti_pendaftaran_path = 'storage/' . $filePath; // opsional, kalau mau tetap simpan path
-        $pendaftar->bukti_pendaftaran_mime = mime_content_type(Storage::disk('public')->path($filePath));
-        $pendaftar->bukti_pendaftaran_size = Storage::disk('public')->size($filePath);
-        $pendaftar->save();
+            $fileName = 'bukti_pendaftaran_' . $pendaftar->no_pendaftaran . '.pdf';
+            $filePath = 'data/bukti_pendaftaran/' . $fileName;
 
-        $bukti_pendaftaran = $pendaftar->bukti_pendaftaran;
+            // Simpan PDF ke storage
+            Storage::disk('public')->put($filePath, $pdf->output());
 
-        $phoneNumber = $pendaftar->telp_ayah ?: $pendaftar->telp_ibu;
-        $message = "Yth. {$pendaftar->nama_murid},\n\n"
-            . "Terima kasih telah melakukan pendaftaran di {$pendaftar->unit}. "
-            . "Bukti pendaftaran Anda telah berhasil dibuat dan disimpan. "
-            . "Silakan simpan bukti ini sebagai arsip.\n\n"
-            . "Hormat kami,\n"
-            . "Panitia Penerimaan Murid Baru {$pendaftar->unit}";
+            // Update status menjadi diverifikasi dan simpan info PDF
+            $pendaftar->update([
+                'status' => 'diverifikasi', // Update status sesuai migration
+                'bukti_pendaftaran' => $fileName,
+                'bukti_pendaftaran_path' => 'storage/' . $filePath,
+                'bukti_pendaftaran_mime' => 'application/pdf',
+                'bukti_pendaftaran_size' => Storage::disk('public')->size($filePath),
+            ]);
 
-        $whatsAppController = new WhatsAppController();
-        $responses = $whatsAppController->sendMessages($phoneNumber, $message, $bukti_pendaftaran);
-        $respStrings = array_map(function($r) {
-        if (is_array($r)) {
-            return json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            // Kirim WhatsApp
+            $phoneNumber = $pendaftar->telp_ayah ?: $pendaftar->telp_ibu;
+            $message = "Yth. Orang Tua {$pendaftar->nama_murid},\n\n"
+                . "Selamat! Pendaftaran anak Anda di {$pendaftar->unit} telah DIVERIFIKASI.\n"
+                . "Nomor Pendaftaran: {$pendaftar->no_pendaftaran}\n"
+                . "Bukti pendaftaran telah dikirimkan bersama pesan ini.\n\n"
+                . "Silakan simpan bukti ini untuk keperluan administrasi selanjutnya.\n\n"
+                . "Terima kasih,\n"
+                . "Panitia Penerimaan Murid Baru {$pendaftar->unit}";
+
+            $whatsAppController = new WhatsAppController();
+            $responses = $whatsAppController->sendMessages($phoneNumber, $message, $fileName);
+
+            $respStrings = array_map(function($r) {
+                if (is_array($r)) {
+                    return json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 }
-            return (string) $r;
-        }, $responses);
+                return (string) $r;
+            }, $responses);
 
-        return redirect()->route('pendaftar')
-            ->with('success', 'PDF Kartu pendaftaran berhasil disimpan. ' . implode(', ', $respStrings));
+            return redirect()->route('pendaftar')
+                ->with('success', 'Pendaftaran berhasil diverifikasi dan bukti PDF telah dikirim. ' . implode(', ', $respStrings));
+
+        } catch (\Exception $e) {
+            Log::error('Error saat memverifikasi pendaftaran: ' . $e->getMessage());
+            return redirect()->route('pendaftar')
+                ->with('error', 'Terjadi kesalahan saat memverifikasi pendaftaran. Silakan coba lagi.');
+        }
     }
-
 }
