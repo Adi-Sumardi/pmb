@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pendaftar;
+use App\Models\User; // Add this import
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash; // Add this import
+use Illuminate\Support\Str; // Add this import
 use App\Http\Controllers\WhatsAppController;
 
 class PendaftarController extends Controller
@@ -34,6 +37,9 @@ class PendaftarController extends Controller
             ]);
 
             $data = $validated;
+
+            // Calculate payment amount based on jenjang
+            $data['payment_amount'] = $this->getPaymentAmount($validated['jenjang']);
 
             if ($request->hasFile('foto_murid')) {
                 $file = $request->file('foto_murid');
@@ -85,6 +91,42 @@ class PendaftarController extends Controller
         }
     }
 
+    /**
+     * Calculate payment amount based on jenjang
+     */
+    private function getPaymentAmount($jenjang)
+    {
+        $paymentAmounts = [
+            'sanggar' => 3250000,
+            'kelompok' => 3250000,
+            'tka' => 3550000,
+            'tkb' => 3550000,
+            'sd' => 4250000,
+            'smp' => 4550000,
+            'sma' => 5250000,
+        ];
+
+        return $paymentAmounts[$jenjang] ?? 0;
+    }
+
+    /**
+     * Get jenjang display name
+     */
+    private function getJenjangName($jenjang)
+    {
+        $jenjangNames = [
+            'sanggar' => 'Sanggar Bermain',
+            'kelompok' => 'Kelompok Bermain',
+            'tka' => 'TK A',
+            'tkb' => 'TK B',
+            'sd' => 'SD',
+            'smp' => 'SMP',
+            'sma' => 'SMA',
+        ];
+
+        return $jenjangNames[$jenjang] ?? strtoupper($jenjang);
+    }
+
     public function index()
     {
         $dt_pendaftars = Pendaftar::all();
@@ -102,7 +144,56 @@ class PendaftarController extends Controller
         try {
             $pendaftar = Pendaftar::findOrFail($id);
 
-            // Siapkan data untuk PDF dengan mapping yang benar
+            $email = $pendaftar->no_pendaftaran . '@yapinet.id';
+
+            // Generate password
+            $symbols = '!@#$%^&*';
+            $password =
+                Str::random(2) .
+                strtoupper(Str::random(2)) .
+                rand(10, 99) .
+                $symbols[rand(0, strlen($symbols) - 1)] .
+                Str::random(1);
+
+            $password = str_shuffle($password);
+
+            if (strlen($password) < 8) {
+                $password .= Str::random(8 - strlen($password));
+            }
+
+            // Cek apakah user sudah ada berdasarkan pendaftar_id
+            $existingUser = User::where('pendaftar_id', $pendaftar->id)->first();
+
+            if ($existingUser) {
+                // Update user yang sudah ada
+                $existingUser->update([
+                    'name' => $pendaftar->nama_murid,
+                    'password' => Hash::make($password),
+                ]);
+                $user = $existingUser;
+                $email = $existingUser->email;
+                $statusMessage = "DIPERBARUI";
+            } else {
+                // Cek email conflict
+                $counter = 1;
+                $originalEmail = $email;
+                while (User::where('email', $email)->exists()) {
+                    $email = str_replace('@yapinet.id', $counter . '@yapinet.id', $originalEmail);
+                    $counter++;
+                }
+
+                // Buat user baru
+                $user = User::create([
+                    'name' => $pendaftar->nama_murid,
+                    'email' => $email,
+                    'password' => Hash::make($password),
+                    'role' => 'user',
+                    'pendaftar_id' => $pendaftar->id,
+                ]);
+                $statusMessage = "DIBUAT";
+            }
+
+            // Siapkan data untuk PDF dengan mapping yang benar + tambahkan email dan password
             $peserta = (object) [
                 'nama' => $pendaftar->nama_murid,
                 'no_pendaftaran' => $pendaftar->no_pendaftaran,
@@ -114,6 +205,8 @@ class PendaftarController extends Controller
                 'nama_ayah' => $pendaftar->nama_ayah,
                 'nama_ibu' => $pendaftar->nama_ibu,
                 'foto' => basename($pendaftar->foto_murid_path ?? 'default.jpg'),
+                'email' => $email, // Tambahkan email
+                'password' => $password, // Tambahkan password
             ];
 
             $tahunAjaran = '2026/2027'; // Bisa dibuat dinamis atau dari config
@@ -128,27 +221,41 @@ class PendaftarController extends Controller
             // Simpan PDF ke storage
             Storage::disk('public')->put($filePath, $pdf->output());
 
-            // Update status menjadi diverifikasi dan simpan info PDF
+            // Update pendaftar dengan user_id
             $pendaftar->update([
-                'status' => 'diverifikasi', // Update status sesuai migration
+                'status' => 'diverifikasi',
                 'bukti_pendaftaran' => $fileName,
                 'bukti_pendaftaran_path' => 'storage/' . $filePath,
                 'bukti_pendaftaran_mime' => 'application/pdf',
                 'bukti_pendaftaran_size' => Storage::disk('public')->size($filePath),
+                'user_id' => $user->id,
             ]);
 
-            // Kirim WhatsApp
+            // Kirim WhatsApp dengan informasi akun
             $phoneNumber = $pendaftar->telp_ayah ?: $pendaftar->telp_ibu;
             $message = "Yth. Orang Tua {$pendaftar->nama_murid},\n\n"
                 . "Selamat! Pendaftaran anak Anda di {$pendaftar->unit} telah DIVERIFIKASI.\n"
-                . "Nomor Pendaftaran: {$pendaftar->no_pendaftaran}\n"
+                . "Nomor Pendaftaran: {$pendaftar->no_pendaftaran}\n\n"
+                . "🔐 AKUN SISWA TELAH DIBUAT:\n"
+                . "Email: {$email}\n"
+                . "Password: {$password}\n\n"
+                . "⚠️ PENTING:\n"
+                . "- Informasi akun juga tersedia di bukti PDF\n"
+                . "- Simpan informasi akun ini dengan aman\n"
+                . "- Ganti password setelah login pertama\n"
+                . "- Akun ini untuk akses sistem pembelajaran\n\n"
                 . "Bukti pendaftaran telah dikirimkan bersama pesan ini.\n\n"
-                . "Silakan simpan bukti ini untuk keperluan administrasi selanjutnya.\n\n"
                 . "Terima kasih,\n"
                 . "Panitia Penerimaan Murid Baru {$pendaftar->unit}";
 
             $whatsAppController = new WhatsAppController();
-            $responses = $whatsAppController->sendMessages($phoneNumber, $message, $fileName);
+            $responses = $whatsAppController->sendMessages(
+                $phoneNumber,
+                $message,
+                $fileName,
+                $pendaftar->nama_murid,
+                $pendaftar->no_pendaftaran
+            );
 
             $respStrings = array_map(function($r) {
                 if (is_array($r)) {
@@ -158,12 +265,14 @@ class PendaftarController extends Controller
             }, $responses);
 
             return redirect()->route('pendaftar')
-                ->with('success', 'Pendaftaran berhasil diverifikasi dan bukti PDF telah dikirim. ' . implode(', ', $respStrings));
+                ->with('success', 'Pendaftaran berhasil diverifikasi, akun user telah dibuat dengan email: ' . $email . ', dan bukti PDF (termasuk akun) telah dikirim. ' . implode(', ', $respStrings));
 
         } catch (\Exception $e) {
             Log::error('Error saat memverifikasi pendaftaran: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
             return redirect()->route('pendaftar')
-                ->with('error', 'Terjadi kesalahan saat memverifikasi pendaftaran. Silakan coba lagi.');
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 }

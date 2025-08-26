@@ -38,10 +38,34 @@
             background: #fafafa;
             border-radius: 4px;
             display: inline-block;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .card {
             transition: all 0.3s ease;
+        }
+
+        .data-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .data-left {
+            flex: 1;
+        }
+
+        .data-right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            min-width: 120px;
         }
 
         @media print {
@@ -63,20 +87,19 @@
                 border-radius: 0;
             }
 
-            .col-md-8, .col-md-4, .col-md-6 {
-                flex: none !important;
+            .data-section {
+                display: flex !important;
             }
 
-            .col-md-8 {
-                width: 66.666667% !important;
+            .data-left {
+                flex: 1 !important;
             }
 
-            .col-md-4 {
-                width: 33.333333% !important;
-            }
-
-            .col-md-6 {
-                width: 50% !important;
+            .data-right {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                min-width: 120px !important;
             }
         }
     </style>
@@ -97,9 +120,9 @@
 
     <hr class="my-3">
 
-    <!-- Identitas Utama -->
-    <div class="row mb-3">
-        <div class="col-md-8">
+    <!-- Identitas Utama dengan Layout Kiri-Kanan -->
+    <div class="data-section mb-3">
+        <div class="data-left">
             <table class="table table-borderless table-sm">
                 <tbody>
                     <tr>
@@ -136,7 +159,7 @@
             </table>
         </div>
 
-        <div class="col-md-4 d-flex flex-column align-items-center">
+        <div class="data-right">
             <!-- Foto Peserta -->
             <div class="mb-3">
                 @if($peserta->foto && $peserta->foto !== 'default.jpg')
@@ -169,6 +192,24 @@
         </div>
     </div>
 
+    <!-- Informasi Akun Siswa -->
+    <div style="margin-top: 20px; padding: 15px; border: 2px solid #007bff; border-radius: 5px; background-color: #f8f9fa;">
+        <h4 style="color: #007bff; margin-bottom: 10px;">🔐 Informasi Akun Siswa</h4>
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 25%; font-weight: bold;">Email:</td>
+                <td>{{ $peserta->email }}</td>
+            </tr>
+            <tr>
+                <td style="width: 25%; font-weight: bold;">Password:</td>
+                <td style="font-family: monospace; background-color: #e9ecef; padding: 3px 6px; border-radius: 3px;">{{ $peserta->password }}</td>
+            </tr>
+        </table>
+        <div style="margin-top: 10px; font-size: 12px; color: #6c757d;">
+            <strong>⚠️ Penting:</strong> Simpan informasi akun ini dengan aman. Ganti password setelah login pertama.
+        </div>
+    </div>
+
     <hr class="my-3">
 
     <!-- Catatan Formal -->
@@ -180,23 +221,20 @@
     </div>
 </div>
 
-<!-- QR Code Script untuk PDF -->
+<!-- QR Code Script menggunakan davidshimjs/qrcodejs -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
 <script>
-    // Untuk PDF generation, QR code akan di-generate di server
     document.addEventListener('DOMContentLoaded', function() {
-        // Generate QR code menggunakan library yang kompatibel dengan PDF
-        var qr = new QRious({
-            element: document.getElementById('qrcode'),
-            value: '{{ $peserta->no_pendaftaran }}',
-            size: 80,
-            foreground: '#000000',
-            background: '#ffffff'
+        new QRCode(document.getElementById("qrcode"), {
+            text: "{{ $peserta->no_pendaftaran }}",
+            width: 80,
+            height: 80,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
         });
     });
 </script>
-
-<!-- Fallback QR Code menggunakan library alternatif -->
-<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 
 </body>
 </html>

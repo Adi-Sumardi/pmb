@@ -12,6 +12,7 @@ class Pendaftar extends Model
     protected $table = 'pendaftars';
 
     protected $fillable = [
+        'user_id',
         'no_pendaftaran',
         'nama_murid',
         'nisn',
@@ -37,6 +38,7 @@ class Pendaftar extends Model
         'kartu_keluarga_size',
         'status',
         'sudah_bayar_formulir',
+        'payment_amount',
         'bukti_pendaftaran',
         'bukti_pendaftaran_path',
         'bukti_pendaftaran_mime',
@@ -47,4 +49,18 @@ class Pendaftar extends Model
         'tanggal_lahir' => 'date',
         'sudah_bayar_formulir' => 'boolean',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function latestPayment()
+    {
+        return $this->hasOne(Payment::class)->latest();
+    }
 }

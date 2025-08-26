@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('pendaftars', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             $table->string('no_pendaftaran')->unique();
             // Data murid
             $table->string('nama_murid');
@@ -49,6 +50,7 @@ return new class extends Migration
             $table->integer('bukti_pendaftaran_size')->nullable();
 
             // Status
+            $table->decimal('payment_amount', 10, 0)->default(0);
             $table->enum('status', ['pending', 'diverifikasi'])->default('pending');
             $table->boolean('sudah_bayar_formulir')->default(false);
 
