@@ -35,7 +35,7 @@
         @if(session()->has('error'))
             <div class="alert alert-danger alert-dismissible fade show" role="alert" id="alertError">
                 <i class="bi bi-exclamation-circle me-2"></i>
-                <strong>Error!</strong> Data Calon Murid Gagal Diverifikasi
+                <strong>Error!</strong> {{ session('error') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         @endif
