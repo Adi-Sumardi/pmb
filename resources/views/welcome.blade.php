@@ -219,17 +219,6 @@
             border-left: 5px solid var(--primary-color);
         }
 
-        .animate-on-scroll {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s ease;
-        }
-
-        .animate-on-scroll.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -253,7 +242,6 @@
 
             .form-header {
                 padding: 1.5rem;
-            }
         }
     </style>
 </head>
@@ -310,7 +298,7 @@
                                         Informasi Pendaftaran
                                     </h6>
                                     <small class="text-muted">
-                                        Silakan lengkapi formulir dengan data yang benar. Biaya pendaftaran akan ditampilkan setelah data lengkap terisi.
+                                        Silakan lengkapi formulir dengan data yang benar.
                                     </small>
                                 </div>
                                 <div class="col-md-4 text-md-center mt-3 mt-md-0">
@@ -450,7 +438,7 @@
                                     <i class="bi bi-person-badge me-1"></i>Nama Lengkap Ayah
                                 </label>
                                 <input type="text" name="nama_ayah" class="form-control" required
-                                       placeholder="Masukkan nama lengkap ayah">
+                                    placeholder="Masukkan nama lengkap ayah">
                             </div>
 
                             <div class="col-md-6 animate-on-scroll">
@@ -458,7 +446,9 @@
                                     <i class="bi bi-whatsapp me-1"></i>No. WhatsApp Ayah
                                 </label>
                                 <input type="tel" name="telp_ayah" class="form-control" required
-                                       placeholder="Contoh: 081234567890">
+                                    placeholder="6281234567890" pattern="628[0-9]{8,11}" maxlength="13"
+                                    title="Format: 6281234567890">
+                                <small class="text-muted">Contoh: 6281234567890</small>
                             </div>
 
                             <!-- Data Ibu -->
@@ -467,7 +457,7 @@
                                     <i class="bi bi-person-heart me-1"></i>Nama Lengkap Ibu
                                 </label>
                                 <input type="text" name="nama_ibu" class="form-control" required
-                                       placeholder="Masukkan nama lengkap ibu">
+                                    placeholder="Masukkan nama lengkap ibu">
                             </div>
 
                             <div class="col-md-6 animate-on-scroll">
@@ -475,7 +465,9 @@
                                     <i class="bi bi-whatsapp me-1"></i>No. WhatsApp Ibu
                                 </label>
                                 <input type="tel" name="telp_ibu" class="form-control" required
-                                       placeholder="Contoh: 081234567890">
+                                    placeholder="6281234567890" pattern="628[0-9]{8,11}" maxlength="13"
+                                    title="Format: 6281234567890">
+                                <small class="text-muted">Contoh: 6281234567890</small>
                             </div>
 
                             <!-- Upload Documents Section -->
@@ -725,6 +717,72 @@
             submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
             submitBtn.disabled = true;
         });
+
+        function setupPhoneValidation() {
+        const phoneInputs = document.querySelectorAll('input[name="telp_ayah"], input[name="telp_ibu"]');
+
+        phoneInputs.forEach(input => {
+            // Only allow numbers
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+
+                // Auto format to 62 format
+                if (value.length > 0) {
+                    // If starts with 0, replace with 62
+                    if (value.startsWith('0')) {
+                        value = '62' + value.substring(1);
+                    }
+                    // If starts with 8, add 62 prefix
+                    else if (value.startsWith('8')) {
+                        value = '62' + value;
+                    }
+                    // If doesn't start with 62, add 62 prefix
+                    else if (!value.startsWith('62')) {
+                        value = '62' + value;
+                    }
+                }
+
+                // Limit length (62 + 10-11 digits = 12-13 total)
+                if (value.length > 13) {
+                    value = value.substring(0, 13);
+                }
+
+                e.target.value = value;
+            });
+
+            // Prevent non-numeric input
+            input.addEventListener('keypress', function(e) {
+                if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+                    e.preventDefault();
+                }
+            });
+
+            // Validation on blur
+            input.addEventListener('blur', function(e) {
+                const value = e.target.value;
+                // Pattern for Indonesian phone number: 62 + 8xxxxxxxx (10-11 digits after 62)
+                const isValid = /^628[0-9]{8,11}$/.test(value);
+
+                if (value && !isValid) {
+                    e.target.classList.add('is-invalid');
+                    // Show error message
+                    let errorMsg = e.target.parentNode.nextElementSibling;
+                    if (!errorMsg || !errorMsg.classList.contains('invalid-feedback')) {
+                        errorMsg = document.createElement('div');
+                        errorMsg.className = 'invalid-feedback';
+                        e.target.parentNode.parentNode.appendChild(errorMsg);
+                    }
+                    errorMsg.textContent = 'Format: 6281234567890 (dimulai 628 dan 10-13 digit total)';
+                } else {
+                    e.target.classList.remove('is-invalid');
+                    const errorMsg = e.target.parentNode.parentNode.querySelector('.invalid-feedback');
+                    if (errorMsg) {
+                        errorMsg.remove();
+                    }
+                }
+            });
+        });
+    }
     </script>
 </body>
 
