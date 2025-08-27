@@ -30,6 +30,7 @@
         /* Header Styles */
         .card-header-formal {
             padding: 10px 15px 8px;
+            align-items: center;
             border-bottom: 2px solid #000;
         }
 
