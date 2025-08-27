@@ -206,8 +206,8 @@
                             <a href="{{ route('user.dashboard') }}" class="btn btn-primary btn-lg">
                                 <i class="bi bi-house-door me-2"></i>Kembali ke Dashboard
                             </a>
-                            <a href="{{ route('payment.index') }}" class="btn btn-outline-primary btn-lg">
-                                <i class="bi bi-clock-history me-2"></i>Riwayat Pembayaran
+                            <a href="{{ route('transactions.index') }}" class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-receipt me-2"></i>Riwayat Pembayaran
                             </a>
                             <button onclick="printInvoice()" class="btn btn-outline-secondary btn-lg">
                                 <i class="bi bi-printer me-2"></i>Print Invoice

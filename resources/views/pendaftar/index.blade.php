@@ -614,7 +614,24 @@
 
             let currentPage = 1;
             let filteredRows = Array.from(tableRows);
-            let searchTimeout;
+
+            // Urutkan baris tabel agar status="pending" berada di atas
+            filteredRows.sort((rowA, rowB) => {
+                const statusA = rowA.dataset.status;
+                const statusB = rowB.dataset.status;
+
+                // Prioritaskan status "pending" di atas
+                if (statusA === 'pending' && statusB !== 'pending') {
+                    return -1; // A (pending) sebelum B (non-pending)
+                } else if (statusA !== 'pending' && statusB === 'pending') {
+                    return 1;  // B (pending) sebelum A (non-pending)
+                }
+
+                // Jika keduanya memiliki status sama, pertahankan urutan berdasarkan index asli
+                const indexA = parseInt(rowA.dataset.index) || 0;
+                const indexB = parseInt(rowB.dataset.index) || 0;
+                return indexA - indexB;
+            });
 
             // Auto close alerts
             setTimeout(() => {
@@ -712,6 +729,25 @@
                             if (status === 'pending') pendingCount++;
                             if (status === 'diverifikasi') verifiedCount++;
                         }
+                    });
+
+                    // TAMBAHKAN KODE SORTING DI SINI - setelah filtering selesai
+                    // Urutkan filteredRows agar status="pending" berada di atas
+                    filteredRows.sort((rowA, rowB) => {
+                        const statusA = rowA.dataset.status;
+                        const statusB = rowB.dataset.status;
+
+                        // Prioritaskan status "pending" di atas
+                        if (statusA === 'pending' && statusB !== 'pending') {
+                            return -1;
+                        } else if (statusA !== 'pending' && statusB === 'pending') {
+                            return 1;
+                        }
+
+                        // Jika keduanya memiliki status sama, pertahankan urutan berdasarkan index asli
+                        const indexA = parseInt(rowA.dataset.index) || 0;
+                        const indexB = parseInt(rowB.dataset.index) || 0;
+                        return indexA - indexB;
                     });
 
                     // Update counters

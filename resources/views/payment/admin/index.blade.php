@@ -3,7 +3,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="fw-bold text-dark mb-0">
                 <i class="bi bi-credit-card-2-front me-2 text-primary"></i>
-                Data Pembayaran Formulir
+                Data Pembayaran
             </h2>
             <div class="d-flex gap-2">
                 <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">

@@ -21,6 +21,11 @@ class PaymentController extends Controller
 
     private function isDemoMode()
     {
+        // Force production mode untuk redirect langsung ke Xendit
+        if (env('FORCE_XENDIT_PRODUCTION') === 'true' || env('XENDIT_MODE') === 'production') {
+            return false;
+        }
+
         return env('XENDIT_MODE') === 'demo' ||
             $this->xenditApiKey === 'demo_secret_key_for_testing' ||
             empty($this->xenditApiKey) ||
@@ -121,10 +126,21 @@ class PaymentController extends Controller
                 ->with('error', 'Jumlah pembayaran tidak sesuai.');
         }
 
-        // Check if in demo mode
+        // Check if in demo mode - sekarang akan selalu redirect ke Xendit
         if ($this->isDemoMode()) {
             return $this->createDemoInvoice($request);
         }
+
+        // Direct to Xendit payment page
+        return $this->createXenditInvoice($request);
+    }
+
+    private function createXenditInvoice($request)
+    {
+        $user = Auth::user();
+        $pendaftar = Pendaftar::where('user_id', $user->id)
+            ->where('id', $request->pendaftar_id)
+            ->first();
 
         try {
             $externalId = 'PPDB-' . $pendaftar->no_pendaftaran . '-' . time();
@@ -134,6 +150,12 @@ class PaymentController extends Controller
             if (!str_starts_with($this->xenditApiKey, 'xnd_')) {
                 throw new \Exception('Invalid Xendit API Key format');
             }
+
+            Log::info('Creating Xendit Invoice', [
+                'external_id' => $externalId,
+                'amount' => $pendaftar->payment_amount,
+                'student' => $pendaftar->nama_murid
+            ]);
 
             $response = Http::withBasicAuth($this->xenditApiKey, '')
                 ->timeout(30)
@@ -152,7 +174,7 @@ class PaymentController extends Controller
                                 'country' => 'Indonesia',
                                 'postal_code' => '12345',
                                 'state' => 'DKI Jakarta',
-                                'street_line1' => $pendaftar->alamat
+                                'street_line1' => $pendaftar->alamat ?? 'Jakarta'
                             ]
                         ]
                     ],
@@ -177,6 +199,14 @@ class PaymentController extends Controller
                             'type' => 'ADMIN',
                             'value' => 0
                         ]
+                    ],
+                    // Aktifkan semua payment methods
+                    'payment_methods' => [
+                        'BANK_TRANSFER',
+                        'CREDIT_CARD',
+                        'EWALLET',
+                        'QR_CODE',
+                        'RETAIL_OUTLET'
                     ]
                 ]);
 
@@ -196,6 +226,9 @@ class PaymentController extends Controller
                     'xendit_response' => $invoiceData,
                 ]);
 
+                Log::info('Redirecting to Xendit URL: ' . $invoiceData['invoice_url']);
+
+                // Redirect langsung ke halaman pembayaran Xendit
                 return redirect($invoiceData['invoice_url']);
             } else {
                 $errorResponse = $response->json();
@@ -447,5 +480,94 @@ class PaymentController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Pembayaran berhasil dikonfirmasi manual');
+    }
+
+    public function transactions()
+    {
+        $user = Auth::user();
+
+        $payments = Payment::whereHas('pendaftar', function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+        ->with(['pendaftar'])
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
+
+        return view('transactions.user.index', compact('payments'));
+    }
+
+    /**
+     * Detail Transaksi
+     */
+    public function transactionDetail($id)
+    {
+        $user = Auth::user();
+
+        $payment = Payment::whereHas('pendaftar', function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+        ->with(['pendaftar'])
+        ->findOrFail($id);
+
+        $jenjangName = $this->getJenjangName($payment->pendaftar->jenjang);
+
+        return view('transactions.user.show', compact('payment', 'jenjangName'));
+    }
+
+    /**
+     * Admin Transaksi - List semua invoice
+     */
+    public function adminTransactions(Request $request)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $query = Payment::with(['pendaftar']);
+
+        // Apply filters
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('jenjang')) {
+            $query->whereHas('pendaftar', function($q) use ($request) {
+                $q->where('jenjang', $request->jenjang);
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $payments = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        $stats = [
+            'total_transactions' => Payment::count(),
+            'paid_transactions' => Payment::where('status', 'PAID')->count(),
+            'pending_transactions' => Payment::where('status', 'PENDING')->count(),
+            'total_revenue' => Payment::where('status', 'PAID')->sum('amount')
+        ];
+
+        return view('transactions.admin.index', compact('payments', 'stats'));
+    }
+
+    /**
+     * Admin Detail Transaksi
+     */
+    public function adminTransactionDetail($id)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $payment = Payment::with(['pendaftar'])->findOrFail($id);
+        $jenjangName = $this->getJenjangName($payment->pendaftar->jenjang);
+
+        return view('transactions.admin.show', compact('payment', 'jenjangName'));
     }
 }

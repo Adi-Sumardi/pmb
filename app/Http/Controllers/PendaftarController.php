@@ -129,7 +129,13 @@ class PendaftarController extends Controller
 
     public function index()
     {
-        $dt_pendaftars = Pendaftar::all();
+        $dt_pendaftars = Pendaftar::orderByRaw("
+            CASE
+                WHEN status = 'pending' THEN 1
+                WHEN status = 'diverifikasi' THEN 2
+                ELSE 3
+            END
+        ")->orderBy('created_at', 'desc')->get();
         return view('pendaftar.index', compact('dt_pendaftars'));
     }
 

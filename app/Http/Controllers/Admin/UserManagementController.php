@@ -101,4 +101,84 @@ class UserManagementController extends Controller
                 ->with('error', 'Terjadi kesalahan saat menghapus user.');
         }
     }
+
+    public function bulkAction(Request $request)
+    {
+        $request->validate([
+            'action' => 'required|in:activate,deactivate,delete',
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'exists:users,id'
+        ]);
+
+        $action = $request->input('action');
+        $userIds = $request->input('user_ids');
+
+        // Prevent action on current user
+        $userIds = array_filter($userIds, function($id) {
+            return $id != Auth::user()->id;
+        });
+
+        if (empty($userIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat melakukan aksi pada akun Anda sendiri.'
+            ], 400);
+        }
+
+        try {
+            switch ($action) {
+                case 'activate':
+                    return $this->bulkActivate($userIds);
+                case 'deactivate':
+                    return $this->bulkDeactivate($userIds);
+                case 'delete':
+                    return $this->bulkDelete($userIds);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function bulkActivate($userIds)
+    {
+        $updated = User::whereIn('id', $userIds)->update(['is_active' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$updated} user berhasil diaktifkan.",
+            'action' => 'activate',
+            'count' => $updated
+        ]);
+    }
+
+    private function bulkDeactivate($userIds)
+    {
+        $updated = User::whereIn('id', $userIds)->update(['is_active' => false]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$updated} user berhasil dinonaktifkan.",
+            'action' => 'deactivate',
+            'count' => $updated
+        ]);
+    }
+
+    private function bulkDelete($userIds)
+    {
+        // Get users to be deleted for logging
+        $users = User::whereIn('id', $userIds)->get();
+
+        // Delete users
+        $deleted = User::whereIn('id', $userIds)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$deleted} user berhasil dihapus.",
+            'action' => 'delete',
+            'count' => $deleted
+        ]);
+    }
 }

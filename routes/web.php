@@ -32,6 +32,10 @@ Route::get('/dashboard', function () {
 // User Routes
 Route::middleware(['auth', 'user.role'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
+
+    // Demo payment dan real-time data routes
+    Route::post('/demo-payment', [UserDashboardController::class, 'demoPayment'])->name('demo.payment');
+    Route::get('/dashboard-data', [UserDashboardController::class, 'getDashboardData'])->name('dashboard.data');
 });
 
 // Profile routes (accessible by both admin and user)
@@ -46,6 +50,7 @@ Route::post('/pendaftaran', [PendaftarController::class, 'store'])->name('pendaf
 
 Route::middleware('auth')->group(function () {
     Route::get('/pendaftar', [PendaftarController::class, 'index'])->name('pendaftar');
+    Route::get('/pendaftar/form', [PendaftarController::class, 'form'])->name('pendaftar.form');
     Route::get('/pendaftar/{id}/validasi', [PendaftarController::class, 'validasi'])->name('pendaftar.validasi');
     Route::patch('/pendaftar/{id}', [PendaftarController::class, 'update'])->name('pendaftar.update');
     Route::delete('/pendaftar', [PendaftarController::class, 'destroy'])->name('pendaftar.destroy');
@@ -61,6 +66,10 @@ Route::middleware('auth')->group(function () {
     // Demo payment routes
     Route::get('/pembayaran/demo/{external_id}', [PaymentController::class, 'demo'])->name('payment.demo');
     Route::post('/pembayaran/demo/{external_id}/pay', [PaymentController::class, 'demoPayment'])->name('payment.demo.pay');
+
+    // User Transaksi/Invoice routes
+    Route::get('/transactions', [PaymentController::class, 'transactions'])->name('transactions.index');
+    Route::get('/transactions/{id}', [PaymentController::class, 'transactionDetail'])->name('transactions.show');
 
     // Success & Failed routes
     Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');

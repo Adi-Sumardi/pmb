@@ -23,8 +23,8 @@
                         <x-nav-link :href="route('pendaftar')" :active="request()->routeIs('pendaftar*')">
                             <i class="bi bi-person-lines-fill me-1"></i>{{ __('Pendaftar') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('payment.index')" :active="request()->routeIs('payment.*')">
-                            <i class="bi bi-credit-card me-1"></i>{{ __('Pembayaran') }}
+                        <x-nav-link :href="route('admin.transactions.index')" :active="request()->routeIs('transactions.*')">
+                            <i class="bi bi-file-earmark-text me-1"></i>{{ __('Transaksi') }}
                         </x-nav-link>
                     @else
                         <x-nav-link :href="route('user.dashboard')" :active="request()->routeIs('user.dashboard')">
@@ -32,6 +32,9 @@
                         </x-nav-link>
                         <x-nav-link :href="route('payment.index')" :active="request()->routeIs('payment.*')">
                             <i class="bi bi-credit-card me-1"></i>{{ __('Pembayaran') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.*')">
+                            <i class="bi bi-file-earmark-text me-1"></i>{{ __('Transaksi') }}
                         </x-nav-link>
                     @endif
                 </div>
