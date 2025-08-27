@@ -53,21 +53,61 @@
         }
 
         .logo {
-            width: 80px;
-            height: 80px;
+            width: 90px;
+            height: 90px;
             background: white;
             border-radius: 50%;
             margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+            border: 4px solid rgba(255, 255, 255, 0.9);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #667eea);
+            border-radius: 50%;
+            z-index: -1;
+            animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .logo img {
-            width: 60px;
-            height: 60px;
+            width: 65px;
+            height: 65px;
             object-fit: contain;
+            padding: 8px;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .logo:hover img {
+            transform: scale(1.05);
+        }
+
+        .logo-fallback {
+            display: none;
+            color: #667eea;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .login-title {
@@ -192,14 +232,20 @@
             }
 
             .logo {
-                width: 80px;
-                height: 80px;
+                width: 75px;
+                height: 75px;
                 margin-bottom: 15px;
+                border-width: 3px;
             }
 
             .logo img {
-                width: 38px;
-                height: 38px;
+                width: 50px;
+                height: 50px;
+                padding: 6px;
+            }
+
+            .logo-fallback {
+                font-size: 1.5rem;
             }
 
             .login-title {
@@ -214,8 +260,11 @@
             <!-- Header with Logo -->
             <div class="login-header">
                 <div class="logo">
-                    <img src="{{ asset('images/icon.png') }}" alt="YAPI Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div style="display: none; color: #667eea; font-size: 1.5rem; font-weight: bold;">YAPI</div>
+                    <img src="{{ asset('images/icon.png') }}"
+                         alt="YAPI Logo"
+                         onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="logo-fallback">YAPI</div>
                 </div>
                 <h2 class="login-title">Selamat Datang</h2>
                 <p class="login-subtitle">Silakan masuk ke akun Anda</p>
