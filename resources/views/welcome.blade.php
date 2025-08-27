@@ -897,7 +897,7 @@
 
                             <!-- Submit Button -->
                             <div class="col-12 mt-5 text-center animate-on-scroll">
-                                <button type="submit" class="btn btn-submit btn-lg px-5 py-3">
+                                <button type="submit" class="btn btn-submit btn-lg px-5 py-3 text-white">
                                     <i class="bi bi-send me-2"></i>
                                     Daftar Sekarang
                                 </button>
