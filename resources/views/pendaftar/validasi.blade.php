@@ -166,13 +166,6 @@
                     <button class="btn btn-success btn-lg me-3" onclick="downloadPDF()" id="pdfBtn">
                         <i class="fas fa-download me-2"></i>Download PDF
                     </button>
-                    <form action="{{ route('pendaftar.update', $pendaftar->id) }}" method="POST" class="d-inline">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit" class="btn btn-warning btn-lg" id="validateBtn">
-                            <i class="fas fa-check-circle me-2"></i>Validasi
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>

@@ -8,9 +8,10 @@
         body {
             background: white;
             margin: 0;
-            padding: 30mm;
+            padding: 1cm;
             font-family: 'Times New Roman', serif;
-            font-size: 12px;
+            font-size: 11px;
+            line-height: 1.2;
         }
 
         /* Reset and Base Styles */
@@ -21,12 +22,13 @@
             font-family: 'Times New Roman', serif;
             page-break-inside: avoid;
             width: 100%;
+            height: calc(100vh - 2cm);
         }
 
         /* Header Styles */
         .card-header-formal {
-            padding: 20px 30px 15px;
-            border-bottom: 3px double #000;
+            padding: 10px 15px 8px;
+            border-bottom: 2px solid #000;
         }
 
         .header-row {
@@ -36,28 +38,28 @@
         }
 
         .logo-section {
-            width: 15%;
+            width: 12%;
             text-align: center;
         }
 
         .logo-formal {
-            height: 80px;
+            height: 50px;
             width: auto;
         }
 
         .title-section {
-            width: 70%;
+            width: 76%;
             text-align: center;
-            padding: 0 15px;
+            padding: 0 10px;
         }
 
         .qr-section {
-            width: 15%;
+            width: 12%;
             text-align: center;
         }
 
         .institution-name {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             margin: 0;
             color: #000;
@@ -65,25 +67,25 @@
         }
 
         .school-name {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: bold;
-            margin: 5px 0;
+            margin: 2px 0;
             color: #000;
             text-transform: uppercase;
         }
 
         .address-text, .contact-text {
-            font-size: 12px;
-            margin: 2px 0;
+            font-size: 9px;
+            margin: 1px 0;
             color: #333;
         }
 
         .qr-code-section {
             border: 1px solid #000;
-            padding: 10px;
+            padding: 5px;
             background: #f9f9f9;
-            width: 100px;
-            height: 100px;
+            width: 60px;
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -92,23 +94,18 @@
 
         .qr-label {
             display: block;
-            font-size: 10px;
-            margin-top: 5px;
+            font-size: 8px;
+            margin-top: 3px;
             font-weight: bold;
-        }
-
-        .divider-line {
-            border: 1px solid #000;
-            margin: 15px 0 10px 0;
         }
 
         .card-title-section {
             text-align: center;
-            margin: 10px 0;
+            margin: 8px 0 5px 0;
         }
 
         .card-title {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             margin: 0;
             color: #000;
@@ -116,15 +113,15 @@
         }
 
         .academic-year {
-            font-size: 14px;
-            margin: 5px 0 0 0;
+            font-size: 12px;
+            margin: 3px 0 0 0;
             font-weight: bold;
             color: #000;
         }
 
         /* Content Styles */
         .card-content-formal {
-            padding: 20px 30px;
+            padding: 10px 15px;
         }
 
         .content-row {
@@ -133,22 +130,22 @@
         }
 
         .data-column {
-            width: 75%;
-            padding-right: 20px;
+            width: 70%;
+            padding-right: 15px;
         }
 
         .photo-column {
-            width: 25%;
+            width: 30%;
             text-align: center;
         }
 
         .data-table {
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
 
         .data-table td {
-            padding: 5px 0;
+            padding: 2px 0;
             vertical-align: top;
         }
 
@@ -156,48 +153,48 @@
             width: 35%;
             font-weight: bold;
             color: #000;
-            font-size: 14px;
+            font-size: 11px;
         }
 
         .colon-col {
-            width: 5%;
+            width: 3%;
             text-align: center;
             font-weight: bold;
         }
 
         .value-col {
-            width: 60%;
+            width: 62%;
             color: #000;
-            font-size: 14px;
+            font-size: 11px;
         }
 
         .parent-section-formal {
-            margin: 25px 0 20px 0;
-            padding-top: 15px;
+            margin: 10px 0 8px 0;
+            padding-top: 8px;
             border-top: 1px solid #ccc;
         }
 
         .section-title {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: #000;
             text-decoration: underline;
         }
 
         /* Account Info Styles */
         .account-section-formal {
-            margin-top: 20px;
-            padding: 15px;
-            border: 2px solid #007bff;
-            border-radius: 5px;
+            margin-top: 8px;
+            padding: 8px;
+            border: 1px solid #007bff;
+            border-radius: 3px;
             background-color: #f8f9fa;
         }
 
         .account-title {
             color: #007bff;
-            margin-bottom: 10px;
-            font-size: 14px;
+            margin-bottom: 5px;
+            font-size: 11px;
             font-weight: bold;
         }
 
@@ -206,25 +203,27 @@
         }
 
         .account-table td {
-            padding: 3px 0;
+            padding: 1px 0;
             vertical-align: top;
+            font-size: 10px;
         }
 
         .account-label {
-            width: 25%;
+            width: 20%;
             font-weight: bold;
         }
 
         .password-value {
             font-family: monospace;
             background-color: #e9ecef;
-            padding: 3px 6px;
-            border-radius: 3px;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 9px;
         }
 
         .account-warning {
-            margin-top: 10px;
-            font-size: 12px;
+            margin-top: 5px;
+            font-size: 9px;
             color: #6c757d;
         }
 
@@ -233,21 +232,22 @@
         }
 
         .registration-date {
-            font-size: 12px;
-            margin: 0;
+            font-size: 10px;
+            margin: 8px 0 0 0;
             color: #666;
+            text-align: right;
         }
 
         /* Photo Styles */
         .photo-section-formal {
-            margin-top: 20px;
+            margin-top: 5px;
         }
 
         .photo-frame-formal {
             border: 2px solid #000;
-            width: 120px;
-            height: 160px;
-            margin: 0 auto 10px;
+            width: 80px;
+            height: 100px;
+            margin: 0 auto 5px;
             overflow: hidden;
             background: #f9f9f9;
         }
@@ -259,7 +259,7 @@
         }
 
         .photo-label {
-            font-size: 12px;
+            font-size: 9px;
             margin: 0;
             font-weight: bold;
             color: #000;
@@ -267,9 +267,13 @@
 
         /* Footer Styles */
         .card-footer-formal {
-            padding: 20px 30px;
-            border-top: 2px solid #000;
+            padding: 8px 15px;
+            border-top: 1px solid #000;
             background: #f9f9f9;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
         }
 
         .footer-row {
@@ -278,35 +282,31 @@
         }
 
         .notes-column {
-            width: 70%;
-            padding-right: 20px;
+            width: 65%;
+            padding-right: 15px;
         }
 
         .signature-column {
-            width: 30%;
+            width: 35%;
             text-align: center;
         }
 
-        .notes-section {
-            margin-bottom: 10px;
-        }
-
         .notes-title {
-            font-size: 14px;
+            font-size: 11px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 3px;
             color: #000;
         }
 
         .notes-list {
             margin: 0;
-            padding-left: 20px;
-            font-size: 12px;
+            padding-left: 15px;
+            font-size: 9px;
             color: #333;
         }
 
         .notes-list li {
-            margin-bottom: 3px;
+            margin-bottom: 1px;
         }
 
         .signature-section {
@@ -314,8 +314,8 @@
         }
 
         .signature-place, .signature-title, .signature-name {
-            font-size: 12px;
-            margin: 5px 0;
+            font-size: 10px;
+            margin: 2px 0;
             color: #000;
         }
 
@@ -324,25 +324,37 @@
         }
 
         .signature-space {
-            height: 60px;
+            height: 40px;
             border-bottom: 1px solid #000;
-            margin: 10px 20px;
+            margin: 5px 10px;
         }
 
         .signature-name {
             font-weight: bold;
         }
 
+        /* Make card position relative for footer positioning */
+        .registration-card {
+            position: relative;
+            min-height: calc(100vh - 2cm);
+        }
+
         /* Print optimization */
         @media print {
             body {
                 margin: 0;
-                padding: 3cm;
+                padding: 1cm;
             }
 
             .registration-card {
                 box-shadow: none;
                 border: 2px solid #000;
+                height: calc(100vh - 2cm);
+            }
+
+            @page {
+                margin: 1cm;
+                size: A4;
             }
         }
     </style>
@@ -368,7 +380,6 @@
                     </div>
                 </div>
             </div>
-            <hr class="divider-line">
             <div class="card-title-section">
                 <h3 class="card-title">KARTU PENDAFTARAN CALON MURID BARU</h3>
                 <p class="academic-year">TAHUN AJARAN {{ $tahunAjaran ?? '2026/2027' }}</p>
@@ -464,11 +475,9 @@
                     </div>
 
                     <!-- Registration Date -->
-                    <div style="margin-top: 20px; text-align: right;">
-                        <p class="registration-date">
-                            Terdaftar: {{ isset($peserta->created_at) && $peserta->created_at ? \Carbon\Carbon::parse($peserta->created_at)->locale('id')->translatedFormat('d F Y') : now()->locale('id')->translatedFormat('d F Y') }}
-                        </p>
-                    </div>
+                    <p class="registration-date">
+                        Terdaftar: {{ \Carbon\Carbon::parse($peserta->created_at ?? now())->locale('id')->translatedFormat('d F Y') }}
+                    </p>
                 </div>
 
                 <!-- Right Column - Photo -->
@@ -480,7 +489,7 @@
                                      alt="Foto Calon Murid"
                                      class="student-photo-formal">
                             @else
-                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f9f9f9; font-size: 10px; text-align: center; color: #666;">
+                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f9f9f9; font-size: 8px; text-align: center; color: #666;">
                                     Foto Belum<br>Tersedia
                                 </div>
                             @endif
@@ -495,14 +504,12 @@
         <div class="card-footer-formal">
             <div class="footer-row">
                 <div class="notes-column">
-                    <div class="notes-section">
-                        <h6 class="notes-title">CATATAN PENTING:</h6>
-                        <ul class="notes-list">
-                            <li>Kartu ini wajib dibawa saat verifikasi dokumen</li>
-                            <li>Harap datang tepat waktu sesuai jadwal yang ditentukan</li>
-                            <li>Lengkapi berkas pendaftaran sebelum batas waktu</li>
-                        </ul>
-                    </div>
+                    <h6 class="notes-title">CATATAN PENTING:</h6>
+                    <ul class="notes-list">
+                        <li>Kartu ini wajib dibawa saat verifikasi dokumen</li>
+                        <li>Harap datang tepat waktu sesuai jadwal yang ditentukan</li>
+                        <li>Lengkapi berkas pendaftaran sebelum batas waktu</li>
+                    </ul>
                 </div>
                 <div class="signature-column">
                     <div class="signature-section">
@@ -520,10 +527,10 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            new QRCode(document.getElementById("qrcode"), {
+            new QRCode(document.getElementById("qrcode-{{ $peserta->no_pendaftaran }}"), {
                 text: "{{ $peserta->no_pendaftaran }}",
-                width: 80,
-                height: 80,
+                width: 50,
+                height: 50,
                 colorDark: "#000000",
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.M
