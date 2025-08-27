@@ -222,6 +222,160 @@
             border-left: 5px solid var(--primary-color);
         }
 
+        .cambridge-logo-container {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 2px solid #f8f9fa;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cambridge-logo-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(13, 110, 253, 0.05), transparent);
+            transition: left 0.8s ease;
+        }
+
+        .cambridge-logo-container:hover::before {
+            left: 100%;
+        }
+
+        .cambridge-logo-container:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary-color);
+        }
+
+        .cambridge-logo {
+            max-width: 100%;
+            height: auto;
+            max-height: 60px;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+        }
+
+        .cambridge-logo-container:hover .cambridge-logo {
+            transform: scale(1.05);
+        }
+
+        .cambridge-logo-fallback {
+            display: none;
+            background: linear-gradient(135deg, #003f7f, #0066cc);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(0, 63, 127, 0.3);
+        }
+
+        .logo-slider-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 1.5rem 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #f0f0f0;
+            overflow: hidden;
+        }
+
+        .logo-slider-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #495057;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .logo-slider {
+            overflow: hidden;
+            position: relative;
+            background: linear-gradient(90deg, rgba(255,255,255,0.9) 0%, transparent 15%, transparent 85%, rgba(255,255,255,0.9) 100%);
+            height: 70px;
+        }
+
+        .logo-track {
+            display: flex;
+            align-items: center;
+            animation: slide 25s linear infinite;
+            /* Width untuk 12 logo (6 asli + 6 duplikat) */
+            width: calc(12 * 120px);
+            height: 100%;
+        }
+
+        .logo-item {
+            flex: 0 0 auto;
+            width: 100px;
+            height: 60px;
+            margin: 0 10px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f0f0f0;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo-item img {
+            max-width: 85%;
+            max-height: 85%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-item:hover img {
+            transform: scale(1.1);
+        }
+
+        .logo-fallback {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-align: center;
+            padding: 5px;
+            display: none;
+        }
+
+        @keyframes slide {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                /* Move exactly half the width (6 logo positions) */
+                transform: translateX(calc(-6 * 120px));
+            }
+        }
+
+        .logo-slider:hover .logo-track {
+            animation-play-state: paused;
+        }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -245,6 +399,99 @@
 
             .form-header {
                 padding: 1.5rem;
+            }
+
+            .cambridge-logo-container {
+                padding: 12px;
+                min-height: 70px;
+                margin-top: 15px;
+            }
+
+            .cambridge-logo {
+                max-height: 50px;
+            }
+
+            .cambridge-logo-fallback {
+                font-size: 0.8rem;
+                padding: 10px 16px;
+            }
+
+            .logo-slider-section {
+                padding: 15px;
+                margin: 1rem 0;
+            }
+
+            .logo-slider {
+                height: 60px;
+            }
+
+            .logo-item {
+                width: 80px;
+                height: 50px;
+                margin: 0 8px;
+            }
+
+            .logo-track {
+                width: calc(12 * 96px);
+                animation-duration: 20s;
+            }
+
+            @keyframes slide {
+                0% {
+                    transform: translateX(0);
+                }
+                100% {
+                    transform: translateX(calc(-6 * 96px));
+                }
+            }
+
+            .logo-slider-title {
+                font-size: 0.8rem;
+                margin-bottom: 15px;
+            }
+
+        @media (max-width: 576px) {
+            .cambridge-logo-container {
+                padding: 10px;
+                min-height: 60px;
+            }
+
+            .cambridge-logo {
+                max-height: 40px;
+            }
+
+            .cambridge-logo-fallback {
+                font-size: 0.75rem;
+                padding: 8px 12px;
+            }
+
+            .logo-slider {
+                height: 50px;
+            }
+
+            .logo-item {
+                width: 70px;
+                height: 45px;
+                margin: 0 6px;
+            }
+
+            .logo-track {
+                width: calc(12 * 82px);
+                animation-duration: 18s;
+            }
+
+            @keyframes slide {
+                0% {
+                    transform: translateX(0);
+                }
+                100% {
+                    transform: translateX(calc(-6 * 82px));
+                }
+            }
+
+            .logo-slider-title {
+                font-size: 0.75rem;
+            }
         }
     </style>
 </head>
@@ -291,6 +538,117 @@
                         </p>
                     </div>
 
+                    <!-- Update bagian HTML Logo Partners Slider -->
+                    <div class="container-fluid p-4 pb-0">
+                        <div class="logo-slider-section animate-on-scroll">
+                            <div class="logo-slider-title">
+                                <i class="bi bi-award me-1"></i>
+                                Partner Pendidikan & Unit Sekolah
+                            </div>
+                            <div class="logo-slider">
+                                <div class="logo-track">
+                                    <!-- Set pertama (original) -->
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/cambridge.png') }}"
+                                            alt="Cambridge Assessment"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">Cambridge</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/logo-ypi.png') }}"
+                                            alt="Yayasan Pendidikan Islam"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">YPI</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/logo-yapi.png') }}"
+                                            alt="YAPI Al Azhar"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">YAPI</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/pg.png') }}"
+                                            alt="Playgroup"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">PG</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/ra.png') }}"
+                                            alt="Raudhatul Athfal"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">RA</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/igs.png') }}"
+                                            alt="Islamic Global School"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">IGS</div>
+                                    </div>
+
+                                    <!-- Set kedua (duplikat untuk seamless loop) -->
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/cambridge.png') }}"
+                                            alt="Cambridge Assessment"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">Cambridge</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/logo-ypi.png') }}"
+                                            alt="Yayasan Pendidikan Islam"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">YPI</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/logo-yapi.png') }}"
+                                            alt="YAPI Al Azhar"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">YAPI</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/pg.png') }}"
+                                            alt="Playgroup"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">PG</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/ra.png') }}"
+                                            alt="Raudhatul Athfal"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">RA</div>
+                                    </div>
+
+                                    <div class="logo-item">
+                                        <img src="{{ asset('images/igs.png') }}"
+                                            alt="Islamic Global School"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div class="logo-fallback">IGS</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Information Section -->
                     <div class="container-fluid p-4">
                         <div class="info-section animate-on-scroll">
@@ -305,10 +663,16 @@
                                     </small>
                                 </div>
                                 <div class="col-md-4 text-md-center mt-3 mt-md-0">
-                                    <div class="text-primary">
-                                        <i class="bi bi-credit-card" style="font-size: 2rem;"></i>
+                                    <div class="cambridge-logo-container">
+                                        <img src="{{ asset('images/cambridge.png') }}"
+                                            alt="Cambridge Assessment International Education"
+                                            class="cambridge-logo"
+                                            onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="cambridge-logo-fallback">
+                                            Cambridge Assessment
+                                        </div>
                                     </div>
-                                    <small class="text-muted">Pembayaran Online Tersedia</small>
                                 </div>
                             </div>
                         </div>
