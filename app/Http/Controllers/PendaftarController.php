@@ -243,7 +243,7 @@ class PendaftarController extends Controller
                 . "- Informasi akun juga tersedia di bukti PDF\n"
                 . "- Simpan informasi akun ini dengan aman\n"
                 . "- Ganti password setelah login pertama\n"
-                . "- Akun ini untuk akses sistem pembelajaran\n\n"
+                . "- Akun ini untuk akses sistem PMB lebih lanjut\n\n"
                 . "Bukti pendaftaran telah dikirimkan bersama pesan ini.\n\n"
                 . "Terima kasih,\n"
                 . "Panitia Penerimaan Murid Baru {$pendaftar->unit}";

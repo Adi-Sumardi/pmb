@@ -363,7 +363,7 @@
                 </div>
                 <div class="qr-section">
                     <div class="qr-code-section">
-                        <div id="qrcode-{{ $peserta->id }}"></div>
+                        <div id="qrcode-{{ $peserta->no_pendaftaran }}"></div>
                         <small class="qr-label">QR Code</small>
                     </div>
                 </div>
@@ -466,7 +466,7 @@
                     <!-- Registration Date -->
                     <div style="margin-top: 20px; text-align: right;">
                         <p class="registration-date">
-                            Terdaftar: {{ $peserta->created_at ? $peserta->created_at->locale('id')->translatedFormat('d F Y') : now()->locale('id')->translatedFormat('d F Y') }}
+                            Terdaftar: {{ isset($peserta->created_at) && $peserta->created_at ? \Carbon\Carbon::parse($peserta->created_at)->locale('id')->translatedFormat('d F Y') : now()->locale('id')->translatedFormat('d F Y') }}
                         </p>
                     </div>
                 </div>
@@ -520,7 +520,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            new QRCode(document.getElementById("qrcode-{{ $peserta->id }}"), {
+            new QRCode(document.getElementById("qrcode"), {
                 text: "{{ $peserta->no_pendaftaran }}",
                 width: 80,
                 height: 80,
