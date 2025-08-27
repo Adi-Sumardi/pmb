@@ -27,16 +27,32 @@
             position: relative;
         }
 
-        /* Header Styles */
-        .card-header-formal {
-            padding: 10px 15px 8px;
-            align-items: center;
-            border-bottom: 2px solid #000;
+        /* Logo Section Styles */
+        .logo-section {
+            padding: 15px 20px 10px;
+            text-align: center;
+            border-bottom: 1px solid #ccc;
         }
 
         .logo-formal {
-            height: 50px;
+            height: 60px;
             width: auto;
+            margin: 0 auto;
+            display: block;
+        }
+
+        /* Header Styles - Updated untuk positioning tengah */
+        .card-header-formal {
+            padding: 15px 20px;
+            border-bottom: 2px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header-content {
+            text-align: center;
+            width: 100%;
         }
 
         .institution-name {
@@ -64,9 +80,10 @@
         .card-title {
             font-size: 16px;
             font-weight: bold;
-            margin: 8px 0 3px 0;
+            margin: 0 0 8px 0;
             color: #000;
             text-decoration: underline;
+            text-align: center;
         }
 
         .academic-year {
@@ -74,6 +91,7 @@
             margin: 0;
             font-weight: bold;
             color: #000;
+            text-align: center;
         }
 
         /* Content Styles */
@@ -180,59 +198,6 @@
             text-align: right;
         }
 
-        /* Footer Styles */
-        .card-footer-formal {
-            padding: 8px 15px;
-            border-top: 1px solid #000;
-            background: #f9f9f9;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-
-        .notes-title {
-            font-size: 11px;
-            font-weight: bold;
-            margin-bottom: 3px;
-            color: #000;
-        }
-
-        .notes-list {
-            margin: 0;
-            padding-left: 15px;
-            font-size: 9px;
-            color: #333;
-        }
-
-        .notes-list li {
-            margin-bottom: 1px;
-        }
-
-        .signature-section {
-            text-align: center;
-        }
-
-        .signature-place, .signature-title, .signature-name {
-            font-size: 10px;
-            margin: 2px 0;
-            color: #000;
-        }
-
-        .signature-title {
-            font-weight: bold;
-        }
-
-        .signature-space {
-            height: 40px;
-            border-bottom: 1px solid #000;
-            margin: 5px 10px;
-        }
-
-        .signature-name {
-            font-weight: bold;
-        }
-
         /* Print optimization */
         @media print {
             body {
@@ -255,9 +220,14 @@
 </head>
 <body>
     <div class="registration-card">
-        <!-- Header Section -->
-        <div class="card-header-formal align-items-center">
-            <div class="text-center">
+        <!-- Logo Section -->
+        <div class="logo-section">
+            <img src="{{ public_path('images/logo.png') }}" alt="Logo YAPI" class="logo-formal">
+        </div>
+
+        <!-- Header Section - Updated untuk center alignment -->
+        <div class="card-header-formal">
+            <div class="header-content">
                 <h3 class="card-title">KARTU PENDAFTARAN CALON MURID BARU</h3>
                 <p class="academic-year">TAHUN AJARAN {{ $tahunAjaran ?? '2026/2027' }}</p>
             </div>
@@ -355,28 +325,6 @@
                     <p class="registration-date">
                         Terdaftar: {{ \Carbon\Carbon::parse($peserta->created_at ?? now())->locale('id')->translatedFormat('d F Y') }}
                     </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer Section -->
-        <div class="card-footer-formal">
-            <div class="row">
-                <div class="col-8">
-                    <h6 class="notes-title">CATATAN PENTING:</h6>
-                    <ul class="notes-list">
-                        <li>Kartu ini wajib dibawa saat verifikasi dokumen</li>
-                        <li>Harap datang tepat waktu sesuai jadwal yang ditentukan</li>
-                        <li>Lengkapi berkas pendaftaran sebelum batas waktu</li>
-                    </ul>
-                </div>
-                <div class="col-4 text-center">
-                    <div class="signature-section">
-                        <p class="signature-place">Jakarta, {{ now()->locale('id')->translatedFormat('d F Y') }}</p>
-                        <p class="signature-title">Panitia PMB</p>
-                        <div class="signature-space"></div>
-                        <p class="signature-name">Admin PMB</p>
-                    </div>
                 </div>
             </div>
         </div>
