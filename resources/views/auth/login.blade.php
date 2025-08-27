@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - YAPI PPDB</title>
+    <title>Login - YAPI PMB</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-yapi.png') }}">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -260,7 +264,7 @@
             <!-- Header with Logo -->
             <div class="login-header">
                 <div class="logo">
-                    <img src="{{ asset('images/icon.png') }}"
+                    <img src="{{ asset('images/logo-yapi.png') }}"
                          alt="YAPI Logo"
                          onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
