@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/pendaftar/{id}/validasi', [PendaftarController::class, 'validasi'])->name('pendaftar.validasi');
     Route::patch('/pendaftar/{id}', [PendaftarController::class, 'update'])->name('pendaftar.update');
     Route::delete('/pendaftar', [PendaftarController::class, 'destroy'])->name('pendaftar.destroy');
+    Route::post('/pendaftar/bulk-verify', [PendaftarController::class, 'bulkVerify'])->name('pendaftar.bulk-verify');
+    Route::delete('/pendaftar/bulk-delete', [PendaftarController::class, 'bulkDelete'])->name('pendaftar.bulk-delete');
 });
 
 // Payment routes

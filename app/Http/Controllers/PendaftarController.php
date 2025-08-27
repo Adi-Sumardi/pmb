@@ -275,4 +275,77 @@ class PendaftarController extends Controller
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
+
+    public function bulkVerify(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+
+            if (empty($ids)) {
+                return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+            }
+
+            // Update status ke diverifikasi
+            $updated = Pendaftar::whereIn('id', $ids)
+                ->where('status', 'pending')
+                ->update(['status' => 'diverifikasi']);
+
+            if ($updated > 0) {
+                return redirect()->back()->with('success', "Berhasil memverifikasi {$updated} pendaftar.");
+            } else {
+                return redirect()->back()->with('error', 'Tidak ada data yang dapat diverifikasi.');
+            }
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+
+            if (empty($ids)) {
+                return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+            }
+
+            // Hapus file terkait terlebih dahulu
+            $pendaftars = Pendaftar::whereIn('id', $ids)->get();
+
+            foreach ($pendaftars as $pendaftar) {
+                // Hapus file foto
+                if ($pendaftar->foto_murid_path && Storage::disk('public')->exists($pendaftar->foto_murid_path)) {
+                    Storage::disk('public')->delete($pendaftar->foto_murid_path);
+                }
+
+                // Hapus file akta kelahiran
+                if ($pendaftar->akta_kelahiran_path && Storage::disk('public')->exists($pendaftar->akta_kelahiran_path)) {
+                    Storage::disk('public')->delete($pendaftar->akta_kelahiran_path);
+                }
+
+                // Hapus file kartu keluarga
+                if ($pendaftar->kartu_keluarga_path && Storage::disk('public')->exists($pendaftar->kartu_keluarga_path)) {
+                    Storage::disk('public')->delete($pendaftar->kartu_keluarga_path);
+                }
+
+                // Hapus file bukti pendaftaran
+                if ($pendaftar->bukti_pendaftaran_path && Storage::disk('public')->exists($pendaftar->bukti_pendaftaran_path)) {
+                    Storage::disk('public')->delete($pendaftar->bukti_pendaftaran_path);
+                }
+            }
+
+            // Hapus data dari database
+            $deleted = Pendaftar::whereIn('id', $ids)->delete();
+
+            if ($deleted > 0) {
+                return redirect()->back()->with('deleted', "Berhasil menghapus {$deleted} pendaftar beserta file terkait.");
+            } else {
+                return redirect()->back()->with('error', 'Tidak ada data yang dapat dihapus.');
+            }
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
 }

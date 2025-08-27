@@ -32,6 +32,14 @@
             </div>
         @endif
 
+        @if(session()->has('deleted'))
+            <div class="alert alert-info alert-dismissible fade show" role="alert" id="alertDeleted">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Sukses!</strong> {{ session('deleted') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         @if(session()->has('error'))
             <div class="alert alert-danger alert-dismissible fade show" role="alert" id="alertError">
                 <i class="bi bi-exclamation-circle me-2"></i>
@@ -1110,6 +1118,167 @@
                     }
                 }
             });
+
+            if (bulkVerify) {
+            bulkVerify.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+                const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+                if (selectedIds.length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan!',
+                        text: 'Silakan pilih data yang akan diverifikasi.',
+                        confirmButtonColor: '#ffc107'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Konfirmasi Verifikasi Massal',
+                    text: `Yakin ingin memverifikasi ${selectedIds.length} pendaftar terpilih?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Verifikasi Semua!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        performBulkVerification(selectedIds);
+                    }
+                });
+            });
+        }
+
+        // Bulk delete
+        const bulkDelete = document.getElementById('bulkDelete');
+        if (bulkDelete) {
+            bulkDelete.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+                const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+                if (selectedIds.length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan!',
+                        text: 'Silakan pilih data yang akan dihapus.',
+                        confirmButtonColor: '#ffc107'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Konfirmasi Hapus Massal',
+                    text: `Yakin ingin menghapus ${selectedIds.length} pendaftar terpilih? Data yang dihapus tidak dapat dikembalikan!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Hapus Semua!',
+                    cancelButtonText: 'Batal',
+                    inputLabel: 'Ketik "HAPUS" untuk konfirmasi',
+                    input: 'text',
+                    inputPlaceholder: 'Ketik HAPUS',
+                    inputValidator: (value) => {
+                        if (value !== 'HAPUS') {
+                            return 'Ketik "HAPUS" untuk melanjutkan!';
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        performBulkDelete(selectedIds);
+                    }
+                });
+            });
+        }
+
+        // Function to perform bulk verification
+        function performBulkVerification(selectedIds) {
+            Swal.fire({
+                title: 'Memproses Verifikasi...',
+                text: 'Sedang memverifikasi data terpilih',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Create form for bulk verification
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("pendaftar.bulk-verify") }}'; // Buat route ini di Laravel
+            form.style.display = 'none';
+
+            // Add CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+
+            // Add selected IDs
+            selectedIds.forEach(id => {
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'ids[]';
+                idInput.value = id;
+                form.appendChild(idInput);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Function to perform bulk delete
+        function performBulkDelete(selectedIds) {
+            Swal.fire({
+                title: 'Menghapus Data...',
+                text: 'Sedang menghapus data terpilih',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Create form for bulk delete
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("pendaftar.bulk-delete") }}'; // Buat route ini di Laravel
+            form.style.display = 'none';
+
+            // Add CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+
+            // Add method DELETE
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'DELETE';
+            form.appendChild(methodInput);
+
+            // Add selected IDs
+            selectedIds.forEach(id => {
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'ids[]';
+                idInput.value = id;
+                form.appendChild(idInput);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
 
             // Initialize
             console.log('Initializing table with', tableRows.length, 'rows');
