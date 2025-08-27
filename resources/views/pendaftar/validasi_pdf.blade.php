@@ -31,7 +31,6 @@
         .logo-section {
             padding: 15px 20px 10px;
             text-align: center;
-            border-bottom: 1px solid #ccc;
         }
 
         .logo-formal {
