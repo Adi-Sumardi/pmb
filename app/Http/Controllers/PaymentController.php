@@ -100,12 +100,6 @@ class PaymentController extends Controller
             'amount' => 'required|numeric|min:1000000|max:10000000' // Min 1jt, Max 10jt
         ]);
 
-        // Check if in demo mode
-        // Check if in demo mode
-        if ($this->isDemoMode()) {
-            return $this->createDemoInvoice($request);
-        }
-
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)
             ->where('id', $request->pendaftar_id)
@@ -125,6 +119,11 @@ class PaymentController extends Controller
         if ($request->amount != $pendaftar->payment_amount) {
             return redirect()->route('payment.index')
                 ->with('error', 'Jumlah pembayaran tidak sesuai.');
+        }
+
+        // Check if in demo mode
+        if ($this->isDemoMode()) {
+            return $this->createDemoInvoice($request);
         }
 
         try {
@@ -269,6 +268,12 @@ class PaymentController extends Controller
                 ->with('error', 'Payment not found');
         }
 
+        // Pastikan user bisa akses payment ini
+        if (Auth::user()->id !== $payment->pendaftar->user_id && Auth::user()->role !== 'admin') {
+            return redirect()->route('payment.index')
+                ->with('error', 'Unauthorized access');
+        }
+
         $jenjangName = $this->getJenjangName($payment->pendaftar->jenjang);
 
         return view('payment.demo', compact('payment', 'jenjangName'));
@@ -276,6 +281,8 @@ class PaymentController extends Controller
 
     public function demoPayment(Request $request, $external_id)
     {
+        $action = $request->input('action', 'success');
+
         $payment = Payment::where('external_id', $external_id)->first();
 
         if (!$payment) {
@@ -283,17 +290,42 @@ class PaymentController extends Controller
                 ->with('error', 'Payment not found');
         }
 
-        // Simulate successful payment
-        $payment->update([
-            'status' => 'PAID',
-            'paid_at' => now(),
-        ]);
+        // Pastikan user bisa akses payment ini
+        if (Auth::user()->id !== $payment->pendaftar->user_id && Auth::user()->role !== 'admin') {
+            return redirect()->route('payment.index')
+                ->with('error', 'Unauthorized access');
+        }
 
-        $payment->pendaftar->update([
-            'sudah_bayar_formulir' => true
-        ]);
+        if ($action === 'success') {
+            // Simulate successful payment
+            $payment->update([
+                'status' => 'PAID',
+                'paid_at' => now(),
+                'xendit_response' => array_merge($payment->xendit_response ?? [], [
+                    'demo_payment' => true,
+                    'simulated_at' => now()->toISOString(),
+                    'payment_method' => 'DEMO_BANK_TRANSFER'
+                ])
+            ]);
 
-        return redirect()->route('payment.success');
+            $payment->pendaftar->update([
+                'sudah_bayar_formulir' => true
+            ]);
+
+            return redirect()->route('payment.success');
+        } else {
+            // Simulate failed payment
+            $payment->update([
+                'status' => 'FAILED',
+                'xendit_response' => array_merge($payment->xendit_response ?? [], [
+                    'demo_payment' => true,
+                    'simulated_at' => now()->toISOString(),
+                    'failure_reason' => 'Demo payment failed simulation'
+                ])
+            ]);
+
+            return redirect()->route('payment.failed');
+        }
     }
 
     private function formatPhoneNumber($phone)

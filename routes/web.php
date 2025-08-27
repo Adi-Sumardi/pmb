@@ -53,16 +53,18 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pendaftar/bulk-delete', [PendaftarController::class, 'bulkDelete'])->name('pendaftar.bulk-delete');
 });
 
-// Payment routes
 Route::middleware('auth')->group(function () {
-    Route::get('/pembayaran', [PaymentController::class, 'index'])->name('payment.index');
-    Route::post('/pembayaran/create-invoice', [PaymentController::class, 'createInvoice'])->name('payment.create-invoice');
-    Route::get('/pembayaran/success', [PaymentController::class, 'success'])->name('payment.success');
-    Route::get('/pembayaran/failed', [PaymentController::class, 'failed'])->name('payment.failed');
+    // Payment routes
+    Route::get('/payments', [PaymentController::class, 'index'])->name('payment.index');
+    Route::post('/payments/create-invoice', [PaymentController::class, 'createInvoice'])->name('payment.create-invoice');
 
     // Demo payment routes
     Route::get('/pembayaran/demo/{external_id}', [PaymentController::class, 'demo'])->name('payment.demo');
     Route::post('/pembayaran/demo/{external_id}/pay', [PaymentController::class, 'demoPayment'])->name('payment.demo.pay');
+
+    // Success & Failed routes
+    Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
+    Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
 });
 
 Route::post('/webhook/xendit', [PaymentController::class, 'webhook'])->name('payment.webhook');
