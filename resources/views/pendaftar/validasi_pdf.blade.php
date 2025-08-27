@@ -259,14 +259,9 @@
                             <td class="value-col">{{ \Carbon\Carbon::parse($peserta->tanggal_lahir)->locale('id')->translatedFormat('d F Y') }}</td>
                         </tr>
                         <tr>
-                            <td class="label-col">Jenjang</td>
-                            <td class="colon-col">:</td>
-                            <td class="value-col">{{ strtoupper($peserta->jenjang ?? '-') }}</td>
-                        </tr>
-                        <tr>
                             <td class="label-col">Asal Sekolah</td>
                             <td class="colon-col">:</td>
-                            <td class="value-col">{{ $peserta->asal_sekolah ?? '-' }}</td>
+                            <td class="value-col">{{ $peserta->nama_sekolah ?? '-' }}</td>
                         </tr>
                         <tr>
                             <td class="label-col">Alamat</td>

@@ -198,12 +198,14 @@ class PendaftarController extends Controller
                 'nama' => $pendaftar->nama_murid,
                 'no_pendaftaran' => $pendaftar->no_pendaftaran,
                 'nisn' => $pendaftar->nisn,
-                'asal_sekolah' => $pendaftar->asal_sekolah,
+                'nama_sekolah' => $pendaftar->nama_sekolah,
                 'tanggal_lahir' => $pendaftar->tanggal_lahir,
                 'alamat' => $pendaftar->alamat,
                 'unit' => $pendaftar->unit,
                 'nama_ayah' => $pendaftar->nama_ayah,
+                'telp_ayah' => $pendaftar->telp_ayah,
                 'nama_ibu' => $pendaftar->nama_ibu,
+                'telp_ibu' => $pendaftar->telp_ibu,
                 'foto' => basename($pendaftar->foto_murid_path ?? 'default.jpg'),
                 'email' => $email, // Tambahkan email
                 'password' => $password, // Tambahkan password

@@ -705,8 +705,13 @@
                                 <label class="form-label">
                                     <i class="bi bi-credit-card-2-front me-1"></i>NISN (opsional)
                                 </label>
-                                <input type="text" name="nisn" class="form-control"
-                                       placeholder="Nomor Induk Siswa Nasional">
+                                <input type="text" name="nisn" id="nisn" class="form-control"
+                                    placeholder="Nomor Induk Siswa Nasional (10 digit)"
+                                    maxlength="10"
+                                    pattern="[0-9]{10}"
+                                    title="NISN harus terdiri dari 10 digit angka">
+                                <div class="invalid-feedback" id="nisn-error"></div>
+                                <small class="text-muted">NISN harus tepat 10 digit angka. Kosongkan jika tidak ada.</small>
                             </div>
 
                             <div class="col-md-6 animate-on-scroll">
@@ -930,10 +935,10 @@
     <!-- Service Worker untuk PWA -->
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').then(() => {
-                console.log("Service Worker registered!");
-            });
-        }
+                navigator.serviceWorker.register('/sw.js').then(() => {
+                    console.log("Service Worker registered!");
+                });
+            }
 
         // Animation on scroll
         const observerOptions = {
@@ -1148,6 +1153,112 @@
                     }
                 }
             });
+        });
+
+        function setupNISNValidation() {
+            const nisnInput = document.getElementById('nisn');
+
+            if (nisnInput) {
+                // Only allow numbers
+                nisnInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/[^0-9]/g, '');
+                    e.target.value = value;
+
+                    // Real-time validation only if user has started typing
+                    if (value.length > 0) {
+                        if (value.length < 10) {
+                            showNISNError('NISN harus tepat 10 digit. Saat ini ' + value.length + ' digit.');
+                        } else if (value.length === 10) {
+                            clearNISNError();
+                        }
+                    } else {
+                        // If empty, clear any error
+                        clearNISNError();
+                    }
+                });
+
+                // Prevent non-numeric input
+                nisnInput.addEventListener('keypress', function(e) {
+                    if (!/[0-9]/.test(e.key) &&
+                        e.key !== 'Backspace' &&
+                        e.key !== 'Delete' &&
+                        e.key !== 'Tab' &&
+                        e.key !== 'ArrowLeft' &&
+                        e.key !== 'ArrowRight') {
+                        e.preventDefault();
+                    }
+                });
+
+                // Validation on blur (when user leaves the field)
+                nisnInput.addEventListener('blur', function(e) {
+                    const value = e.target.value.trim();
+
+                    // Only validate if user has entered something
+                    if (value.length > 0) {
+                        if (value.length !== 10) {
+                            showNISNError('NISN harus tepat 10 digit angka.');
+                        } else {
+                            clearNISNError();
+                        }
+                    } else {
+                        // If empty, it's valid (optional field)
+                        clearNISNError();
+                    }
+                });
+
+                // Validation on focus (when user clicks on the field)
+                nisnInput.addEventListener('focus', function(e) {
+                    const value = e.target.value.trim();
+
+                    // Only show validation if there's content and it's invalid
+                    if (value.length > 0 && value.length !== 10) {
+                        showNISNError('NISN harus tepat 10 digit. Saat ini ' + value.length + ' digit.');
+                    }
+                });
+            }
+        }
+
+        function showNISNError(message) {
+            const nisnInput = document.getElementById('nisn');
+            const errorDiv = document.getElementById('nisn-error');
+
+            nisnInput.classList.add('is-invalid');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function clearNISNError() {
+            const nisnInput = document.getElementById('nisn');
+            const errorDiv = document.getElementById('nisn-error');
+
+            nisnInput.classList.remove('is-invalid');
+            errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
+        }
+
+        // Form submission validation
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            const nisnInput = document.getElementById('nisn');
+            const nisnValue = nisnInput.value.trim();
+
+            // Validate NISN before submission if it's filled
+            if (nisnValue.length > 0 && nisnValue.length !== 10) {
+                e.preventDefault();
+                showNISNError('NISN harus tepat 10 digit angka atau kosongkan jika tidak ada.');
+                nisnInput.focus();
+                return false;
+            }
+
+            // Continue with original submit logic
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
+            submitBtn.disabled = true;
+        });
+
+        // Initialize all validations when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setupNISNValidation();
+            setupPhoneValidation();
         });
     }
     </script>

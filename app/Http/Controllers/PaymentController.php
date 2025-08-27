@@ -19,6 +19,14 @@ class PaymentController extends Controller
         $this->xenditApiKey = env('XENDIT_SECRET_KEY');
     }
 
+    private function isDemoMode()
+    {
+        return env('XENDIT_MODE') === 'demo' ||
+            $this->xenditApiKey === 'demo_secret_key_for_testing' ||
+            empty($this->xenditApiKey) ||
+            $this->xenditApiKey === 'your_xendit_secret_key';
+    }
+
     /**
      * Get payment amount based on jenjang
      */
@@ -93,7 +101,8 @@ class PaymentController extends Controller
         ]);
 
         // Check if in demo mode
-        if ($this->xenditApiKey === 'demo_secret_key_for_testing' || empty($this->xenditApiKey) || $this->xenditApiKey === 'your_xendit_secret_key') {
+        // Check if in demo mode
+        if ($this->isDemoMode()) {
             return $this->createDemoInvoice($request);
         }
 
