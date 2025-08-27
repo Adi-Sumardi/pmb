@@ -12,17 +12,11 @@
                                     <img src="{{ asset('images/logo.png') }}" alt="Logo YAPI" class="logo-formal">
                                 </div>
                             </div>
-                            <div class="col-8 text-center">
+                            <div class="col-10 text-center">
                                 <h4 class="institution-name">YAYASAN ASRAMA PELAJAR ISLAM</h4>
                                 <h5 class="school-name">{{ $pendaftar->unit }}</h5>
                                 <p class="address-text">Jl. Sunan Giri No. 1, Rawamangun, Jakarta Timur</p>
                                 <p class="contact-text">Telp: (021) 7984-5555 | Email: info@yapi.sch.id | https://yapi.sch.id</p>
-                            </div>
-                            <div class="col-2 text-center">
-                                <div class="qr-code-section">
-                                    <div id="qrcode-{{ $pendaftar->id }}"></div>
-                                    <small class="qr-label">QR Code</small>
-                                </div>
                             </div>
                         </div>
                         <hr class="divider-line">
@@ -528,19 +522,9 @@
         }
     </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Generate QR Code
-            new QRCode(document.getElementById("qrcode-{{ $pendaftar->id }}"), {
-                text: "{{ $pendaftar->no_pendaftaran }}",
-                width: 80,
-                height: 80,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
 
             // Print Function - FIXED
             window.printCard = function() {

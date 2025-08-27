@@ -12,7 +12,7 @@
             margin: 0;
             padding: 1cm;
             font-family: 'Times New Roman', serif;
-            font-size: 11px;
+            font-size: 12px;
             line-height: 1.2;
         }
 
@@ -23,26 +23,25 @@
             font-family: 'Times New Roman', serif;
             page-break-inside: avoid;
             width: 100%;
-            height: calc(100vh - 2cm);
-            position: relative;
-            display: flex;
-            flex-direction: column;
         }
 
-        /* Header Styles */
+        /* Header Styles - Sesuai dengan validasi.blade.php */
         .card-header-formal {
-            padding: 10px 15px 8px;
-            border-bottom: 2px solid #000;
-            flex-shrink: 0;
+            padding: 20px 30px 15px;
+            border-bottom: 3px double #000;
+        }
+
+        .logo-official {
+            text-align: center;
         }
 
         .logo-formal {
-            height: 50px;
+            height: 80px;
             width: auto;
         }
 
         .institution-name {
-            font-size: 14px;
+            font-size: 18px;
             font-weight: bold;
             margin: 0;
             color: #000;
@@ -50,189 +49,144 @@
         }
 
         .school-name {
-            font-size: 13px;
+            font-size: 16px;
             font-weight: bold;
-            margin: 2px 0;
+            margin: 5px 0;
             color: #000;
             text-transform: uppercase;
         }
 
         .address-text, .contact-text {
-            font-size: 9px;
-            margin: 1px 0;
+            font-size: 12px;
+            margin: 2px 0;
             color: #333;
         }
 
-        .qr-code-section {
+        .divider-line {
             border: 1px solid #000;
-            padding: 5px;
-            background: #f9f9f9;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            margin-left: auto;
+            margin: 15px 0 10px 0;
         }
 
-        .qr-code-img {
-            width: 50px;
-            height: 50px;
-            border: none;
-        }
-
-        .qr-label {
-            display: block;
-            font-size: 8px;
-            margin-top: 3px;
-            font-weight: bold;
+        .card-title-section {
+            text-align: center;
+            margin: 10px 0;
         }
 
         .card-title {
-            font-size: 16px;
+            font-size: 20px;
             font-weight: bold;
-            margin: 8px 0 3px 0;
+            margin: 0;
             color: #000;
             text-decoration: underline;
         }
 
         .academic-year {
-            font-size: 12px;
-            margin: 0;
+            font-size: 14px;
+            margin: 5px 0 0 0;
             font-weight: bold;
             color: #000;
         }
 
-        /* Content Styles */
+        /* Content Styles - Sesuai dengan validasi.blade.php */
         .card-content-formal {
-            padding: 15px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .content-main {
-            flex: 1;
-            display: flex;
-            gap: 15px;
-        }
-
-        .data-column {
-            flex: 1;
-        }
-
-        .photo-column {
-            width: 120px;
-            flex-shrink: 0;
-            text-align: center;
+            padding: 20px 30px;
         }
 
         .data-table {
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
 
         .data-table td {
-            padding: 3px 0;
+            padding: 5px 0;
             vertical-align: top;
         }
 
         .label-col {
-            width: 40%;
+            width: 35%;
             font-weight: bold;
             color: #000;
-            font-size: 11px;
+            font-size: 14px;
         }
 
         .colon-col {
-            width: 3%;
+            width: 5%;
             text-align: center;
             font-weight: bold;
         }
 
         .value-col {
-            width: 57%;
+            width: 60%;
             color: #000;
-            font-size: 11px;
+            font-size: 14px;
         }
 
         .parent-section-formal {
-            margin: 12px 0 10px 0;
-            padding-top: 10px;
+            margin: 25px 0 20px 0;
+            padding-top: 15px;
             border-top: 1px solid #ccc;
         }
 
         .section-title {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             color: #000;
             text-decoration: underline;
         }
 
-        /* Account Info Styles */
-        .account-section-formal {
-            margin-top: 12px;
-            padding: 10px;
-            border: 1px solid #007bff;
+        .status-section-formal {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+        }
+
+        .status-text {
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .status-badge {
+            padding: 3px 8px;
             border-radius: 3px;
-            background-color: #f8f9fa;
-        }
-
-        .account-title {
-            color: #007bff;
-            margin-bottom: 8px;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
         }
 
-        .account-table {
-            width: 100%;
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
         }
 
-        .account-table td {
-            padding: 2px 0;
-            vertical-align: top;
-            font-size: 10px;
+        .status-valid {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
-        .account-label {
-            width: 25%;
-            font-weight: bold;
-        }
-
-        .password-value {
-            font-family: monospace;
-            background-color: #e9ecef;
-            padding: 2px 4px;
-            border-radius: 2px;
-            font-size: 9px;
-        }
-
-        .account-warning {
-            margin-top: 8px;
-            font-size: 9px;
-            color: #6c757d;
-        }
-
-        .account-warning strong {
-            color: #dc3545;
+        .status-invalid {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
         .registration-date {
-            font-size: 10px;
-            margin: 15px 0 0 0;
+            font-size: 12px;
+            margin: 0;
             color: #666;
-            text-align: right;
         }
 
-        /* Photo Styles */
+        /* Photo Styles - Sesuai dengan validasi.blade.php */
+        .photo-section-formal {
+            margin-top: 20px;
+        }
+
         .photo-frame-formal {
             border: 2px solid #000;
-            width: 100px;
-            height: 130px;
-            margin: 0 auto 8px;
+            width: 120px;
+            height: 160px;
+            margin: 0 auto 10px;
             overflow: hidden;
             background: #f9f9f9;
         }
@@ -244,52 +198,39 @@
         }
 
         .photo-label {
-            font-size: 9px;
+            font-size: 12px;
             margin: 0;
             font-weight: bold;
             color: #000;
-            text-align: center;
         }
 
-        /* Footer Styles */
+        /* Footer Styles - Sesuai dengan validasi.blade.php */
         .card-footer-formal {
-            padding: 12px 15px;
-            border-top: 1px solid #000;
+            padding: 20px 30px;
+            border-top: 2px solid #000;
             background: #f9f9f9;
-            flex-shrink: 0;
-        }
-
-        .footer-content {
-            display: flex;
-            align-items: flex-start;
-            gap: 20px;
         }
 
         .notes-section {
-            flex: 1;
-        }
-
-        .signature-section-wrapper {
-            width: 200px;
-            flex-shrink: 0;
+            margin-bottom: 10px;
         }
 
         .notes-title {
-            font-size: 11px;
+            font-size: 14px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             color: #000;
         }
 
         .notes-list {
             margin: 0;
-            padding-left: 15px;
-            font-size: 9px;
+            padding-left: 20px;
+            font-size: 12px;
             color: #333;
         }
 
         .notes-list li {
-            margin-bottom: 2px;
+            margin-bottom: 3px;
         }
 
         .signature-section {
@@ -297,8 +238,8 @@
         }
 
         .signature-place, .signature-title, .signature-name {
-            font-size: 10px;
-            margin: 3px 0;
+            font-size: 12px;
+            margin: 5px 0;
             color: #000;
         }
 
@@ -307,9 +248,9 @@
         }
 
         .signature-space {
-            height: 40px;
+            height: 60px;
             border-bottom: 1px solid #000;
-            margin: 8px 10px;
+            margin: 10px 20px;
         }
 
         .signature-name {
@@ -320,17 +261,18 @@
         @media print {
             body {
                 margin: 0;
-                padding: 1cm;
+                padding: 0.5cm;
             }
 
             .registration-card {
                 box-shadow: none;
                 border: 2px solid #000;
-                height: calc(100vh - 2cm);
+                transform: scale(0.9);
+                transform-origin: top left;
             }
 
             @page {
-                margin: 1cm;
+                margin: 0.5cm;
                 size: A4;
             }
         }
@@ -340,45 +282,40 @@
             margin: 0;
         }
 
-        .col-2, .col-4, .col-8 {
+        .col-2, .col-4, .col-8, .col-10 {
             padding: 0;
         }
     </style>
 </head>
 <body>
     <div class="registration-card">
-        <!-- Header Section -->
+        <!-- Header Section - Sama persis dengan validasi.blade.php -->
         <div class="card-header-formal">
             <div class="row align-items-center">
-                <div class="col-2 text-center">
-                    <img src="{{ public_path('images/logo.png') }}" alt="Logo YAPI" class="logo-formal">
+                <div class="col-2">
+                    <div class="logo-official">
+                        <img src="{{ public_path('images/logo.png') }}" alt="Logo YAPI" class="logo-formal">
+                    </div>
                 </div>
-                <div class="col-8 text-center">
+                <div class="col-10 text-center">
                     <h4 class="institution-name">YAYASAN ASRAMA PELAJAR ISLAM</h4>
                     <h5 class="school-name">{{ $peserta->unit ?? 'YAPI SCHOOL' }}</h5>
                     <p class="address-text">Jl. Sunan Giri No. 1, Rawamangun, Jakarta Timur</p>
                     <p class="contact-text">Telp: (021) 7984-5555 | Email: info@yapi.sch.id | https://yapi.sch.id</p>
                 </div>
-                <div class="col-2 text-end">
-                    <div class="qr-code-section">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=50x50&data={{ urlencode($peserta->no_pendaftaran) }}"
-                             alt="QR Code"
-                             class="qr-code-img">
-                        <small class="qr-label">QR Code</small>
-                    </div>
-                </div>
             </div>
-            <div class="text-center">
+            <hr class="divider-line">
+            <div class="card-title-section">
                 <h3 class="card-title">KARTU PENDAFTARAN CALON MURID BARU</h3>
                 <p class="academic-year">TAHUN AJARAN {{ $tahunAjaran ?? '2026/2027' }}</p>
             </div>
         </div>
 
-        <!-- Content Section -->
+        <!-- Content Section - Sama persis dengan validasi.blade.php -->
         <div class="card-content-formal">
-            <div class="content-main">
+            <div class="row">
                 <!-- Left Column - Student Data -->
-                <div class="data-column">
+                <div class="col-8">
                     <table class="data-table">
                         <tr>
                             <td class="label-col">No. Pendaftaran</td>
@@ -388,7 +325,7 @@
                         <tr>
                             <td class="label-col">Nama Lengkap</td>
                             <td class="colon-col">:</td>
-                            <td class="value-col"><strong>{{ strtoupper($peserta->nama) }}</strong></td>
+                            <td class="value-col"><strong>{{ strtoupper($peserta->nama_murid ?? $peserta->nama) }}</strong></td>
                         </tr>
                         <tr>
                             <td class="label-col">NISN</td>
@@ -408,7 +345,7 @@
                         <tr>
                             <td class="label-col">Asal Sekolah</td>
                             <td class="colon-col">:</td>
-                            <td class="value-col">{{ $peserta->asal_sekolah ?? '-' }}</td>
+                            <td class="value-col">{{ $peserta->nama_sekolah ?? $peserta->asal_sekolah ?? '-' }}</td>
                         </tr>
                         <tr>
                             <td class="label-col">Alamat</td>
@@ -444,60 +381,64 @@
                         </table>
                     </div>
 
-                    <!-- Account Information -->
-                    <div class="account-section-formal">
-                        <h4 class="account-title">🔐 Informasi Akun Siswa</h4>
-                        <table class="account-table">
-                            <tr>
-                                <td class="account-label">Email:</td>
-                                <td>{{ $peserta->email }}</td>
-                            </tr>
-                            <tr>
-                                <td class="account-label">Password:</td>
-                                <td class="password-value">{{ $peserta->password }}</td>
-                            </tr>
-                        </table>
-                        <div class="account-warning">
-                            <strong>⚠️ Penting:</strong> Simpan informasi akun ini dengan aman. Ganti password setelah login pertama.
+                    <!-- Status and Date -->
+                    <div class="status-section-formal">
+                        <div class="row">
+                            <div class="col-6">
+                                <p class="status-text">
+                                    <strong>Status: </strong>
+                                    <span class="status-badge status-{{ $peserta->status ?? 'pending' }}">
+                                        {{ strtoupper($peserta->status ?? 'PENDING') }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="registration-date">
+                                    Terdaftar: {{ \Carbon\Carbon::parse($peserta->created_at ?? now())->locale('id')->translatedFormat('d F Y') }}
+                                </p>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Registration Date -->
-                    <p class="registration-date">
-                        Terdaftar: {{ \Carbon\Carbon::parse($peserta->created_at ?? now())->locale('id')->translatedFormat('d F Y') }}
-                    </p>
                 </div>
 
                 <!-- Right Column - Photo -->
-                <div class="photo-column">
-                    <div class="photo-frame-formal">
-                        @if($peserta->foto && $peserta->foto !== 'default.jpg')
-                            <img src="{{ public_path('storage/uploads/foto_murid/' . $peserta->foto) }}"
-                                 alt="Foto Calon Murid"
-                                 class="student-photo-formal">
-                        @else
-                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f9f9f9; font-size: 8px; text-align: center; color: #666;">
-                                Foto Belum<br>Tersedia
-                            </div>
-                        @endif
+                <div class="col-4 text-center">
+                    <div class="photo-section-formal">
+                        <div class="photo-frame-formal">
+                            @if(isset($peserta->foto_murid_path) && $peserta->foto_murid_path)
+                                <img src="{{ public_path('storage/' . $peserta->foto_murid_path) }}"
+                                     alt="Foto Calon Murid"
+                                     class="student-photo-formal">
+                            @elseif(isset($peserta->foto) && $peserta->foto && $peserta->foto !== 'default.jpg')
+                                <img src="{{ public_path('storage/uploads/foto_murid/' . $peserta->foto) }}"
+                                     alt="Foto Calon Murid"
+                                     class="student-photo-formal">
+                            @else
+                                <img src="{{ public_path('images/default-foto.jpg') }}"
+                                     alt="Foto Calon Murid"
+                                     class="student-photo-formal">
+                            @endif
+                        </div>
+                        <p class="photo-label">Foto 3x4 cm</p>
                     </div>
-                    <p class="photo-label">Foto 3x4 cm</p>
                 </div>
             </div>
         </div>
 
-        <!-- Footer Section -->
+        <!-- Footer Section - Sama persis dengan validasi.blade.php -->
         <div class="card-footer-formal">
-            <div class="footer-content">
-                <div class="notes-section">
-                    <h6 class="notes-title">CATATAN PENTING:</h6>
-                    <ul class="notes-list">
-                        <li>Kartu ini wajib dibawa saat verifikasi dokumen</li>
-                        <li>Harap datang tepat waktu sesuai jadwal yang ditentukan</li>
-                        <li>Lengkapi berkas pendaftaran sebelum batas waktu</li>
-                    </ul>
+            <div class="row">
+                <div class="col-8">
+                    <div class="notes-section">
+                        <h6 class="notes-title">CATATAN PENTING:</h6>
+                        <ul class="notes-list">
+                            <li>Kartu ini wajib dibawa saat verifikasi dokumen</li>
+                            <li>Harap datang tepat waktu sesuai jadwal yang ditentukan</li>
+                            <li>Lengkapi berkas pendaftaran sebelum batas waktu</li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="signature-section-wrapper">
+                <div class="col-4 text-center">
                     <div class="signature-section">
                         <p class="signature-place">Jakarta, {{ now()->locale('id')->translatedFormat('d F Y') }}</p>
                         <p class="signature-title">Panitia PMB</p>
