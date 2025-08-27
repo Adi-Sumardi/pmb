@@ -311,7 +311,7 @@
                                                 @if($item->foto_murid_path)
                                                     <img src="{{ asset('storage/' . $item->foto_murid_path) }}"
                                                          alt="Foto {{ $item->nama_murid }}"
-                                                         class="rounded-circle border border-2 border-primary"
+                                                         class="rounded-circle border-2 border-primary"
                                                          style="width: 50px; height: 50px; object-fit: cover;">
                                                 @else
                                                     <div class="rounded-circle bg-gradient-primary d-flex align-items-center justify-content-center text-white"
