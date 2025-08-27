@@ -10,22 +10,28 @@
         body {
             background: white;
             margin: 0;
-            padding: 1cm;
+            padding: 0.5cm;
             font-family: 'Times New Roman', serif;
             font-size: 12px;
             line-height: 1.2;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
+        /* Reset and Base Styles - SAMA dengan validasi.blade.php */
         .registration-card {
             background: white;
             border: 2px solid #000;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
             margin: 0;
             font-family: 'Times New Roman', serif;
             page-break-inside: avoid;
             width: 100%;
+            transform: scale(0.85);
+            transform-origin: top left;
         }
 
-        /* Header Styles - Sesuai dengan validasi.blade.php */
+        /* Header Styles - SAMA dengan validasi.blade.php */
         .card-header-formal {
             padding: 20px 30px 15px;
             border-bottom: 3px double #000;
@@ -62,6 +68,19 @@
             color: #333;
         }
 
+        .qr-code-section {
+            border: 1px solid #000;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+
+        .qr-label {
+            display: block;
+            font-size: 10px;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
         .divider-line {
             border: 1px solid #000;
             margin: 15px 0 10px 0;
@@ -87,7 +106,7 @@
             color: #000;
         }
 
-        /* Content Styles - Sesuai dengan validasi.blade.php */
+        /* Content Styles - SAMA dengan validasi.blade.php */
         .card-content-formal {
             padding: 20px 30px;
         }
@@ -177,7 +196,7 @@
             color: #666;
         }
 
-        /* Photo Styles - Sesuai dengan validasi.blade.php */
+        /* Photo Styles - SAMA dengan validasi.blade.php */
         .photo-section-formal {
             margin-top: 20px;
         }
@@ -204,7 +223,7 @@
             color: #000;
         }
 
-        /* Footer Styles - Sesuai dengan validasi.blade.php */
+        /* Footer Styles - SAMA dengan validasi.blade.php */
         .card-footer-formal {
             padding: 20px 30px;
             border-top: 2px solid #000;
@@ -257,39 +276,81 @@
             font-weight: bold;
         }
 
-        /* Print optimization */
+        /* Bootstrap Grid Fix untuk PDF */
+        .row {
+            margin: 0 !important;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .col-2 {
+            flex: 0 0 auto;
+            width: 16.66666667%;
+            padding: 0;
+        }
+
+        .col-4 {
+            flex: 0 0 auto;
+            width: 33.33333333%;
+            padding: 0;
+        }
+
+        .col-6 {
+            flex: 0 0 auto;
+            width: 50%;
+            padding: 0;
+        }
+
+        .col-8 {
+            flex: 0 0 auto;
+            width: 66.66666667%;
+            padding: 0;
+        }
+
+        .col-10 {
+            flex: 0 0 auto;
+            width: 83.33333333%;
+            padding: 0;
+        }
+
+        .text-center {
+            text-align: center !important;
+        }
+
+        .text-end {
+            text-align: right !important;
+        }
+
+        .align-items-center {
+            align-items: center !important;
+        }
+
+        /* Print optimization untuk 1 halaman */
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+
         @media print {
             body {
                 margin: 0;
-                padding: 0.5cm;
+                padding: 0;
+                transform: scale(0.8);
+                transform-origin: top left;
             }
 
             .registration-card {
                 box-shadow: none;
-                border: 2px solid #000;
-                transform: scale(0.9);
-                transform-origin: top left;
+                transform: scale(1);
+                margin: 0;
+                page-break-inside: avoid;
             }
-
-            @page {
-                margin: 0.5cm;
-                size: A4;
-            }
-        }
-
-        /* Remove Bootstrap margins for better fit */
-        .row {
-            margin: 0;
-        }
-
-        .col-2, .col-4, .col-8, .col-10 {
-            padding: 0;
         }
     </style>
 </head>
 <body>
     <div class="registration-card">
-        <!-- Header Section - Sama persis dengan validasi.blade.php -->
+        <!-- Header Section - SAMA PERSIS dengan validasi.blade.php -->
         <div class="card-header-formal">
             <div class="row align-items-center">
                 <div class="col-2">
@@ -307,11 +368,11 @@
             <hr class="divider-line">
             <div class="card-title-section">
                 <h3 class="card-title">KARTU PENDAFTARAN CALON MURID BARU</h3>
-                <p class="academic-year">TAHUN AJARAN {{ $tahunAjaran ?? '2026/2027' }}</p>
+                <p class="academic-year">TAHUN AJARAN 2026/2027</p>
             </div>
         </div>
 
-        <!-- Content Section - Sama persis dengan validasi.blade.php -->
+        <!-- Content Section - SAMA PERSIS dengan validasi.blade.php -->
         <div class="card-content-formal">
             <div class="row">
                 <!-- Left Column - Student Data -->
@@ -405,19 +466,9 @@
                 <div class="col-4 text-center">
                     <div class="photo-section-formal">
                         <div class="photo-frame-formal">
-                            @if(isset($peserta->foto_murid_path) && $peserta->foto_murid_path)
-                                <img src="{{ public_path('storage/' . $peserta->foto_murid_path) }}"
-                                     alt="Foto Calon Murid"
-                                     class="student-photo-formal">
-                            @elseif(isset($peserta->foto) && $peserta->foto && $peserta->foto !== 'default.jpg')
-                                <img src="{{ public_path('storage/uploads/foto_murid/' . $peserta->foto) }}"
-                                     alt="Foto Calon Murid"
-                                     class="student-photo-formal">
-                            @else
-                                <img src="{{ public_path('images/default-foto.jpg') }}"
-                                     alt="Foto Calon Murid"
-                                     class="student-photo-formal">
-                            @endif
+                            <img src="{{ asset('storage/' . ($peserta->foto_murid_path ?? 'images/default-foto.jpg')) }}"
+                                 alt="Foto Calon Murid"
+                                 class="student-photo-formal">
                         </div>
                         <p class="photo-label">Foto 3x4 cm</p>
                     </div>
@@ -425,7 +476,7 @@
             </div>
         </div>
 
-        <!-- Footer Section - Sama persis dengan validasi.blade.php -->
+        <!-- Footer Section - SAMA PERSIS dengan validasi.blade.php -->
         <div class="card-footer-formal">
             <div class="row">
                 <div class="col-8">
