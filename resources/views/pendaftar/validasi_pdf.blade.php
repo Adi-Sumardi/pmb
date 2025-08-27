@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kartu Pendaftaran Calon Murid Baru</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             background: white;
@@ -14,7 +16,6 @@
             line-height: 1.2;
         }
 
-        /* Reset and Base Styles */
         .registration-card {
             background: white;
             border: 2px solid #000;
@@ -23,39 +24,21 @@
             page-break-inside: avoid;
             width: 100%;
             height: calc(100vh - 2cm);
+            position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Header Styles */
         .card-header-formal {
             padding: 10px 15px 8px;
             border-bottom: 2px solid #000;
-        }
-
-        .header-row {
-            display: flex;
-            align-items: center;
-            width: 100%;
-        }
-
-        .logo-section {
-            width: 12%;
-            text-align: center;
+            flex-shrink: 0;
         }
 
         .logo-formal {
             height: 50px;
             width: auto;
-        }
-
-        .title-section {
-            width: 76%;
-            text-align: center;
-            padding: 0 10px;
-        }
-
-        .qr-section {
-            width: 12%;
-            text-align: center;
         }
 
         .institution-name {
@@ -90,6 +73,13 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
+            margin-left: auto;
+        }
+
+        .qr-code-img {
+            width: 50px;
+            height: 50px;
+            border: none;
         }
 
         .qr-label {
@@ -99,58 +89,57 @@
             font-weight: bold;
         }
 
-        .card-title-section {
-            text-align: center;
-            margin: 8px 0 5px 0;
-        }
-
         .card-title {
             font-size: 16px;
             font-weight: bold;
-            margin: 0;
+            margin: 8px 0 3px 0;
             color: #000;
             text-decoration: underline;
         }
 
         .academic-year {
             font-size: 12px;
-            margin: 3px 0 0 0;
+            margin: 0;
             font-weight: bold;
             color: #000;
         }
 
         /* Content Styles */
         .card-content-formal {
-            padding: 10px 15px;
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        .content-row {
+        .content-main {
+            flex: 1;
             display: flex;
-            width: 100%;
+            gap: 15px;
         }
 
         .data-column {
-            width: 70%;
-            padding-right: 15px;
+            flex: 1;
         }
 
         .photo-column {
-            width: 30%;
+            width: 120px;
+            flex-shrink: 0;
             text-align: center;
         }
 
         .data-table {
             width: 100%;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .data-table td {
-            padding: 2px 0;
+            padding: 3px 0;
             vertical-align: top;
         }
 
         .label-col {
-            width: 35%;
+            width: 40%;
             font-weight: bold;
             color: #000;
             font-size: 11px;
@@ -163,29 +152,29 @@
         }
 
         .value-col {
-            width: 62%;
+            width: 57%;
             color: #000;
             font-size: 11px;
         }
 
         .parent-section-formal {
-            margin: 10px 0 8px 0;
-            padding-top: 8px;
+            margin: 12px 0 10px 0;
+            padding-top: 10px;
             border-top: 1px solid #ccc;
         }
 
         .section-title {
             font-size: 12px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             color: #000;
             text-decoration: underline;
         }
 
         /* Account Info Styles */
         .account-section-formal {
-            margin-top: 8px;
-            padding: 8px;
+            margin-top: 12px;
+            padding: 10px;
             border: 1px solid #007bff;
             border-radius: 3px;
             background-color: #f8f9fa;
@@ -193,7 +182,7 @@
 
         .account-title {
             color: #007bff;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-size: 11px;
             font-weight: bold;
         }
@@ -203,13 +192,13 @@
         }
 
         .account-table td {
-            padding: 1px 0;
+            padding: 2px 0;
             vertical-align: top;
             font-size: 10px;
         }
 
         .account-label {
-            width: 20%;
+            width: 25%;
             font-weight: bold;
         }
 
@@ -222,7 +211,7 @@
         }
 
         .account-warning {
-            margin-top: 5px;
+            margin-top: 8px;
             font-size: 9px;
             color: #6c757d;
         }
@@ -233,21 +222,17 @@
 
         .registration-date {
             font-size: 10px;
-            margin: 8px 0 0 0;
+            margin: 15px 0 0 0;
             color: #666;
             text-align: right;
         }
 
         /* Photo Styles */
-        .photo-section-formal {
-            margin-top: 5px;
-        }
-
         .photo-frame-formal {
             border: 2px solid #000;
-            width: 80px;
-            height: 100px;
-            margin: 0 auto 5px;
+            width: 100px;
+            height: 130px;
+            margin: 0 auto 8px;
             overflow: hidden;
             background: #f9f9f9;
         }
@@ -263,38 +248,36 @@
             margin: 0;
             font-weight: bold;
             color: #000;
+            text-align: center;
         }
 
         /* Footer Styles */
         .card-footer-formal {
-            padding: 8px 15px;
+            padding: 12px 15px;
             border-top: 1px solid #000;
             background: #f9f9f9;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            flex-shrink: 0;
         }
 
-        .footer-row {
+        .footer-content {
             display: flex;
-            width: 100%;
+            align-items: flex-start;
+            gap: 20px;
         }
 
-        .notes-column {
-            width: 65%;
-            padding-right: 15px;
+        .notes-section {
+            flex: 1;
         }
 
-        .signature-column {
-            width: 35%;
-            text-align: center;
+        .signature-section-wrapper {
+            width: 200px;
+            flex-shrink: 0;
         }
 
         .notes-title {
             font-size: 11px;
             font-weight: bold;
-            margin-bottom: 3px;
+            margin-bottom: 5px;
             color: #000;
         }
 
@@ -306,7 +289,7 @@
         }
 
         .notes-list li {
-            margin-bottom: 1px;
+            margin-bottom: 2px;
         }
 
         .signature-section {
@@ -315,7 +298,7 @@
 
         .signature-place, .signature-title, .signature-name {
             font-size: 10px;
-            margin: 2px 0;
+            margin: 3px 0;
             color: #000;
         }
 
@@ -326,17 +309,11 @@
         .signature-space {
             height: 40px;
             border-bottom: 1px solid #000;
-            margin: 5px 10px;
+            margin: 8px 10px;
         }
 
         .signature-name {
             font-weight: bold;
-        }
-
-        /* Make card position relative for footer positioning */
-        .registration-card {
-            position: relative;
-            min-height: calc(100vh - 2cm);
         }
 
         /* Print optimization */
@@ -357,30 +334,41 @@
                 size: A4;
             }
         }
+
+        /* Remove Bootstrap margins for better fit */
+        .row {
+            margin: 0;
+        }
+
+        .col-2, .col-4, .col-8 {
+            padding: 0;
+        }
     </style>
 </head>
 <body>
     <div class="registration-card">
         <!-- Header Section -->
         <div class="card-header-formal">
-            <div class="header-row">
-                <div class="logo-section">
+            <div class="row align-items-center">
+                <div class="col-2 text-center">
                     <img src="{{ public_path('images/logo.png') }}" alt="Logo YAPI" class="logo-formal">
                 </div>
-                <div class="title-section">
+                <div class="col-8 text-center">
                     <h4 class="institution-name">YAYASAN ASRAMA PELAJAR ISLAM</h4>
                     <h5 class="school-name">{{ $peserta->unit ?? 'YAPI SCHOOL' }}</h5>
                     <p class="address-text">Jl. Sunan Giri No. 1, Rawamangun, Jakarta Timur</p>
                     <p class="contact-text">Telp: (021) 7984-5555 | Email: info@yapi.sch.id | https://yapi.sch.id</p>
                 </div>
-                <div class="qr-section">
+                <div class="col-2 text-end">
                     <div class="qr-code-section">
-                        <div id="qrcode-{{ $peserta->no_pendaftaran }}"></div>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=50x50&data={{ urlencode($peserta->no_pendaftaran) }}"
+                             alt="QR Code"
+                             class="qr-code-img">
                         <small class="qr-label">QR Code</small>
                     </div>
                 </div>
             </div>
-            <div class="card-title-section">
+            <div class="text-center">
                 <h3 class="card-title">KARTU PENDAFTARAN CALON MURID BARU</h3>
                 <p class="academic-year">TAHUN AJARAN {{ $tahunAjaran ?? '2026/2027' }}</p>
             </div>
@@ -388,7 +376,7 @@
 
         <!-- Content Section -->
         <div class="card-content-formal">
-            <div class="content-row">
+            <div class="content-main">
                 <!-- Left Column - Student Data -->
                 <div class="data-column">
                     <table class="data-table">
@@ -482,28 +470,26 @@
 
                 <!-- Right Column - Photo -->
                 <div class="photo-column">
-                    <div class="photo-section-formal">
-                        <div class="photo-frame-formal">
-                            @if($peserta->foto && $peserta->foto !== 'default.jpg')
-                                <img src="{{ public_path('storage/uploads/foto_murid/' . $peserta->foto) }}"
-                                     alt="Foto Calon Murid"
-                                     class="student-photo-formal">
-                            @else
-                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f9f9f9; font-size: 8px; text-align: center; color: #666;">
-                                    Foto Belum<br>Tersedia
-                                </div>
-                            @endif
-                        </div>
-                        <p class="photo-label">Foto 3x4 cm</p>
+                    <div class="photo-frame-formal">
+                        @if($peserta->foto && $peserta->foto !== 'default.jpg')
+                            <img src="{{ public_path('storage/uploads/foto_murid/' . $peserta->foto) }}"
+                                 alt="Foto Calon Murid"
+                                 class="student-photo-formal">
+                        @else
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f9f9f9; font-size: 8px; text-align: center; color: #666;">
+                                Foto Belum<br>Tersedia
+                            </div>
+                        @endif
                     </div>
+                    <p class="photo-label">Foto 3x4 cm</p>
                 </div>
             </div>
         </div>
 
         <!-- Footer Section -->
         <div class="card-footer-formal">
-            <div class="footer-row">
-                <div class="notes-column">
+            <div class="footer-content">
+                <div class="notes-section">
                     <h6 class="notes-title">CATATAN PENTING:</h6>
                     <ul class="notes-list">
                         <li>Kartu ini wajib dibawa saat verifikasi dokumen</li>
@@ -511,7 +497,7 @@
                         <li>Lengkapi berkas pendaftaran sebelum batas waktu</li>
                     </ul>
                 </div>
-                <div class="signature-column">
+                <div class="signature-section-wrapper">
                     <div class="signature-section">
                         <p class="signature-place">Jakarta, {{ now()->locale('id')->translatedFormat('d F Y') }}</p>
                         <p class="signature-title">Panitia PMB</p>
@@ -522,20 +508,5 @@
             </div>
         </div>
     </div>
-
-    <!-- QR Code Script -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            new QRCode(document.getElementById("qrcode-{{ $peserta->no_pendaftaran }}"), {
-                text: "{{ $peserta->no_pendaftaran }}",
-                width: 50,
-                height: 50,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
-        });
-    </script>
 </body>
 </html>
