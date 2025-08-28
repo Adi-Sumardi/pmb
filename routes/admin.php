@@ -2,11 +2,12 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\LogController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PendaftarController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])->group(function () {
     // Admin Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -29,13 +30,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/pendaftar/{pendaftar}/validasi', [PendaftarController::class, 'validasi'])->name('pendaftar.validasi');
     Route::patch('/pendaftar/{pendaftar}', [PendaftarController::class, 'update'])->name('pendaftar.update');
 
-    // Admin Payment Management
-    Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+    // Admin Transactions
     Route::get('/transactions', [PaymentController::class, 'adminTransactions'])->name('transactions.index');
     Route::get('/transactions/{id}', [PaymentController::class, 'adminTransactionDetail'])->name('transactions.show');
     Route::post('/transactions/{id}/confirm', [PaymentController::class, 'confirmPayment'])->name('transactions.confirm');
 
-    // Admin payment utilities
-    Route::get('/payments/debug', [PaymentController::class, 'debugPaymentMode'])->name('payments.debug');
-    Route::post('/payments/cleanup', [PaymentController::class, 'cleanupAllExpiredPayments'])->name('payments.cleanup');
+    Route::post('/test-webhook', [PaymentController::class, 'testWebhook'])->name('payment.test-webhook');
 });

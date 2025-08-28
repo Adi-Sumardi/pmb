@@ -100,4 +100,11 @@ Route::middleware('auth')->group(function () {
 // Public webhook route (no auth required)
 Route::post('/webhook/xendit', [PaymentController::class, 'webhook'])->name('payment.webhook');
 
+Route::middleware(['auth'])->prefix('admin')->group(function () {
+    Route::get('/logs', [App\Http\Controllers\LogController::class, 'viewLogs'])->name('logs.view');
+    Route::post('/logs/clear', [App\Http\Controllers\LogController::class, 'clearLogs'])->name('logs.clear');
+    Route::get('/logs/download', [App\Http\Controllers\LogController::class, 'downloadLogs'])->name('logs.download');
+    Route::get('/logs/stream', [App\Http\Controllers\LogController::class, 'streamLogs'])->name('logs.stream');
+});
+
 require __DIR__.'/auth.php';

@@ -83,9 +83,17 @@ class PaymentController extends Controller
      */
     private function isValidApiKey(): bool
     {
-        return !empty($this->xenditApiKey) &&
-               (str_starts_with($this->xenditApiKey, 'xnd_') ||
-                str_starts_with($this->xenditApiKey, 'sk_'));
+        $isValid = !empty($this->xenditApiKey) &&
+                   (str_contains($this->xenditApiKey, 'xnd_') ||
+                    str_contains($this->xenditApiKey, 'development_'));
+
+        Log::info('API Key validation', [
+            'has_key' => !empty($this->xenditApiKey),
+            'key_prefix' => substr($this->xenditApiKey ?? '', 0, 10),
+            'is_valid' => $isValid
+        ]);
+
+        return $isValid;
     }
 
     /**
@@ -192,8 +200,10 @@ class PaymentController extends Controller
     private function generateExternalId(Pendaftar $pendaftar): string
     {
         return sprintf(
-            'PPDB-%s-%d-%s',
-            $pendaftar->no_pendaftaran,
+            'PPDB-PMB%02d%02d%04d-%d-%s',
+            now()->month,
+            now()->day,
+            $pendaftar->id,
             time(),
             Str::random(6)
         );
@@ -247,6 +257,166 @@ class PaymentController extends Controller
         return $statusMap[strtoupper($xenditStatus)] ?? self::STATUS_FAILED;
     }
 
+    /**
+     * ✅ HANDLE PAYMENT SUCCESS - UPDATE STATUS & PENDAFTAR
+     */
+    private function handlePaymentSuccess(Payment $payment, array $webhookData = []): void
+    {
+        Log::info('=== HANDLING PAYMENT SUCCESS ===', [
+            'payment_id' => $payment->id,
+            'external_id' => $payment->external_id,
+            'current_status' => $payment->status,
+            'pendaftar_id' => $payment->pendaftar_id
+        ]);
+
+        DB::transaction(function() use ($payment, $webhookData) {
+            // Update payment status to PAID
+            $updateData = [
+                'status' => self::STATUS_PAID,
+                'paid_at' => now(),
+                'xendit_response' => array_merge($payment->xendit_response ?? [], $webhookData)
+            ];
+
+            $payment->update($updateData);
+
+            // Update pendaftar - mark as paid
+            $payment->pendaftar->update([
+                'sudah_bayar_formulir' => true
+            ]);
+
+            Log::info('✅ Payment success processed successfully', [
+                'payment_id' => $payment->id,
+                'external_id' => $payment->external_id,
+                'student_name' => $payment->pendaftar->nama_murid,
+                'amount' => $payment->amount,
+                'paid_at' => $payment->paid_at,
+                'pendaftar_sudah_bayar' => true
+            ]);
+        });
+    }
+
+    /**
+     * ✅ HANDLE PAYMENT FAILURE/CANCELLATION
+     */
+    private function handlePaymentFailure(Payment $payment, string $status, array $webhookData = []): void
+    {
+        Log::info('=== HANDLING PAYMENT FAILURE ===', [
+            'payment_id' => $payment->id,
+            'external_id' => $payment->external_id,
+            'new_status' => $status,
+            'current_status' => $payment->status
+        ]);
+
+        $updateData = [
+            'status' => $status,
+            'xendit_response' => array_merge($payment->xendit_response ?? [], $webhookData)
+        ];
+
+        // Set appropriate timestamp based on status
+        switch ($status) {
+            case self::STATUS_EXPIRED:
+                $updateData['expired_at'] = now();
+                break;
+            case self::STATUS_FAILED:
+            case self::STATUS_CANCELLED:
+                $updateData['failed_at'] = now();
+                break;
+        }
+
+        $payment->update($updateData);
+
+        Log::info('Payment failure processed', [
+            'payment_id' => $payment->id,
+            'external_id' => $payment->external_id,
+            'new_status' => $status,
+            'timestamp' => now()
+        ]);
+    }
+
+    /**
+     * ✅ PROCESS PAYMENT STATUS CHANGE
+     */
+    private function processPaymentStatusChange(Payment $payment, string $newStatus, array $webhookData = []): bool
+    {
+        $oldStatus = $payment->status;
+
+        // Don't update if already in final state
+        if (in_array($oldStatus, [self::STATUS_PAID, self::STATUS_FAILED, self::STATUS_CANCELLED])) {
+            Log::info('Payment already in final state, skipping update', [
+                'external_id' => $payment->external_id,
+                'current_status' => $oldStatus,
+                'attempted_status' => $newStatus
+            ]);
+            return false;
+        }
+
+        // Handle different status changes
+        switch ($newStatus) {
+            case self::STATUS_PAID:
+                $this->handlePaymentSuccess($payment, $webhookData);
+                return true;
+
+            case self::STATUS_EXPIRED:
+            case self::STATUS_FAILED:
+            case self::STATUS_CANCELLED:
+                $this->handlePaymentFailure($payment, $newStatus, $webhookData);
+                return true;
+
+            case self::STATUS_PENDING:
+                // No action needed for pending status
+                Log::info('Payment remains pending', [
+                    'external_id' => $payment->external_id
+                ]);
+                return false;
+
+            default:
+                Log::warning('Unknown payment status', [
+                    'external_id' => $payment->external_id,
+                    'status' => $newStatus
+                ]);
+                return false;
+        }
+    }
+
+    /**
+     * ✅ CHECK PAYMENT STATUS DIRECTLY FROM XENDIT API
+     */
+    private function checkPaymentStatusFromXendit(Payment $payment): void
+    {
+        if (!$payment->invoice_id) {
+            return;
+        }
+
+        try {
+            $response = Http::withBasicAuth($this->xenditApiKey, '')
+                ->timeout(10)
+                ->get($this->getXenditBaseUrl() . '/v2/invoices/' . $payment->invoice_id);
+
+            if ($response->successful()) {
+                $invoiceData = $response->json();
+                $xenditStatus = $invoiceData['status'] ?? 'PENDING';
+                $newStatus = $this->mapXenditStatus($xenditStatus);
+
+                Log::info('Checked payment status from Xendit', [
+                    'payment_id' => $payment->id,
+                    'xendit_status' => $xenditStatus,
+                    'mapped_status' => $newStatus,
+                    'current_status' => $payment->status
+                ]);
+
+                if ($newStatus !== $payment->status) {
+                    $this->processPaymentStatusChange($payment, $newStatus, $invoiceData);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error checking payment status from Xendit', [
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
     public function index()
     {
         $user = Auth::user();
@@ -279,6 +449,15 @@ class PaymentController extends Controller
 
     public function createInvoice(Request $request)
     {
+        // TAMBAHKAN DEBUG INI
+        Log::info('=== PAYMENT CREATE INVOICE CALLED ===', [
+            'request_data' => $request->all(),
+            'route_name' => request()->route()->getName(),
+            'url' => request()->url(),
+            'method' => request()->method(),
+            'user_id' => Auth::id()
+        ]);
+
         $request->validate([
             'pendaftar_id' => 'required|exists:pendaftars,id',
             'amount' => 'required|numeric|min:100000|max:10000000'
@@ -289,20 +468,35 @@ class PaymentController extends Controller
             ->where('id', $request->pendaftar_id)
             ->first();
 
+        Log::info('Pendaftar found', [
+            'pendaftar_id' => $pendaftar->id ?? 'NOT_FOUND',
+            'sudah_bayar' => $pendaftar->sudah_bayar_formulir ?? 'N/A'
+        ]);
+
         if (!$pendaftar) {
+            Log::error('Pendaftar not found');
             return back()->with('error', 'Data pendaftaran tidak ditemukan.');
         }
 
         if ($pendaftar->sudah_bayar_formulir) {
+            Log::info('Payment already completed');
             return back()->with('info', 'Pembayaran sudah lunas.');
         }
 
         if ($request->amount != $pendaftar->payment_amount) {
+            Log::error('Amount mismatch', [
+                'request_amount' => $request->amount,
+                'pendaftar_amount' => $pendaftar->payment_amount
+            ]);
             return back()->with('error', 'Jumlah pembayaran tidak sesuai.');
         }
 
+        Log::info('Starting payment creation...');
+
         // ALWAYS use Xendit - never demo
         return DB::transaction(function() use ($pendaftar) {
+            Log::info('Inside transaction for payment creation');
+
             // Cleanup expired payments first
             $this->cleanupExpiredPayments($pendaftar->id);
 
@@ -313,7 +507,7 @@ class PaymentController extends Controller
                 ->first();
 
             if ($activePendingPayment) {
-                Log::info('Redirecting to existing active payment', [
+                Log::info('Found active pending payment', [
                     'payment_id' => $activePendingPayment->id,
                     'external_id' => $activePendingPayment->external_id,
                     'invoice_url' => $activePendingPayment->invoice_url
@@ -323,6 +517,8 @@ class PaymentController extends Controller
                 return redirect()->away($activePendingPayment->invoice_url);
             }
 
+            Log::info('No active payment found, creating new Xendit invoice');
+
             // Create new Xendit invoice
             return $this->createXenditInvoice($pendaftar);
         });
@@ -330,8 +526,14 @@ class PaymentController extends Controller
 
     private function createXenditInvoice(Pendaftar $pendaftar)
     {
+        Log::info('=== CREATE XENDIT INVOICE START ===', [
+            'pendaftar_id' => $pendaftar->id,
+            'amount' => $pendaftar->payment_amount
+        ]);
+
         try {
             if (!$this->isValidApiKey()) {
+                Log::error('Invalid Xendit API Key');
                 throw new \Exception('Xendit API Key tidak valid atau tidak dikonfigurasi');
             }
 
@@ -339,14 +541,14 @@ class PaymentController extends Controller
             $externalId = $this->generateExternalId($pendaftar);
             $jenjangName = $this->getJenjangName($pendaftar->jenjang);
 
-            Log::info('Creating Real Xendit Invoice', [
+            Log::info('Xendit invoice data prepared', [
                 'external_id' => $externalId,
                 'amount' => $pendaftar->payment_amount,
                 'student' => $pendaftar->nama_murid,
-                'environment' => $this->getXenditEnvironment(),
-                'api_key_prefix' => substr($this->xenditApiKey, 0, 10) . '...'
+                'jenjang' => $jenjangName
             ]);
 
+            // Create invoice data dengan format payment methods yang benar
             $invoiceData = [
                 'external_id' => $externalId,
                 'amount' => (int)$pendaftar->payment_amount,
@@ -360,7 +562,7 @@ class PaymentController extends Controller
                 'customer' => [
                     'given_names' => $pendaftar->nama_murid,
                     'email' => $user->email,
-                    'mobile_number' => $this->formatPhoneNumber($pendaftar->telp_ayah),
+                    'mobile_number' => $this->formatPhoneNumber($pendaftar->telp_ayah ?? '08123456789'),
                     'addresses' => [
                         [
                             'city' => 'Jakarta',
@@ -371,49 +573,88 @@ class PaymentController extends Controller
                         ]
                     ]
                 ],
-                'customer_notification_preference' => [
-                    'invoice_created' => ['email'],
-                    'invoice_reminder' => ['email'],
-                    'invoice_paid' => ['email'],
-                    'invoice_expired' => ['email']
-                ],
                 'success_redirect_url' => route('payment.success'),
                 'failure_redirect_url' => route('payment.failed'),
                 'currency' => 'IDR',
-                'items' => [
-                    [
-                        'name' => 'Biaya Pendaftaran PPDB ' . $jenjangName,
-                        'quantity' => 1,
-                        'price' => (int)$pendaftar->payment_amount,
-                        'category' => 'Education',
-                        'url' => route('user.dashboard')
-                    ]
-                ],
-                'fees' => [
-                    [
-                        'type' => 'ADMIN',
-                        'value' => 0
-                    ]
-                ],
-                // Enable all payment methods
+
+                // ✅ SELALU TAMBAHKAN WEBHOOK URL
+                'webhook_url' => route('payment.webhook'),
+
+                // ✅ FORMAT PAYMENT METHODS YANG BENAR
                 'payment_methods' => [
                     'BANK_TRANSFER',
                     'CREDIT_CARD',
-                    'DEBIT_CARD',
                     'EWALLET',
                     'QR_CODE',
-                    'RETAIL_OUTLET',
-                    'CARDLESS_CREDIT'
+                    'RETAIL_OUTLET'
                 ],
+
+                // ✅ KONFIGURASI TAMBAHAN UNTUK SEMUA METODE
                 'should_exclude_credit_card' => false,
                 'should_send_email' => true,
                 'should_authenticate_credit_card' => true,
-                'locale' => 'id'
+                'locale' => 'id',
+
+                // ✅ AKTIFKAN SEMUA BANK UNTUK VA
+                'available_banks' => [
+                    [
+                        'bank_code' => 'BCA',
+                        'collection_type' => 'POOL'
+                    ],
+                    [
+                        'bank_code' => 'BNI',
+                        'collection_type' => 'POOL'
+                    ],
+                    [
+                        'bank_code' => 'BRI',
+                        'collection_type' => 'POOL'
+                    ],
+                    [
+                        'bank_code' => 'MANDIRI',
+                        'collection_type' => 'POOL'
+                    ],
+                    [
+                        'bank_code' => 'PERMATA',
+                        'collection_type' => 'POOL'
+                    ],
+                    [
+                        'bank_code' => 'CIMB',
+                        'collection_type' => 'POOL'
+                    ]
+                ],
+
+                // ✅ AKTIFKAN SEMUA E-WALLET
+                'available_ewallets' => [
+                    [
+                        'ewallet_type' => 'OVO'
+                    ],
+                    [
+                        'ewallet_type' => 'DANA'
+                    ],
+                    [
+                        'ewallet_type' => 'LINKAJA'
+                    ],
+                    [
+                        'ewallet_type' => 'SHOPEEPAY'
+                    ]
+                ],
+
+                // ✅ AKTIFKAN RETAIL OUTLETS
+                'available_retail_outlets' => [
+                    [
+                        'retail_outlet_name' => 'ALFAMART'
+                    ],
+                    [
+                        'retail_outlet_name' => 'INDOMARET'
+                    ]
+                ]
             ];
 
-            Log::info('Sending request to Xendit API', [
+            Log::info('Sending request to Xendit', [
                 'url' => $this->getXenditBaseUrl() . '/v2/invoices',
-                'external_id' => $externalId
+                'external_id' => $externalId,
+                'payment_methods' => $invoiceData['payment_methods'],
+                'webhook_url' => $invoiceData['webhook_url']
             ]);
 
             $response = Http::withBasicAuth($this->xenditApiKey, '')
@@ -424,27 +665,39 @@ class PaymentController extends Controller
                 ])
                 ->post($this->getXenditBaseUrl() . '/v2/invoices', $invoiceData);
 
+            Log::info('Xendit response received', [
+                'status' => $response->status(),
+                'successful' => $response->successful()
+            ]);
+
             if (!$response->successful()) {
                 $errorResponse = $response->json();
-                Log::error('Xendit Invoice Creation Failed', [
+                Log::error('Xendit API Error', [
                     'status' => $response->status(),
                     'response' => $errorResponse,
-                    'request_data' => $invoiceData
+                    'body' => $response->body()
                 ]);
 
                 throw new \Exception(
-                    $errorResponse['message'] ?? 'Gagal membuat invoice pembayaran: ' . $response->status()
+                    'Xendit API Error: ' . ($errorResponse['message'] ?? 'Unknown error') . ' (Status: ' . $response->status() . ')'
                 );
             }
 
             $responseData = $response->json();
 
             if (!isset($responseData['invoice_url'])) {
-                Log::error('Xendit response missing invoice_url', [
-                    'response' => $responseData
-                ]);
+                Log::error('Missing invoice_url in response', $responseData);
                 throw new \Exception('Response Xendit tidak lengkap - missing invoice_url');
             }
+
+            // Log available payment methods dari response
+            Log::info('Xendit invoice created with available payment methods', [
+                'invoice_id' => $responseData['id'],
+                'external_id' => $externalId,
+                'available_payment_methods' => $responseData['available_payment_methods'] ?? 'not_provided',
+                'available_banks' => $responseData['available_banks'] ?? 'not_provided',
+                'available_ewallets' => $responseData['available_ewallets'] ?? 'not_provided'
+            ]);
 
             // Create payment record
             $payment = Payment::create([
@@ -458,25 +711,27 @@ class PaymentController extends Controller
                 'expires_at' => now()->addHour(),
             ]);
 
-            Log::info('Xendit payment record created successfully', [
+            Log::info('Payment record created successfully', [
                 'payment_id' => $payment->id,
-                'external_id' => $externalId,
                 'invoice_url' => $responseData['invoice_url'],
-                'environment' => $this->getXenditEnvironment()
+                'available_methods' => $invoiceData['payment_methods']
+            ]);
+
+            Log::info('=== REDIRECTING TO XENDIT ===', [
+                'invoice_url' => $responseData['invoice_url']
             ]);
 
             // DIRECT REDIRECT to Xendit invoice URL
             return redirect()->away($responseData['invoice_url']);
 
         } catch (\Exception $e) {
-            Log::error('Payment Invoice Creation Error', [
+            Log::error('=== CREATE XENDIT INVOICE ERROR ===', [
                 'message' => $e->getMessage(),
                 'pendaftar_id' => $pendaftar->id,
-                'environment' => $this->getXenditEnvironment(),
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return back()->with('error', 'Terjadi kesalahan saat membuat invoice: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
@@ -484,18 +739,42 @@ class PaymentController extends Controller
     {
         $user = Auth::user();
 
-        // Get latest payment for this user
+        // Get latest payment for this user - bisa PAID atau PENDING yang baru saja dibuat
         $payment = Payment::whereHas('pendaftar', function($query) use ($user) {
             $query->where('user_id', $user->id);
         })
-        ->where('status', self::STATUS_PAID)
+        ->whereIn('status', [self::STATUS_PAID, self::STATUS_PENDING])
         ->with(['pendaftar'])
-        ->orderBy('paid_at', 'desc')
+        ->orderBy('created_at', 'desc')
         ->first();
 
         if (!$payment) {
             return redirect()->route('payment.index')
                 ->with('error', 'Data pembayaran tidak ditemukan.');
+        }
+
+        // ✅ Jika status masih PENDING, coba cek ulang status dari Xendit
+        if ($payment->status === self::STATUS_PENDING) {
+            try {
+                Log::info('Payment status is PENDING, checking from Xendit...', [
+                    'payment_id' => $payment->id,
+                    'external_id' => $payment->external_id
+                ]);
+
+                $this->checkPaymentStatusFromXendit($payment);
+                $payment->refresh(); // Refresh data payment
+
+                Log::info('Payment status after checking Xendit', [
+                    'payment_id' => $payment->id,
+                    'status' => $payment->status,
+                    'sudah_bayar_formulir' => $payment->pendaftar->sudah_bayar_formulir
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('Failed to check payment status from Xendit', [
+                    'payment_id' => $payment->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
         // Get pendaftar data
@@ -560,7 +839,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Handle payment status update from webhook
+     * ✅ UPDATED: Handle payment status update from webhook
      */
     private function handlePaymentStatusUpdate(array $data): void
     {
@@ -583,61 +862,19 @@ class PaymentController extends Controller
             throw new \Exception('Payment not found: ' . $externalId);
         }
 
-        $oldStatus = $payment->status;
+        // ✅ Use our new method for processing status change
+        $statusChanged = $this->processPaymentStatusChange($payment, $newStatus, $data);
 
-        // Don't update if already in final state
-        if (in_array($oldStatus, [self::STATUS_PAID, self::STATUS_FAILED, self::STATUS_CANCELLED])) {
-            Log::info('Payment already in final state, skipping update', [
-                'external_id' => $externalId,
-                'current_status' => $oldStatus,
-                'attempted_status' => $newStatus
-            ]);
-            return;
-        }
-
-        DB::transaction(function() use ($payment, $data, $newStatus, $oldStatus, $externalId) {
-            // Update payment record
-            $updateData = [
-                'status' => $newStatus,
-                'xendit_response' => array_merge($payment->xendit_response ?? [], $data)
-            ];
-
-            // Set timestamp based on status
-            switch ($newStatus) {
-                case self::STATUS_PAID:
-                    $updateData['paid_at'] = now();
-                    break;
-                case self::STATUS_EXPIRED:
-                    $updateData['expired_at'] = now();
-                    break;
-                case self::STATUS_FAILED:
-                case self::STATUS_CANCELLED:
-                    $updateData['failed_at'] = now();
-                    break;
-            }
-
-            $payment->update($updateData);
-
-            // Update pendaftar status if payment is successful
-            if ($newStatus === self::STATUS_PAID) {
-                $payment->pendaftar->update(['sudah_bayar_formulir' => true]);
-
-                Log::info('Payment marked as paid', [
-                    'external_id' => $externalId,
-                    'payment_id' => $payment->id,
-                    'student' => $payment->pendaftar->nama_murid,
-                    'amount' => $payment->amount
-                ]);
-            }
-
-            Log::info('Payment status updated successfully', [
+        if ($statusChanged) {
+            Log::info('Payment status updated successfully via webhook', [
                 'external_id' => $externalId,
                 'payment_id' => $payment->id,
-                'old_status' => $oldStatus,
+                'old_status' => $payment->getOriginal('status'),
                 'new_status' => $newStatus,
-                'student' => $payment->pendaftar->nama_murid
+                'student' => $payment->pendaftar->nama_murid,
+                'sudah_bayar_formulir' => $payment->pendaftar->sudah_bayar_formulir
             ]);
-        });
+        }
     }
 
     /**
@@ -645,16 +882,31 @@ class PaymentController extends Controller
      */
     public function webhook(Request $request)
     {
-        Log::info('Webhook received', [
+        Log::info('=== WEBHOOK RECEIVED ===', [
             'headers' => $request->headers->all(),
             'body' => $request->all(),
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
             'environment' => $this->getXenditEnvironment()
         ]);
 
-        // Always handle as production webhook (no demo handling)
-        return $this->handleProductionWebhook($request);
+        try {
+            // Always handle as production webhook
+            return $this->handleProductionWebhook($request);
+        } catch (\Exception $e) {
+            Log::error('=== WEBHOOK ERROR ===', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'error' => 'Webhook processing failed',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -662,18 +914,23 @@ class PaymentController extends Controller
      */
     private function handleProductionWebhook(Request $request)
     {
-        Log::info('Processing webhook', [
-            'environment' => $this->getXenditEnvironment()
+        Log::info('=== PROCESSING WEBHOOK ===', [
+            'environment' => $this->getXenditEnvironment(),
+            'data' => $request->all()
         ]);
 
-        // Verify webhook signature only for live environment
-        if ($this->getXenditEnvironment() === 'live' && !$this->verifyWebhookSignature($request)) {
-            Log::warning('Unauthorized webhook attempt', [
-                'received_token' => $request->header('x-callback-token'),
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent()
-            ]);
-            return response()->json(['error' => 'Unauthorized'], 401);
+        // Untuk testing, skip signature verification jika development
+        if ($this->getXenditEnvironment() === 'live') {
+            if (!$this->verifyWebhookSignature($request)) {
+                Log::warning('Unauthorized webhook attempt', [
+                    'received_token' => $request->header('x-callback-token'),
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+        } else {
+            Log::info('Skipping signature verification for test environment');
         }
 
         $data = $request->all();
@@ -687,7 +944,7 @@ class PaymentController extends Controller
         try {
             $this->handlePaymentStatusUpdate($data);
 
-            Log::info('Webhook processed successfully', [
+            Log::info('=== WEBHOOK PROCESSED SUCCESSFULLY ===', [
                 'external_id' => $data['external_id'],
                 'status' => $data['status'],
                 'environment' => $this->getXenditEnvironment()
@@ -699,7 +956,7 @@ class PaymentController extends Controller
                 'environment' => $this->getXenditEnvironment()
             ]);
         } catch (\Exception $e) {
-            Log::error('Webhook processing failed', [
+            Log::error('=== WEBHOOK PROCESSING FAILED ===', [
                 'error' => $e->getMessage(),
                 'data' => $data,
                 'trace' => $e->getTraceAsString()
@@ -773,17 +1030,61 @@ class PaymentController extends Controller
     /**
      * Admin methods for payment management
      */
-    public function adminTransactions()
+    public function adminTransactions(Request $request)
     {
         if (!Auth::user() || Auth::user()->role !== 'admin') {
             abort(403, 'Unauthorized');
         }
 
-        $payments = Payment::with(['pendaftar.user'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        // Build query dengan filter
+        $query = Payment::with(['pendaftar.user']);
 
-        return view('admin.transactions.index', compact('payments'));
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by jenjang
+        if ($request->filled('jenjang')) {
+            $query->whereHas('pendaftar', function($q) use ($request) {
+                $q->where('jenjang', $request->jenjang);
+            });
+        }
+
+        // Filter by date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Search by name or registration number
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('pendaftar', function($q) use ($search) {
+                $q->where('nama_murid', 'like', "%{$search}%")
+                  ->orWhere('no_pendaftaran', 'like', "%{$search}%");
+            });
+        }
+
+        $payments = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        // Calculate statistics
+        $stats = [
+            'total_transactions' => Payment::count(),
+            'paid_transactions' => Payment::where('status', self::STATUS_PAID)->count(),
+            'pending_transactions' => Payment::where('status', self::STATUS_PENDING)->count(),
+            'failed_transactions' => Payment::whereIn('status', [
+                self::STATUS_FAILED,
+                self::STATUS_EXPIRED,
+                self::STATUS_CANCELLED
+            ])->count(),
+            'total_revenue' => Payment::where('status', self::STATUS_PAID)->sum('amount')
+        ];
+
+        return view('transactions.admin.index', compact('payments', 'stats'));
     }
 
     public function adminTransactionDetail($id)
@@ -795,9 +1096,12 @@ class PaymentController extends Controller
         $payment = Payment::with(['pendaftar.user'])->findOrFail($id);
         $jenjangName = $this->getJenjangName($payment->pendaftar->jenjang);
 
-        return view('admin.transactions.show', compact('payment', 'jenjangName'));
+        return view('transactions.admin.show', compact('payment', 'jenjangName'));
     }
 
+    /**
+     * ✅ UPDATED: Admin confirm payment using our new method
+     */
     public function confirmPayment(Request $request, $id)
     {
         if (!Auth::user() || Auth::user()->role !== 'admin') {
@@ -810,19 +1114,15 @@ class PaymentController extends Controller
             return back()->with('info', 'Payment already confirmed');
         }
 
-        DB::transaction(function() use ($payment) {
-            $payment->update([
-                'status' => self::STATUS_PAID,
-                'paid_at' => now(),
-                'xendit_response' => array_merge($payment->xendit_response ?? [], [
-                    'admin_confirmed' => true,
-                    'confirmed_by' => Auth::id(),
-                    'confirmed_at' => now()->toISOString()
-                ])
-            ]);
+        // ✅ Use our new method for consistency
+        $adminData = [
+            'admin_confirmed' => true,
+            'confirmed_by' => Auth::id(),
+            'confirmed_at' => now()->toISOString(),
+            'confirmation_source' => 'admin_manual'
+        ];
 
-            $payment->pendaftar->update(['sudah_bayar_formulir' => true]);
-        });
+        $this->handlePaymentSuccess($payment, $adminData);
 
         Log::info('Payment manually confirmed by admin', [
             'payment_id' => $payment->id,
@@ -831,6 +1131,76 @@ class PaymentController extends Controller
         ]);
 
         return back()->with('success', 'Payment confirmed successfully');
+    }
+
+    /**
+     * ✅ MANUAL TEST UNTUK MARK PAYMENT AS SUCCESS (untuk testing)
+     */
+    public function testPaymentSuccess(Request $request)
+    {
+        if (!Auth::user() || Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+
+        $externalId = $request->input('external_id');
+
+        if (!$externalId) {
+            return response()->json(['error' => 'external_id required'], 400);
+        }
+
+        $payment = Payment::where('external_id', $externalId)->first();
+
+        if (!$payment) {
+            return response()->json(['error' => 'Payment not found'], 404);
+        }
+
+        if ($payment->status === self::STATUS_PAID) {
+            return response()->json(['error' => 'Payment already paid'], 400);
+        }
+
+        // Simulate success webhook data
+        $testData = [
+            'external_id' => $externalId,
+            'status' => 'PAID',
+            'paid_amount' => $payment->amount,
+            'paid_at' => now()->toISOString(),
+            'payment_method' => 'BANK_TRANSFER',
+            'payment_channel' => 'BCA',
+            'test_mode' => true,
+            'manual_test' => true,
+            'tested_by' => Auth::id()
+        ];
+
+        Log::info('=== MANUAL PAYMENT SUCCESS TEST ===', [
+            'external_id' => $externalId,
+            'payment_id' => $payment->id,
+            'admin_id' => Auth::id()
+        ]);
+
+        try {
+            $this->handlePaymentSuccess($payment, $testData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment marked as success',
+                'payment_id' => $payment->id,
+                'external_id' => $externalId,
+                'student_name' => $payment->pendaftar->nama_murid,
+                'amount' => $payment->amount,
+                'paid_at' => $payment->fresh()->paid_at,
+                'sudah_bayar_formulir' => $payment->pendaftar->fresh()->sudah_bayar_formulir
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Manual payment success test failed', [
+                'error' => $e->getMessage(),
+                'external_id' => $externalId
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to mark payment as success',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -844,8 +1214,6 @@ class PaymentController extends Controller
 
         return response()->json([
             'APP_ENV' => env('APP_ENV'),
-            'XENDIT_MODE' => env('XENDIT_MODE'),
-            'PAYMENT_MODE' => env('PAYMENT_MODE'),
             'API_KEY_PREFIX' => substr($this->xenditApiKey ?? '', 0, 15) . '...',
             'xendit_environment' => $this->getXenditEnvironment(),
             'hasValidApiKey' => $this->isValidApiKey(),
