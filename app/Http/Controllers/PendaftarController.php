@@ -97,13 +97,13 @@ class PendaftarController extends Controller
     private function getPaymentAmount($jenjang)
     {
         $paymentAmounts = [
-            'sanggar' => 3250000,
-            'kelompok' => 3250000,
-            'tka' => 3550000,
-            'tkb' => 3550000,
-            'sd' => 4250000,
-            'smp' => 4550000,
-            'sma' => 5250000,
+            'sanggar' => 325000,
+            'kelompok' => 325000,
+            'tka' => 355000,
+            'tkb' => 355000,
+            'sd' => 425000,
+            'smp' => 455000,
+            'sma' => 525000,
         ];
 
         return $paymentAmounts[$jenjang] ?? 0;

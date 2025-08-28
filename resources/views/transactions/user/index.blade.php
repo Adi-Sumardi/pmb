@@ -74,7 +74,7 @@
                                             <tr>
                                                 <th>External ID</th>
                                                 <th>Nama Murid</th>
-                                                <th>Jenjang</th>
+                                                <th>Unit</th>
                                                 <th>Amount</th>
                                                 <th>Status</th>
                                                 <th>Tanggal</th>
@@ -92,7 +92,7 @@
                                                     <small class="text-muted">{{ $payment->pendaftar->no_pendaftaran }}</small>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-info">{{ strtoupper($payment->pendaftar->jenjang) }}</span>
+                                                    <span class="badge bg-info">{{ strtoupper($payment->pendaftar->unit) }}</span>
                                                 </td>
                                                 <td class="fw-bold text-success">
                                                     Rp {{ number_format($payment->amount, 0, ',', '.') }}

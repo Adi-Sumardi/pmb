@@ -20,6 +20,23 @@
     <div class="container-fluid py-4">
         <div class="row justify-content-center">
             <div class="col-lg-8">
+                @php
+                    // Use payment->pendaftar if $pendaftar is not defined
+                    $pendaftar = $pendaftar ?? $payment->pendaftar;
+                @endphp
+
+                <!-- Success Alert -->
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+                        <div>
+                            <h5 class="alert-heading mb-1">Pembayaran Berhasil!</h5>
+                            <p class="mb-0">Terima kasih, pembayaran formulir pendaftaran PPDB telah berhasil diverifikasi.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
                 <!-- Invoice Card -->
                 <div class="card border-0 shadow-lg" id="invoice-content">
                     <div class="card-body p-5">
@@ -47,16 +64,16 @@
                                     </div>
                                 </div>
                                 <div class="text-muted small">
-                                    <div><strong>No. Invoice:</strong> INV-{{ date('Ymd') }}-{{ str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT) }}</div>
-                                    <div><strong>Tanggal:</strong> {{ now()->format('d F Y') }}</div>
-                                    <div><strong>Waktu:</strong> {{ now()->format('H:i') }} WIB</div>
+                                    <div><strong>No. Invoice:</strong> {{ $payment->external_id }}</div>
+                                    <div><strong>Tanggal:</strong> {{ $payment->paid_at->format('d F Y') }}</div>
+                                    <div><strong>Waktu:</strong> {{ $payment->paid_at->format('H:i') }} WIB</div>
                                 </div>
                             </div>
                         </div>
 
                         <hr class="my-4">
 
-                        <!-- Customer Info -->
+                        <!-- Customer & Student Info -->
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <h6 class="fw-bold text-dark mb-2">
@@ -65,19 +82,19 @@
                                 <div class="bg-light rounded p-3">
                                     <div class="mb-2"><strong>Nama:</strong> {{ Auth::user()->name }}</div>
                                     <div class="mb-2"><strong>Email:</strong> {{ Auth::user()->email }}</div>
-                                    <div class="mb-2"><strong>No. HP:</strong> {{ Auth::user()->phone ?? '-' }}</div>
-                                    <div><strong>ID Pendaftar:</strong> USR-{{ str_pad(Auth::user()->id, 6, '0', STR_PAD_LEFT) }}</div>
+                                    <div class="mb-2"><strong>No. Pendaftaran:</strong> {{ $pendaftar->no_pendaftaran }}</div>
+                                    <div><strong>ID User:</strong> USR-{{ str_pad(Auth::user()->id, 6, '0', STR_PAD_LEFT) }}</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <h6 class="fw-bold text-dark mb-2">
-                                    <i class="bi bi-building me-1"></i>Informasi Sekolah
+                                    <i class="bi bi-person-badge me-1"></i>Informasi Calon Siswa
                                 </h6>
                                 <div class="bg-light rounded p-3">
-                                    <div class="mb-2"><strong>Yayasan:</strong> YAPI (Yayasan Administrasi Pendidikan Indonesia)</div>
-                                    <div class="mb-2"><strong>Jenjang:</strong> SMP & SMA</div>
-                                    <div class="mb-2"><strong>Tahun Ajaran:</strong> {{ date('Y') }}/{{ date('Y') + 1 }}</div>
-                                    <div><strong>Gelombang:</strong> I (Satu)</div>
+                                    <div class="mb-2"><strong>Nama Siswa:</strong> {{ $pendaftar->nama_murid }}</div>
+                                    <div class="mb-2"><strong>Unit:</strong> {{ $pendaftar->unit }}</div>
+                                    <div class="mb-2"><strong>Jenjang:</strong> {{ $jenjangName ?? strtoupper($pendaftar->jenjang) }}</div>
+                                    <div><strong>Tahun Ajaran:</strong> {{ date('Y') }}/{{ date('Y') + 1 }}</div>
                                 </div>
                             </div>
                         </div>
@@ -102,18 +119,18 @@
                                         <tr>
                                             <td class="text-center">1</td>
                                             <td>
-                                                <div class="fw-semibold">Formulir Pendaftaran PPDB</div>
-                                                <small class="text-muted">Biaya administrasi formulir pendaftaran peserta didik baru</small>
+                                                <div class="fw-semibold">Formulir Pendaftaran PPDB {{ strtoupper($pendaftar->jenjang) }}</div>
+                                                <small class="text-muted">{{ $pendaftar->unit }} - Biaya administrasi formulir pendaftaran</small>
                                             </td>
                                             <td class="text-center">1</td>
-                                            <td class="text-end">Rp 150.000</td>
-                                            <td class="text-end fw-bold">Rp 150.000</td>
+                                            <td class="text-end">{{ $payment->formatted_amount }}</td>
+                                            <td class="text-end fw-bold">{{ $payment->formatted_amount }}</td>
                                         </tr>
                                     </tbody>
                                     <tfoot>
                                         <tr class="table-light">
                                             <td colspan="4" class="text-end fw-bold">Subtotal:</td>
-                                            <td class="text-end fw-bold">Rp 150.000</td>
+                                            <td class="text-end fw-bold">{{ $payment->formatted_amount }}</td>
                                         </tr>
                                         <tr class="table-light">
                                             <td colspan="4" class="text-end fw-bold">Admin Fee:</td>
@@ -121,7 +138,7 @@
                                         </tr>
                                         <tr class="table-success">
                                             <td colspan="4" class="text-end fw-bold h5 mb-0">TOTAL PEMBAYARAN:</td>
-                                            <td class="text-end fw-bold h5 mb-0 text-success">Rp 150.000</td>
+                                            <td class="text-end fw-bold h5 mb-0 text-success">{{ $payment->formatted_amount }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -136,10 +153,27 @@
                                 </h6>
                                 <div class="bg-light rounded p-3">
                                     <div class="d-flex align-items-center">
-                                        <i class="bi bi-wallet2 text-primary me-2 fs-4"></i>
+                                        @php
+                                            $paymentMethod = $payment->xendit_response['payment_method'] ?? 'payment_gateway';
+                                            $icon = match(strtolower($paymentMethod)) {
+                                                'credit_card' => 'bi-credit-card',
+                                                'bank_transfer' => 'bi-bank',
+                                                'ewallet' => 'bi-wallet2',
+                                                'qr_code', 'qris' => 'bi-qr-code',
+                                                default => 'bi-wallet2'
+                                            };
+                                            $methodName = match(strtolower($paymentMethod)) {
+                                                'credit_card' => 'Kartu Kredit',
+                                                'bank_transfer' => 'Transfer Bank',
+                                                'ewallet' => 'E-Wallet',
+                                                'qr_code', 'qris' => 'QRIS',
+                                                default => ucfirst(str_replace('_', ' ', $paymentMethod))
+                                            };
+                                        @endphp
+                                        <i class="{{ $icon }} text-primary me-2 fs-4"></i>
                                         <div>
-                                            <div class="fw-semibold">Transfer Bank / E-Wallet</div>
-                                            <small class="text-muted">Via Payment Gateway</small>
+                                            <div class="fw-semibold">{{ $methodName }}</div>
+                                            <small class="text-muted">Via Payment Gateway {{ $payment->xendit_response['demo_mode'] ?? false ? '(Demo)' : 'Xendit' }}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -153,7 +187,7 @@
                                         <i class="bi bi-check-circle-fill text-success me-2 fs-4"></i>
                                         <div>
                                             <div class="fw-semibold text-success">PEMBAYARAN BERHASIL</div>
-                                            <small class="text-success">Terverifikasi pada {{ now()->format('d/m/Y H:i') }}</small>
+                                            <small class="text-success">Terverifikasi pada {{ $payment->paid_at->format('d/m/Y H:i') }}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -167,7 +201,10 @@
                                     <h6 class="fw-bold text-primary mb-1">
                                         <i class="bi bi-hash me-1"></i>ID Transaksi
                                     </h6>
-                                    <div class="font-monospace fw-bold">TXN-{{ strtoupper(uniqid()) }}</div>
+                                    <div class="font-monospace fw-bold">{{ $payment->external_id }}</div>
+                                    @if($payment->invoice_id)
+                                        <small class="text-muted">{{ $payment->xendit_response['demo_mode'] ?? false ? 'Demo' : 'Xendit' }} Invoice ID: {{ $payment->invoice_id }}</small>
+                                    @endif
                                 </div>
                                 <div class="col-md-4 text-md-end">
                                     <div class="text-muted small">Reference ID untuk customer service</div>
@@ -175,18 +212,58 @@
                             </div>
                         </div>
 
-                        <!-- Important Notes -->
+                        <!-- Next Steps -->
                         <div class="alert alert-info" role="alert">
                             <h6 class="fw-bold mb-2">
-                                <i class="bi bi-info-circle me-1"></i>Informasi Penting
+                                <i class="bi bi-list-check me-1"></i>Langkah Selanjutnya
                             </h6>
-                            <ul class="mb-0 small">
-                                <li>Invoice ini adalah bukti pembayaran yang sah</li>
-                                <li>Simpan invoice ini untuk keperluan administrasi</li>
-                                <li>Dengan pembayaran ini, Anda dapat melanjutkan proses pendaftaran</li>
-                                <li>Akses menu <strong>"Kelengkapan Data"</strong> untuk melengkapi formulir pendaftaran</li>
-                                <li>Hubungi customer service jika ada pertanyaan: <strong>+62 812-3456-7890</strong></li>
-                            </ul>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul class="mb-0 small">
+                                        <li class="mb-1">✅ Pembayaran formulir berhasil diverifikasi</li>
+                                        <li class="mb-1">📝 Akses menu <strong>"Kelengkapan Data"</strong> di dashboard</li>
+                                        <li class="mb-1">📋 Lengkapi semua formulir pendaftaran</li>
+                                        <li class="mb-1">📤 Submit data untuk review admin</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="mb-0 small">
+                                        <li class="mb-1">⏰ Tunggu proses verifikasi (1-3 hari kerja)</li>
+                                        <li class="mb-1">📧 Cek email untuk notifikasi status</li>
+                                        <li class="mb-1">💬 Hubungi CS jika ada pertanyaan</li>
+                                        <li class="mb-1">🎓 Siap mengikuti tahap selanjutnya</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Info -->
+                        <div class="alert alert-warning" role="alert">
+                            <h6 class="fw-bold mb-2">
+                                <i class="bi bi-headset me-1"></i>Butuh Bantuan?
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-whatsapp text-success me-2"></i>
+                                        <span><strong>WhatsApp:</strong> +62 812-3456-7890</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-envelope text-primary me-2"></i>
+                                        <span><strong>Email:</strong> support@ppdb-yapi.com</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-telephone text-info me-2"></i>
+                                        <span><strong>Telepon:</strong> (021) 1234-5678</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-clock text-warning me-2"></i>
+                                        <span><strong>Jam Kerja:</strong> 08:00 - 17:00 WIB</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Footer -->
@@ -194,7 +271,14 @@
                             <div class="mb-2">
                                 <strong>PPDB YAPI - Sistem Informasi Penerimaan Peserta Didik Baru</strong>
                             </div>
-                            <div>Invoice dibuat secara otomatis pada {{ now()->format('d F Y, H:i:s') }} WIB</div>
+                            <div>Invoice dibuat secara otomatis pada {{ $payment->paid_at->format('d F Y, H:i:s') }} WIB</div>
+                            <div class="mt-2">
+                                <span class="badge bg-secondary">Dokumen Digital</span>
+                                <span class="badge bg-success">Terverifikasi</span>
+                                @if($payment->xendit_response['demo_mode'] ?? false)
+                                    <span class="badge bg-warning">Demo Mode</span>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -206,6 +290,11 @@
                             <a href="{{ route('user.dashboard') }}" class="btn btn-primary btn-lg">
                                 <i class="bi bi-house-door me-2"></i>Kembali ke Dashboard
                             </a>
+                            @if(!$pendaftar->sudah_bayar_formulir)
+                                <a href="{{ route('user.data') }}" class="btn btn-success btn-lg">
+                                    <i class="bi bi-clipboard-check me-2"></i>Lengkapi Data
+                                </a>
+                            @endif
                             <a href="{{ route('transactions.index') }}" class="btn btn-outline-primary btn-lg">
                                 <i class="bi bi-receipt me-2"></i>Riwayat Pembayaran
                             </a>
@@ -213,7 +302,7 @@
                                 <i class="bi bi-printer me-2"></i>Print Invoice
                             </button>
                             <button onclick="sendToWhatsApp()" class="btn btn-success btn-lg">
-                                <i class="bi bi-whatsapp me-2"></i>Kirim ke WhatsApp
+                                <i class="bi bi-whatsapp me-1"></i>Kirim ke WhatsApp
                             </button>
                         </div>
                     </div>
@@ -237,7 +326,7 @@
                 top: 0;
                 width: 100% !important;
             }
-            .btn, .header, .navigation {
+            .btn, .header, .navigation, .alert {
                 display: none !important;
             }
         }
@@ -254,6 +343,18 @@
         .invoice-number {
             font-size: 1.5rem;
             letter-spacing: 2px;
+        }
+
+        .alert {
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            border-left-color: var(--bs-info);
+        }
+
+        .alert-warning {
+            border-left-color: var(--bs-warning);
         }
     </style>
 
@@ -273,47 +374,64 @@
         function generateWhatsAppMessage() {
             const userName = '{{ Auth::user()->name }}';
             const userEmail = '{{ Auth::user()->email }}';
-            const invoiceNumber = 'INV-{{ date("Ymd") }}-{{ str_pad(rand(1, 9999), 4, "0", STR_PAD_LEFT) }}';
-            const transactionId = 'TXN-{{ strtoupper(uniqid()) }}';
-            const date = '{{ now()->format("d F Y") }}';
-            const time = '{{ now()->format("H:i") }}';
+            const studentName = '{{ $pendaftar->nama_murid }}';
+            const unit = '{{ $pendaftar->unit }}';
+            const jenjang = '{{ strtoupper($pendaftar->jenjang) }}';
+            const noPendaftaran = '{{ $pendaftar->no_pendaftaran }}';
+            const invoiceNumber = '{{ $payment->external_id }}';
+            const amount = '{{ $payment->formatted_amount }}';
+            const date = '{{ $payment->paid_at->format("d F Y") }}';
+            const time = '{{ $payment->paid_at->format("H:i") }}';
 
             return `🧾 *INVOICE PEMBAYARAN PPDB YAPI*
 
 ✅ *STATUS: LUNAS*
 
 👤 *INFORMASI PENDAFTAR:*
-• Nama: ${userName}
+• Nama Wali: ${userName}
 • Email: ${userEmail}
+• Nama Siswa: ${studentName}
+• No. Pendaftaran: ${noPendaftaran}
+• Unit: ${unit}
+• Jenjang: ${jenjang}
+
+📋 *RINCIAN PEMBAYARAN:*
+• Item: Formulir Pendaftaran PPDB ${jenjang}
+• Jumlah: ${amount}
+• Status: LUNAS ✅
 • Tanggal: ${date}
 • Waktu: ${time} WIB
 
-📋 *RINCIAN PEMBAYARAN:*
-• Item: Formulir Pendaftaran PPDB
-• Jumlah: Rp 150.000
-• Status: LUNAS
-
 🔖 *DETAIL TRANSAKSI:*
 • No. Invoice: ${invoiceNumber}
-• Transaction ID: ${transactionId}
-• Metode: Transfer Bank/E-Wallet
+• Payment Gateway: {{ $payment->xendit_response['demo_mode'] ?? false ? 'Demo' : 'Xendit' }}
 
 📝 *LANGKAH SELANJUTNYA:*
-✓ Pembayaran berhasil diverifikasi
-✓ Akses menu "Kelengkapan Data" di dashboard
-✓ Lengkapi formulir pendaftaran
-✓ Tunggu proses verifikasi admin
+✅ Pembayaran berhasil diverifikasi
+✅ Akses menu "Kelengkapan Data" di dashboard
+✅ Lengkapi formulir pendaftaran
+✅ Submit untuk review admin
+⏰ Tunggu verifikasi (1-3 hari kerja)
 
 ❓ *Butuh bantuan?*
-Hubungi customer service kami
+📱 WhatsApp: +62 812-3456-7890
+📧 Email: support@ppdb-yapi.com
+🕐 Jam Kerja: 08:00 - 17:00 WIB
 
-Terima kasih telah memilih PPDB YAPI! 🎓`;
+Terima kasih telah memilih PPDB YAPI! 🎓
+
+_Invoice ini dibuat otomatis pada ${date} ${time} WIB_`;
         }
 
-        // Auto-generate invoice on page load
+        // Show success animation
         document.addEventListener('DOMContentLoaded', function() {
-            // You can add auto-actions here if needed
-            console.log('Invoice generated successfully');
+            // Add success animation or any auto-actions
+            setTimeout(() => {
+                const alert = document.querySelector('.alert-success');
+                if (alert) {
+                    alert.classList.add('animate__animated', 'animate__pulse');
+                }
+            }, 500);
         });
     </script>
 </x-app-layout>

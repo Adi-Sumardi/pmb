@@ -6,12 +6,6 @@
                 Dashboard Pendaftar
             </h2>
             <div class="d-flex align-items-center gap-3">
-                <!-- Demo Payment Button (untuk testing) -->
-                @if(!$isPaid && $pendaftar)
-                    <button class="btn btn-warning btn-sm" onclick="demoPayment()" id="demoPaymentBtn">
-                        <i class="bi bi-credit-card me-1"></i>Demo Payment
-                    </button>
-                @endif
                 <div class="d-flex align-items-center text-muted">
                     <i class="bi bi-calendar3 me-2"></i>
                     <span id="currentDate"></span>
@@ -112,10 +106,10 @@
             </div>
         </div>
 
-        <!-- Statistics Cards -->
+        <!-- Main Statistics Cards -->
         <div class="row g-4 mb-4">
             <!-- Payment Status -->
-            <div class="col-xl-4 col-md-6">
+            <div class="col-xl-3 col-md-6">
                 <div class="card border-0 shadow-sm h-100 stat-card" data-aos="fade-up" data-aos-delay="100">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center justify-content-between">
@@ -123,7 +117,7 @@
                                 <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">
                                     Status Pembayaran
                                 </div>
-                                <div class="display-6 fw-bold mb-2" id="paymentStatusText">
+                                <div class="h4 fw-bold mb-2" id="paymentStatusText">
                                     @if($isPaid)
                                         <span class="text-success">LUNAS</span>
                                     @else
@@ -142,33 +136,27 @@
                             </div>
                             <div class="stat-icon bg-opacity-10 rounded-3 p-3" id="paymentStatusIcon">
                                 @if($isPaid)
-                                    <i class="bi bi-check-circle-fill text-success fs-3"></i>
+                                    <i class="bi bi-check-circle-fill text-success fs-2"></i>
                                 @else
-                                    <i class="bi bi-clock text-warning fs-3"></i>
+                                    <i class="bi bi-clock text-warning fs-2"></i>
                                 @endif
                             </div>
-                        </div>
-                        <div class="progress mt-3" style="height: 4px;">
-                            <div class="progress-bar" id="paymentProgress"
-                                 role="progressbar"
-                                 style="width: {{ $isPaid ? '100' : '50' }}%"
-                                 class="{{ $isPaid ? 'bg-success' : 'bg-warning' }}"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Data Completion -->
-            <div class="col-xl-4 col-md-6">
+            <!-- Overall Data Completion -->
+            <div class="col-xl-3 col-md-6">
                 <div class="card border-0 shadow-sm h-100 stat-card" data-aos="fade-up" data-aos-delay="200">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">
-                                    Kelengkapan Data
+                                    Total Kelengkapan
                                 </div>
-                                <div class="display-6 fw-bold text-info mb-2 counter" data-target="{{ $dataCompletion }}" id="dataCompletionText">
-                                    {{ $dataCompletion }}
+                                <div class="h4 fw-bold text-info mb-2 counter" data-target="{{ $dataCompletion }}" id="dataCompletionText">
+                                    {{ $dataCompletion }}%
                                 </div>
                                 <div class="d-flex align-items-center text-info small">
                                     <i class="bi bi-graph-up me-1"></i>
@@ -176,18 +164,15 @@
                                 </div>
                             </div>
                             <div class="stat-icon bg-info bg-opacity-10 rounded-3 p-3">
-                                <i class="bi bi-clipboard-data text-info fs-3"></i>
+                                <i class="bi bi-clipboard-data text-info fs-2"></i>
                             </div>
-                        </div>
-                        <div class="progress mt-3" style="height: 4px;">
-                            <div class="progress-bar bg-info" id="dataProgress" role="progressbar" style="width: {{ $dataCompletion }}%"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Application Status -->
-            <div class="col-xl-4 col-md-6">
+            <div class="col-xl-3 col-md-6">
                 <div class="card border-0 shadow-sm h-100 stat-card" data-aos="fade-up" data-aos-delay="300">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center justify-content-between">
@@ -195,7 +180,7 @@
                                 <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">
                                     Status Pendaftaran
                                 </div>
-                                <div class="display-6 fw-bold mb-2" id="registrationStatusText">
+                                <div class="h4 fw-bold mb-2" id="registrationStatusText">
                                     @if($registrationStatus == 'verified')
                                         <span class="text-success">VERIFIED</span>
                                     @elseif($registrationStatus == 'pending')
@@ -219,30 +204,328 @@
                             </div>
                             <div class="stat-icon bg-opacity-10 rounded-3 p-3" id="registrationStatusIcon">
                                 @if($registrationStatus == 'verified')
-                                    <i class="bi bi-shield-check text-success fs-3"></i>
+                                    <i class="bi bi-shield-check text-success fs-2"></i>
                                 @elseif($registrationStatus == 'pending')
-                                    <i class="bi bi-hourglass-split text-warning fs-3"></i>
+                                    <i class="bi bi-hourglass-split text-warning fs-2"></i>
                                 @else
-                                    <i class="bi bi-pencil text-secondary fs-3"></i>
+                                    <i class="bi bi-pencil text-secondary fs-2"></i>
                                 @endif
                             </div>
                         </div>
-                        <div class="progress mt-3" style="height: 4px;">
-                            <div class="progress-bar" id="registrationProgress"
-                                 role="progressbar"
-                                 style="width: @if($registrationStatus == 'verified') 100% @elseif($registrationStatus == 'pending') 75% @else 25% @endif"
-                                 class="@if($registrationStatus == 'verified') bg-success @elseif($registrationStatus == 'pending') bg-warning @else bg-secondary @endif"></div>
-                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100 stat-card bg-gradient-success text-white" data-aos="fade-up" data-aos-delay="400">
+                    <div class="card-body p-4 d-flex align-items-center justify-content-center">
+                        @if($isPaid && $pendaftar)
+                            <a href="{{ route('user.data') }}" class="btn btn-light btn-lg w-100 d-flex align-items-center justify-content-center text-decoration-none">
+                                <i class="bi bi-plus-circle me-2 fs-4"></i>
+                                <div>
+                                    <div class="fw-bold">Lengkapi Data</div>
+                                    <small class="opacity-75">Akses Form</small>
+                                </div>
+                            </a>
+                        @elseif(!$pendaftar)
+                            <a href="{{ route('user.data') }}" class="btn btn-light btn-lg w-100 d-flex align-items-center justify-content-center text-decoration-none">
+                                <i class="bi bi-person-plus me-2 fs-4"></i>
+                                <div>
+                                    <div class="fw-bold">Isi Data</div>
+                                    <small class="opacity-75">Pendaftar</small>
+                                </div>
+                            </a>
+                        @else
+                            <button class="btn btn-light btn-lg w-100 d-flex align-items-center justify-content-center opacity-50" disabled>
+                                <i class="bi bi-lock me-2 fs-4"></i>
+                                <div>
+                                    <div class="fw-bold">Bayar Dulu</div>
+                                    <small class="opacity-75">Akses Terkunci</small>
+                                </div>
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Actions & Status Overview -->
+        <!-- Detailed Data Completion Section -->
+        @if($isPaid && $pendaftar)
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm" data-aos="fade-up" data-aos-delay="500">
+                        <div class="card-header bg-white border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0 fw-bold">
+                                    <i class="bi bi-list-check me-2 text-primary"></i>Detail Kelengkapan Data
+                                </h5>
+                                <span class="badge bg-primary fs-6">{{ $completedSections }}/{{ $totalSections }} Selesai</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row g-4">
+                                <!-- Student Details -->
+                                <div class="col-lg-4 col-md-6">
+                                    <div class="completion-item {{ $studentDetailComplete ? 'completed' : 'incomplete' }}">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="completion-icon me-3">
+                                                @if($studentDetailComplete)
+                                                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                                @else
+                                                    <i class="bi bi-circle text-muted fs-4"></i>
+                                                @endif
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-semibold">Data Siswa</h6>
+                                                <small class="text-muted">Informasi pribadi siswa</small>
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 6px;">
+                                            <div class="progress-bar {{ $studentDetailComplete ? 'bg-success' : 'bg-warning' }}"
+                                                 style="width: {{ $studentDetailComplete ? '100' : '50' }}%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                {{ $studentDetailComplete ? 'Lengkap' : 'Perlu dilengkapi' }}
+                                            </small>
+                                            @if($studentDetailComplete)
+                                                <small class="text-success fw-semibold">✓ Selesai</small>
+                                            @else
+                                                <small class="text-warning fw-semibold">⚠ Belum</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Parent Details -->
+                                <div class="col-lg-4 col-md-6">
+                                    <div class="completion-item {{ $parentDetailComplete ? 'completed' : 'incomplete' }}">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="completion-icon me-3">
+                                                @if($parentDetailComplete)
+                                                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                                @else
+                                                    <i class="bi bi-circle text-muted fs-4"></i>
+                                                @endif
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-semibold">Data Orang Tua</h6>
+                                                <small class="text-muted">Informasi ayah, ibu, wali</small>
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 6px;">
+                                            <div class="progress-bar {{ $parentDetailComplete ? 'bg-success' : 'bg-warning' }}"
+                                                 style="width: {{ $parentDetailComplete ? '100' : '30' }}%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                {{ $parentDetailComplete ? 'Lengkap' : 'Perlu dilengkapi' }}
+                                            </small>
+                                            @if($parentDetailComplete)
+                                                <small class="text-success fw-semibold">✓ Selesai</small>
+                                            @else
+                                                <small class="text-warning fw-semibold">⚠ Belum</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Academic History -->
+                                <div class="col-lg-4 col-md-6">
+                                    <div class="completion-item {{ $academicHistoryComplete ? 'completed' : 'incomplete' }}">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="completion-icon me-3">
+                                                @if($academicHistoryComplete)
+                                                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                                @else
+                                                    <i class="bi bi-circle text-muted fs-4"></i>
+                                                @endif
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-semibold">Riwayat Akademik</h6>
+                                                <small class="text-muted">Sekolah sebelumnya, nilai</small>
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 6px;">
+                                            <div class="progress-bar {{ $academicHistoryComplete ? 'bg-success' : 'bg-warning' }}"
+                                                 style="width: {{ $academicHistoryComplete ? '100' : '20' }}%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                {{ $academicHistoryComplete ? 'Lengkap' : 'Perlu dilengkapi' }}
+                                            </small>
+                                            @if($academicHistoryComplete)
+                                                <small class="text-success fw-semibold">✓ Selesai</small>
+                                            @else
+                                                <small class="text-warning fw-semibold">⚠ Belum</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Health Records -->
+                                <div class="col-lg-4 col-md-6">
+                                    <div class="completion-item {{ $healthRecordComplete ? 'completed' : 'incomplete' }}">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="completion-icon me-3">
+                                                @if($healthRecordComplete)
+                                                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                                @else
+                                                    <i class="bi bi-circle text-muted fs-4"></i>
+                                                @endif
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-semibold">Data Kesehatan</h6>
+                                                <small class="text-muted">Riwayat kesehatan, imunisasi</small>
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 6px;">
+                                            <div class="progress-bar {{ $healthRecordComplete ? 'bg-success' : 'bg-info' }}"
+                                                 style="width: {{ $healthRecordComplete ? '100' : '0' }}%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                {{ $healthRecordComplete ? 'Lengkap' : 'Opsional' }}
+                                            </small>
+                                            @if($healthRecordComplete)
+                                                <small class="text-success fw-semibold">✓ Selesai</small>
+                                            @else
+                                                <small class="text-info fw-semibold">○ Opsional</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Documents -->
+                                <div class="col-lg-4 col-md-6">
+                                    <div class="completion-item {{ $documentsComplete ? 'completed' : 'incomplete' }}">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="completion-icon me-3">
+                                                @if($documentsComplete)
+                                                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                                @else
+                                                    <i class="bi bi-circle text-muted fs-4"></i>
+                                                @endif
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-semibold">Dokumen</h6>
+                                                <small class="text-muted">Upload dokumen pendukung</small>
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 6px;">
+                                            <div class="progress-bar {{ $documentsComplete ? 'bg-success' : 'bg-danger' }}"
+                                                 style="width: {{ $documentsComplete ? '100' : '10' }}%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                {{ $documentsComplete ? 'Lengkap' : 'Perlu diupload' }}
+                                            </small>
+                                            @if($documentsComplete)
+                                                <small class="text-success fw-semibold">✓ Selesai</small>
+                                            @else
+                                                <small class="text-danger fw-semibold">✗ Belum</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Grade Reports -->
+                                <div class="col-lg-4 col-md-6">
+                                    <div class="completion-item {{ $gradeReportsComplete ? 'completed' : 'incomplete' }}">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="completion-icon me-3">
+                                                @if($gradeReportsComplete)
+                                                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                                @else
+                                                    <i class="bi bi-circle text-muted fs-4"></i>
+                                                @endif
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-semibold">Raport & Nilai</h6>
+                                                <small class="text-muted">Upload raport dan nilai</small>
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 6px;">
+                                            <div class="progress-bar {{ $gradeReportsComplete ? 'bg-success' : 'bg-warning' }}"
+                                                 style="width: {{ $gradeReportsComplete ? '100' : '15' }}%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                {{ $gradeReportsComplete ? 'Lengkap' : 'Perlu diupload' }}
+                                            </small>
+                                            @if($gradeReportsComplete)
+                                                <small class="text-success fw-semibold">✓ Selesai</small>
+                                            @else
+                                                <small class="text-warning fw-semibold">⚠ Belum</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Button -->
+                            <div class="text-center mt-4">
+                                <a href="{{ route('user.data') }}" class="btn btn-primary btn-lg px-5">
+                                    <i class="bi bi-pencil-square me-2"></i>
+                                    @if($dataCompletion >= 100)
+                                        Review Data Lengkap
+                                    @elseif($dataCompletion > 0)
+                                        Lanjutkan Melengkapi Data
+                                    @else
+                                        Mulai Melengkapi Data
+                                    @endif
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- Progress Overview & Quick Actions -->
         <div class="row g-4">
+            <!-- Progress Chart -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100" data-aos="fade-up" data-aos-delay="600">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="card-title mb-0 fw-bold">
+                            <i class="bi bi-pie-chart me-2 text-primary"></i>Progress Overview
+                        </h5>
+                    </div>
+                    <div class="card-body p-4 text-center">
+                        <div class="position-relative d-inline-block mb-4">
+                            <canvas id="progressChart" width="200" height="200"></canvas>
+                            <div class="position-absolute top-50 start-50 translate-middle text-center">
+                                <div class="h2 fw-bold text-primary mb-0" id="progressPercentage">
+                                    {{ $dataCompletion }}%
+                                </div>
+                                <small class="text-muted">Completed</small>
+                            </div>
+                        </div>
+
+                        <!-- Progress Details -->
+                        <div class="row g-3 text-start">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-success rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                                    <small class="text-muted">Selesai: <strong>{{ $completedSections }}</strong></small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-warning rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                                    <small class="text-muted">Tersisa: <strong>{{ $totalSections - $completedSections }}</strong></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="col-lg-6">
-                <div class="card border-0 shadow-sm h-100" data-aos="fade-up" data-aos-delay="500">
+                <div class="card border-0 shadow-sm h-100" data-aos="fade-up" data-aos-delay="700">
                     <div class="card-header bg-white border-bottom">
                         <h5 class="card-title mb-0 fw-bold">
                             <i class="bi bi-lightning me-2 text-warning"></i>Aksi Cepat
@@ -276,7 +559,7 @@
                             <!-- Data Completion -->
                             <div id="dataCompletionButton">
                                 @if($isPaid && $pendaftar)
-                                    <a href="{{ route('pendaftar.form') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start">
+                                    <a href="{{ route('user.data') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start">
                                         <i class="bi bi-clipboard-data me-3 fs-4"></i>
                                         <div class="text-start">
                                             <div class="fw-semibold">Kelengkapan Data</div>
@@ -285,7 +568,7 @@
                                         <span class="badge bg-info ms-auto">{{ $dataCompletion }}%</span>
                                     </a>
                                 @elseif(!$pendaftar)
-                                    <a href="{{ route('pendaftar.form') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start">
+                                    <a href="{{ route('user.data') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start">
                                         <i class="bi bi-clipboard-data me-3 fs-4"></i>
                                         <div class="text-start">
                                             <div class="fw-semibold">Isi Data Pendaftar</div>
@@ -317,95 +600,68 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Status Overview -->
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm h-100" data-aos="fade-up" data-aos-delay="600">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="card-title mb-0 fw-bold">
-                            <i class="bi bi-bar-chart me-2 text-primary"></i>Progress Overview
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <!-- Progress Chart -->
-                        <div class="text-center mb-4">
-                            <div class="position-relative d-inline-block">
-                                <canvas id="progressChart" width="200" height="200"></canvas>
-                                <div class="position-absolute top-50 start-50 translate-middle text-center">
-                                    <div class="h3 fw-bold text-primary mb-0" id="progressPercentage">
-                                        {{ $dataCompletion }}%
-                                    </div>
-                                    <small class="text-muted">Completed</small>
-                                </div>
-                            </div>
+        <!-- Recent Activity (if any) -->
+        @if($isPaid && $pendaftar && $dataCompletion > 0)
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm" data-aos="fade-up" data-aos-delay="800">
+                        <div class="card-header bg-white border-bottom py-3">
+                            <h6 class="card-title mb-0 fw-bold">
+                                <i class="bi bi-clock-history me-2 text-secondary"></i>Aktivitas Terbaru
+                            </h6>
                         </div>
-
-                        <!-- Progress Steps -->
-                        <div class="d-flex flex-column gap-3" id="progressSteps">
-                            <div class="d-flex align-items-center">
-                                <div class="status-dot {{ $pendaftar ? 'bg-success' : 'bg-secondary' }} me-3"></div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold small">Data Pendaftar</div>
-                                    <div class="text-muted small">{{ $pendaftar ? 'Sudah diisi' : 'Belum diisi' }}</div>
-                                </div>
-                                @if($pendaftar)
-                                    <i class="bi bi-check-circle-fill text-success"></i>
-                                @else
-                                    <i class="bi bi-circle text-secondary"></i>
+                        <div class="card-body p-3">
+                            <div class="timeline-compact">
+                                @if($pendaftar->updated_at)
+                                    <div class="timeline-item-compact">
+                                        <div class="timeline-marker-compact bg-primary"></div>
+                                        <div class="timeline-content-compact">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1 fs-6">Data Pendaftar Diperbarui</h6>
+                                                    <p class="text-muted mb-0 small">Data pendaftar telah diperbarui</p>
+                                                </div>
+                                                <small class="text-muted">{{ $pendaftar->updated_at->diffForHumans() }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 @endif
-                            </div>
 
-                            <div class="d-flex align-items-center">
-                                <div class="status-dot {{ $isPaid ? 'bg-success' : 'bg-warning' }} me-3"></div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold small">Pembayaran Formulir</div>
-                                    <div class="text-muted small">{{ $isPaid ? 'Selesai' : 'Pending' }}</div>
-                                </div>
-                                @if($isPaid)
-                                    <i class="bi bi-check-circle-fill text-success"></i>
-                                @else
-                                    <i class="bi bi-clock text-warning"></i>
+                                @if($isPaid && $paymentDate)
+                                    <div class="timeline-item-compact">
+                                        <div class="timeline-marker-compact bg-success"></div>
+                                        <div class="timeline-content-compact">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1 fs-6">Pembayaran Berhasil</h6>
+                                                    <p class="text-muted mb-0 small">Pembayaran formulir pendaftaran telah dikonfirmasi</p>
+                                                </div>
+                                                <small class="text-muted">{{ $paymentDate }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 @endif
-                            </div>
 
-                            <div class="d-flex align-items-center">
-                                <div class="status-dot {{ $dataCompletion > 0 ? 'bg-info' : 'bg-secondary' }} me-3"></div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold small">Kelengkapan Data</div>
-                                    <div class="text-muted small">{{ $dataCompletion }}% selesai</div>
-                                </div>
-                                @if($dataCompletion >= 100)
-                                    <i class="bi bi-check-circle-fill text-success"></i>
-                                @elseif($dataCompletion > 0)
-                                    <i class="bi bi-hourglass-split text-info"></i>
-                                @else
-                                    <i class="bi bi-circle text-secondary"></i>
-                                @endif
-                            </div>
-
-                            <div class="d-flex align-items-center">
-                                <div class="status-dot {{ $registrationStatus == 'verified' ? 'bg-success' : ($registrationStatus == 'pending' ? 'bg-warning' : 'bg-secondary') }} me-3"></div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold small">Verifikasi Admin</div>
-                                    <div class="text-muted small">
-                                        @if($registrationStatus == 'verified') Terverifikasi
-                                        @elseif($registrationStatus == 'pending') Dalam review
-                                        @else Belum submit @endif
+                                <div class="timeline-item-compact">
+                                    <div class="timeline-marker-compact bg-info"></div>
+                                    <div class="timeline-content-compact">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1 fs-6">Akun Dibuat</h6>
+                                                <p class="text-muted mb-0 small">Akun berhasil didaftarkan di sistem PPDB</p>
+                                            </div>
+                                            <small class="text-muted">{{ $user->created_at->diffForHumans() }}</small>
+                                        </div>
                                     </div>
                                 </div>
-                                @if($registrationStatus == 'verified')
-                                    <i class="bi bi-check-circle-fill text-success"></i>
-                                @elseif($registrationStatus == 'pending')
-                                    <i class="bi bi-hourglass-split text-warning"></i>
-                                @else
-                                    <i class="bi bi-circle text-secondary"></i>
-                                @endif
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endif
     </div>
 
     <!-- Payment Required Modal -->
@@ -435,38 +691,6 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                     <a href="{{ route('payment.index') }}" class="btn btn-primary">
                         <i class="bi bi-credit-card me-1"></i>Bayar Sekarang
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Success Modal -->
-    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title" id="successModalLabel">
-                        <i class="bi bi-check-circle-fill me-2"></i>Pembayaran Berhasil
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <i class="bi bi-check-circle-fill display-1 text-success mb-3"></i>
-                    <h6 class="fw-bold mb-3">Demo Payment Berhasil!</h6>
-                    <p class="text-muted mb-4">
-                        Status pembayaran Anda telah diubah menjadi <strong>PAID</strong>.
-                        Sekarang Anda dapat mengakses menu Kelengkapan Data.
-                    </p>
-                    <div class="alert alert-success">
-                        <i class="bi bi-unlock me-2"></i>
-                        Menu <strong>Kelengkapan Data</strong> sekarang terbuka!
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <a href="{{ route('pendaftar.form') }}" class="btn btn-primary">
-                        <i class="bi bi-clipboard-data me-1"></i>Akses Kelengkapan Data
                     </a>
                 </div>
             </div>
@@ -601,23 +825,154 @@
             font-family: 'Inter', sans-serif;
         }
 
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
         .bg-gradient-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        .btn-outline-primary:hover,
-        .btn-outline-success:hover,
-        .btn-outline-info:hover,
-        .btn-outline-warning:hover {
+        .bg-gradient-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .completion-item {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .completion-item.completed {
+            background-color: rgba(25, 135, 84, 0.1);
+            border-color: rgba(25, 135, 84, 0.2);
+        }
+
+        .completion-item.incomplete {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-color: rgba(255, 193, 7, 0.2);
+        }
+
+        .completion-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline-compact {
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .timeline-compact::before {
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #e9ecef;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-item-compact {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-item-compact:last-child {
+            margin-bottom: 0;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -2.25rem;
+            top: 0.25rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 3px currentColor;
+        }
+
+        .timeline-marker-compact {
+            position: absolute;
+            left: -1.75rem;
+            top: 0.125rem;
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px currentColor;
+        }
+
+        .timeline-content {
+            background: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border-left: 3px solid #007bff;
+        }
+
+        .timeline-content-compact {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            border-left: 2px solid #007bff;
+            min-height: auto;
+        }
+
+        .timeline-content h6 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .timeline-content-compact h6 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .timeline-content p {
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .timeline-content-compact p {
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .timeline-content small {
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+
+        .timeline-content-compact small {
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+
+        /* Responsive untuk mobile */
+        @media (max-width: 576px) {
+            .timeline-content-compact {
+                padding: 0.5rem;
+            }
+
+            .timeline-content-compact .d-flex {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .timeline-content-compact small {
+                white-space: normal;
+                font-size: 0.65rem;
+            }
         }
 
         .btn:disabled {
@@ -745,53 +1100,6 @@
             helpModal.show();
         }
 
-        // Demo Payment Function
-        async function demoPayment() {
-            try {
-                // Show loading
-                const btn = document.getElementById('demoPaymentBtn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
-                btn.disabled = true;
-
-                const response = await fetch('{{ route("user.demo.payment") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    // Show success modal
-                    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-                    successModal.show();
-
-                    // Update dashboard data
-                    setTimeout(() => {
-                        updateDashboardAfterPayment();
-                        btn.style.display = 'none'; // Hide demo button
-                    }, 1000);
-                } else {
-                    alert('Demo payment gagal: ' + result.message);
-                    // Reset button
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Terjadi kesalahan saat melakukan demo payment');
-
-                // Reset button
-                const btn = document.getElementById('demoPaymentBtn');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        }
-
         // Refresh dashboard data
         async function refreshDashboardData() {
             try {
@@ -799,11 +1107,6 @@
                 const data = await response.json();
 
                 // Update jika ada perubahan
-                if (data.isPaid !== currentIsPaid) {
-                    updateDashboardAfterPayment();
-                    currentIsPaid = data.isPaid;
-                }
-
                 if (data.dataCompletion !== currentDataCompletion) {
                     updateDataCompletion(data.dataCompletion);
                     currentDataCompletion = data.dataCompletion;
@@ -819,64 +1122,6 @@
             }
         }
 
-        function updateDashboardAfterPayment() {
-            // Update payment status card
-            document.getElementById('paymentStatusText').innerHTML = '<span class="text-success">LUNAS</span>';
-
-            document.getElementById('paymentStatusDetail').innerHTML = `
-                <i class="bi bi-check-circle me-1 text-success"></i>
-                <span class="fw-semibold text-success">Sudah Dibayar</span>
-            `;
-
-            document.getElementById('paymentStatusIcon').innerHTML = `
-                <i class="bi bi-check-circle-fill text-success fs-3"></i>
-            `;
-
-            const paymentProgress = document.getElementById('paymentProgress');
-            paymentProgress.style.width = '100%';
-            paymentProgress.className = 'progress-bar bg-success';
-
-            // Update welcome section alert
-            const welcomeAlert = document.getElementById('welcomeAlert');
-            if (welcomeAlert) {
-                welcomeAlert.innerHTML = `
-                    <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        <div>
-                            <strong>Pembayaran Lunas!</strong> Anda dapat mengakses semua fitur kelengkapan data.
-                            <br><small>Dibayar pada: ${new Date().toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}</small>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Update data completion button
-            document.getElementById('dataCompletionButton').innerHTML = `
-                <a href="{{ route('pendaftar.form') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start pulse-animation">
-                    <i class="bi bi-clipboard-data me-3 fs-4"></i>
-                    <div class="text-start">
-                        <div class="fw-semibold">Kelengkapan Data</div>
-                        <small class="text-muted">Lengkapi data pendaftaran Anda</small>
-                    </div>
-                    <span class="badge bg-info ms-auto">${currentDataCompletion}%</span>
-                </a>
-            `;
-
-            // Remove pulse after 3 seconds
-            setTimeout(() => {
-                const dataBtn = document.querySelector('#dataCompletionButton a');
-                if (dataBtn) {
-                    dataBtn.classList.remove('pulse-animation');
-                }
-            }, 3000);
-        }
-
         function updateDataCompletion(newCompletion) {
             // Update counter
             const counterElement = document.getElementById('dataCompletionText');
@@ -884,9 +1129,6 @@
 
             // Update detail
             document.getElementById('dataCompletionDetail').innerHTML = `${newCompletion}% Lengkap`;
-
-            // Update progress bar
-            document.getElementById('dataProgress').style.width = newCompletion + '%';
 
             // Update chart percentage
             document.getElementById('progressPercentage').textContent = newCompletion + '%';
@@ -896,42 +1138,32 @@
         }
 
         function updateRegistrationStatus(newStatus) {
-            let statusText, statusClass, statusDetail, statusIcon, progressWidth, progressClass;
+            let statusText, statusClass, statusDetail, statusIcon;
 
             switch(newStatus) {
                 case 'verified':
                     statusText = 'VERIFIED';
                     statusClass = 'text-success';
                     statusDetail = '<i class="bi bi-shield-check me-1 text-success"></i><span class="fw-semibold text-success">Terverifikasi</span>';
-                    statusIcon = '<i class="bi bi-shield-check text-success fs-3"></i>';
-                    progressWidth = '100%';
-                    progressClass = 'bg-success';
+                    statusIcon = '<i class="bi bi-shield-check text-success fs-2"></i>';
                     break;
                 case 'pending':
                     statusText = 'REVIEW';
                     statusClass = 'text-warning';
                     statusDetail = '<i class="bi bi-hourglass-split me-1 text-warning"></i><span class="fw-semibold text-warning">Dalam Review</span>';
-                    statusIcon = '<i class="bi bi-hourglass-split text-warning fs-3"></i>';
-                    progressWidth = '75%';
-                    progressClass = 'bg-warning';
+                    statusIcon = '<i class="bi bi-hourglass-split text-warning fs-2"></i>';
                     break;
                 default:
                     statusText = 'DRAFT';
                     statusClass = 'text-secondary';
                     statusDetail = '<i class="bi bi-pencil me-1 text-secondary"></i><span class="fw-semibold text-secondary">Belum Submit</span>';
-                    statusIcon = '<i class="bi bi-pencil text-secondary fs-3"></i>';
-                    progressWidth = '25%';
-                    progressClass = 'bg-secondary';
+                    statusIcon = '<i class="bi bi-pencil text-secondary fs-2"></i>';
                     break;
             }
 
             document.getElementById('registrationStatusText').innerHTML = `<span class="${statusClass}">${statusText}</span>`;
             document.getElementById('registrationStatusDetail').innerHTML = statusDetail;
             document.getElementById('registrationStatusIcon').innerHTML = statusIcon;
-
-            const regProgress = document.getElementById('registrationProgress');
-            regProgress.style.width = progressWidth;
-            regProgress.className = `progress-bar ${progressClass}`;
         }
 
         function animateCounterUpdate(element, newValue) {

@@ -192,13 +192,13 @@
                                     <div class="small">
                                         <div class="row">
                                             <div class="col-6">
-                                                • Sanggar & Kelompok Bermain: Rp 3.250.000<br>
-                                                • TK A & TK B: Rp 3.550.000<br>
-                                                • SD: Rp 4.250.000
+                                                • Sanggar & Kelompok Bermain: Rp 325000<br>
+                                                • TK A & TK B: Rp 355000<br>
+                                                • SD: Rp 425000
                                             </div>
                                             <div class="col-6">
-                                                • SMP: Rp 4.550.000<br>
-                                                • SMA: Rp 5.250.000
+                                                • SMP: Rp 455000<br>
+                                                • SMA: Rp 525000
                                             </div>
                                         </div>
                                     </div>
@@ -284,12 +284,17 @@
                                         @endswitch
                                     </strong>
                                 </div>
-                                <form action="{{ route('payment.create-invoice') }}" method="POST" class="d-inline">
+                                <form action="{{ route('payment.create-invoice') }}" method="POST" class="d-inline" id="paymentForm">
                                     @csrf
                                     <input type="hidden" name="pendaftar_id" value="{{ $pendaftar->id }}">
                                     <input type="hidden" name="amount" value="{{ $pendaftar->payment_amount }}">
-                                    <button type="submit" class="btn btn-primary btn-lg px-5">
-                                        <i class="bi bi-credit-card me-2"></i>Bayar Sekarang
+                                    <button type="submit" class="btn btn-primary btn-lg px-5" id="paymentBtn">
+                                        <i class="bi bi-credit-card me-2"></i>
+                                        <span class="btn-text">Bayar Sekarang</span>
+                                        <span class="btn-loading d-none">
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            Memproses...
+                                        </span>
                                     </button>
                                 </form>
                                 <div class="mt-3 text-muted small">
@@ -423,7 +428,7 @@
                         <i class="bi bi-arrow-left me-2"></i>Kembali ke Dashboard
                     </a>
                     @if($pendaftar->sudah_bayar_formulir)
-                        <a href="{{ route('pendaftar.form') }}" class="btn btn-success btn-lg">
+                        <a href="{{ route('user.data') }}" class="btn btn-success btn-lg">
                             <i class="bi bi-clipboard-data me-2"></i>Kelengkapan Data
                         </a>
                     @endif
@@ -469,3 +474,27 @@
         }
     </style>
 </x-app-layout>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentForm = document.getElementById('paymentForm');
+    const paymentBtn = document.getElementById('paymentBtn');
+
+    if (paymentForm && paymentBtn) {
+        paymentForm.addEventListener('submit', function(e) {
+            const btnText = paymentBtn.querySelector('.btn-text');
+            const btnLoading = paymentBtn.querySelector('.btn-loading');
+
+            if (btnText && btnLoading) {
+                btnText.classList.add('d-none');
+                btnLoading.classList.remove('d-none');
+            }
+
+            paymentBtn.disabled = true;
+
+            // Log for debugging
+            console.log('Payment form submitted');
+        });
+    }
+});
+</script>
