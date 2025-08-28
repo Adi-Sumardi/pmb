@@ -105,6 +105,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::post('/logs/clear', [App\Http\Controllers\LogController::class, 'clearLogs'])->name('logs.clear');
     Route::get('/logs/download', [App\Http\Controllers\LogController::class, 'downloadLogs'])->name('logs.download');
     Route::get('/logs/stream', [App\Http\Controllers\LogController::class, 'streamLogs'])->name('logs.stream');
+    Route::get('/debug/payment-methods', [PaymentController::class, 'debugPaymentMethods'])->name('admin.debug.payment-methods');
 });
 
 require __DIR__.'/auth.php';

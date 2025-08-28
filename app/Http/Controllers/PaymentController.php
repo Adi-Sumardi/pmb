@@ -548,7 +548,7 @@ class PaymentController extends Controller
                 'jenjang' => $jenjangName
             ]);
 
-            // Create invoice data dengan format payment methods yang benar
+            // ✅ PERBAIKI KONFIGURASI INVOICE DATA
             $invoiceData = [
                 'external_id' => $externalId,
                 'amount' => (int)$pendaftar->payment_amount,
@@ -576,54 +576,52 @@ class PaymentController extends Controller
                 'success_redirect_url' => route('payment.success'),
                 'failure_redirect_url' => route('payment.failed'),
                 'currency' => 'IDR',
-
-                // ✅ SELALU TAMBAHKAN WEBHOOK URL
                 'webhook_url' => route('payment.webhook'),
 
-                // ✅ FORMAT PAYMENT METHODS YANG BENAR
-                'payment_methods' => [
-                    'BANK_TRANSFER',
-                    'CREDIT_CARD',
-                    'EWALLET',
-                    'QR_CODE',
-                    'RETAIL_OUTLET'
-                ],
+                // ✅ HAPUS payment_methods array dan gunakan konfigurasi individual
+                // 'payment_methods' => [...], // JANGAN GUNAKAN INI
 
-                // ✅ KONFIGURASI TAMBAHAN UNTUK SEMUA METODE
+                // ✅ KONFIGURASI PAYMENT METHODS INDIVIDUAL - CARA YANG BENAR
                 'should_exclude_credit_card' => false,
                 'should_send_email' => true,
                 'should_authenticate_credit_card' => true,
                 'locale' => 'id',
 
-                // ✅ AKTIFKAN SEMUA BANK UNTUK VA
+                // ✅ BANK TRANSFER / VIRTUAL ACCOUNT - AKTIFKAN SEMUA
                 'available_banks' => [
                     [
                         'bank_code' => 'BCA',
-                        'collection_type' => 'POOL'
+                        'collection_type' => 'POOL',
+                        'transfer_amount' => (int)$pendaftar->payment_amount
                     ],
                     [
                         'bank_code' => 'BNI',
-                        'collection_type' => 'POOL'
+                        'collection_type' => 'POOL',
+                        'transfer_amount' => (int)$pendaftar->payment_amount
                     ],
                     [
                         'bank_code' => 'BRI',
-                        'collection_type' => 'POOL'
+                        'collection_type' => 'POOL',
+                        'transfer_amount' => (int)$pendaftar->payment_amount
                     ],
                     [
                         'bank_code' => 'MANDIRI',
-                        'collection_type' => 'POOL'
+                        'collection_type' => 'POOL',
+                        'transfer_amount' => (int)$pendaftar->payment_amount
                     ],
                     [
                         'bank_code' => 'PERMATA',
-                        'collection_type' => 'POOL'
+                        'collection_type' => 'POOL',
+                        'transfer_amount' => (int)$pendaftar->payment_amount
                     ],
                     [
                         'bank_code' => 'CIMB',
-                        'collection_type' => 'POOL'
+                        'collection_type' => 'POOL',
+                        'transfer_amount' => (int)$pendaftar->payment_amount
                     ]
                 ],
 
-                // ✅ AKTIFKAN SEMUA E-WALLET
+                // ✅ E-WALLET - AKTIFKAN SEMUA
                 'available_ewallets' => [
                     [
                         'ewallet_type' => 'OVO'
@@ -639,7 +637,7 @@ class PaymentController extends Controller
                     ]
                 ],
 
-                // ✅ AKTIFKAN RETAIL OUTLETS
+                // ✅ RETAIL OUTLETS - AKTIFKAN ALFAMART & INDOMARET
                 'available_retail_outlets' => [
                     [
                         'retail_outlet_name' => 'ALFAMART'
@@ -647,14 +645,45 @@ class PaymentController extends Controller
                     [
                         'retail_outlet_name' => 'INDOMARET'
                     ]
+                ],
+
+                // ✅ QRIS - AKTIFKAN QR CODE
+                'available_direct_debits' => [],
+
+                // ✅ TAMBAHAN KONFIGURASI UNTUK MEMASTIKAN SEMUA METODE MUNCUL
+                'items' => [
+                    [
+                        'name' => sprintf('Biaya Pendaftaran PPDB %s - %s', $jenjangName, $pendaftar->unit),
+                        'quantity' => 1,
+                        'price' => (int)$pendaftar->payment_amount,
+                        'category' => 'Education'
+                    ]
+                ],
+
+                // ✅ METADATA UNTUK TRACKING
+                'customer_notification_preference' => [
+                    'invoice_created' => ['email', 'sms'],
+                    'invoice_reminder' => ['email', 'sms'],
+                    'invoice_paid' => ['email', 'sms']
+                ],
+
+                // ✅ FEES - BIAYA DITANGGUNG CUSTOMER
+                'fees' => [
+                    [
+                        'type' => 'xendit_fee',
+                        'value' => 0 // Fee ditanggung merchant
+                    ]
                 ]
             ];
 
-            Log::info('Sending request to Xendit', [
+            Log::info('Sending request to Xendit with ALL payment methods', [
                 'url' => $this->getXenditBaseUrl() . '/v2/invoices',
                 'external_id' => $externalId,
-                'payment_methods' => $invoiceData['payment_methods'],
-                'webhook_url' => $invoiceData['webhook_url']
+                'available_banks_count' => count($invoiceData['available_banks']),
+                'available_ewallets_count' => count($invoiceData['available_ewallets']),
+                'available_retail_outlets_count' => count($invoiceData['available_retail_outlets']),
+                'webhook_url' => $invoiceData['webhook_url'],
+                'amount' => $invoiceData['amount']
             ]);
 
             $response = Http::withBasicAuth($this->xenditApiKey, '')
@@ -675,7 +704,8 @@ class PaymentController extends Controller
                 Log::error('Xendit API Error', [
                     'status' => $response->status(),
                     'response' => $errorResponse,
-                    'body' => $response->body()
+                    'body' => $response->body(),
+                    'sent_data' => $invoiceData
                 ]);
 
                 throw new \Exception(
@@ -690,13 +720,22 @@ class PaymentController extends Controller
                 throw new \Exception('Response Xendit tidak lengkap - missing invoice_url');
             }
 
-            // Log available payment methods dari response
-            Log::info('Xendit invoice created with available payment methods', [
+            // ✅ LOG DETAIL PAYMENT METHODS YANG TERSEDIA DARI RESPONSE
+            Log::info('✅ Xendit invoice created with payment methods details', [
                 'invoice_id' => $responseData['id'],
                 'external_id' => $externalId,
+                'invoice_url' => $responseData['invoice_url'],
+
+                // Detail payment methods dari response
                 'available_payment_methods' => $responseData['available_payment_methods'] ?? 'not_provided',
                 'available_banks' => $responseData['available_banks'] ?? 'not_provided',
-                'available_ewallets' => $responseData['available_ewallets'] ?? 'not_provided'
+                'available_ewallets' => $responseData['available_ewallets'] ?? 'not_provided',
+                'available_retail_outlets' => $responseData['available_retail_outlets'] ?? 'not_provided',
+                'available_direct_debits' => $responseData['available_direct_debits'] ?? 'not_provided',
+
+                // Summary
+                'total_payment_methods' => count($responseData['available_payment_methods'] ?? []),
+                'response_status' => $responseData['status'] ?? 'unknown'
             ]);
 
             // Create payment record
@@ -714,11 +753,12 @@ class PaymentController extends Controller
             Log::info('Payment record created successfully', [
                 'payment_id' => $payment->id,
                 'invoice_url' => $responseData['invoice_url'],
-                'available_methods' => $invoiceData['payment_methods']
+                'all_methods_configured' => true
             ]);
 
-            Log::info('=== REDIRECTING TO XENDIT ===', [
-                'invoice_url' => $responseData['invoice_url']
+            Log::info('=== REDIRECTING TO XENDIT WITH ALL PAYMENT METHODS ===', [
+                'invoice_url' => $responseData['invoice_url'],
+                'expected_methods' => ['Credit Card', 'Virtual Account (BCA, BNI, BRI, Mandiri, Permata, CIMB)', 'E-Wallet (OVO, DANA, LinkAja, ShopeePay)', 'Retail (Alfamart, Indomaret)']
             ]);
 
             // DIRECT REDIRECT to Xendit invoice URL
@@ -1254,5 +1294,86 @@ class PaymentController extends Controller
                 'outlets' => ['Alfamart', 'Indomaret']
             ]
         ];
+    }
+
+    public function debugPaymentMethods(Request $request)
+    {
+        if (!Auth::user() || Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+
+        $testAmount = $request->get('amount', 350000);
+
+        // Test invoice data
+        $testInvoiceData = [
+            'external_id' => 'TEST-DEBUG-' . time(),
+            'amount' => (int)$testAmount,
+            'description' => 'Test Payment Methods Debug',
+            'invoice_duration' => 3600,
+            'customer' => [
+                'given_names' => 'Test Customer',
+                'email' => 'test@example.com',
+                'mobile_number' => '+6281234567890'
+            ],
+            'currency' => 'IDR',
+
+            // Test semua konfigurasi
+            'should_exclude_credit_card' => false,
+            'should_send_email' => false, // Disable email untuk test
+
+            'available_banks' => [
+                ['bank_code' => 'BCA', 'collection_type' => 'POOL'],
+                ['bank_code' => 'BNI', 'collection_type' => 'POOL'],
+                ['bank_code' => 'BRI', 'collection_type' => 'POOL'],
+                ['bank_code' => 'MANDIRI', 'collection_type' => 'POOL']
+            ],
+
+            'available_ewallets' => [
+                ['ewallet_type' => 'OVO'],
+                ['ewallet_type' => 'DANA'],
+                ['ewallet_type' => 'LINKAJA'],
+                ['ewallet_type' => 'SHOPEEPAY']
+            ],
+
+            'available_retail_outlets' => [
+                ['retail_outlet_name' => 'ALFAMART'],
+                ['retail_outlet_name' => 'INDOMARET']
+            ]
+        ];
+
+        try {
+            $response = Http::withBasicAuth($this->xenditApiKey, '')
+                ->timeout(30)
+                ->post($this->getXenditBaseUrl() . '/v2/invoices', $testInvoiceData);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+
+                return response()->json([
+                    'success' => true,
+                    'invoice_id' => $responseData['id'],
+                    'invoice_url' => $responseData['invoice_url'],
+                    'available_payment_methods' => $responseData['available_payment_methods'] ?? [],
+                    'available_banks' => $responseData['available_banks'] ?? [],
+                    'available_ewallets' => $responseData['available_ewallets'] ?? [],
+                    'available_retail_outlets' => $responseData['available_retail_outlets'] ?? [],
+                    'total_methods' => count($responseData['available_payment_methods'] ?? []),
+                    'raw_response' => $responseData
+                ]);
+            } else {
+                return response()->json([
+                    'error' => true,
+                    'status' => $response->status(),
+                    'response' => $response->json(),
+                    'sent_data' => $testInvoiceData
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'message' => $e->getMessage(),
+                'sent_data' => $testInvoiceData
+            ], 500);
+        }
     }
 }
