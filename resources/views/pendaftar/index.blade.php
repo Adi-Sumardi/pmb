@@ -272,8 +272,11 @@
                                 <th class="border-0 px-3 py-3 text-muted small fw-semibold text-uppercase" style="width: 120px;">
                                     <i class="bi bi-building me-1"></i>Unit
                                 </th>
-                                <th class="border-0 px-3 py-3 text-muted small fw-semibold text-uppercase" style="width: 100px;">
-                                    <i class="bi bi-calendar me-1"></i>Umur
+                                <th class="border-0 px-3 py-3 text-muted small fw-semibold text-uppercase" style="width: 120px;">
+                                    <i class="bi bi-calendar me-1"></i>Tgl Lahir
+                                </th>
+                                <th class="border-0 px-3 py-3 text-muted small fw-semibold text-uppercase" style="width: 120px;">
+                                    <i class="bi bi-calendar-check me-1"></i>Umur Juli 2026
                                 </th>
                                 <th class="border-0 px-3 py-3 text-muted small fw-semibold text-uppercase" style="width: 120px;">
                                     <i class="bi bi-file-earmark me-1"></i>Dokumen
@@ -338,12 +341,26 @@
                                         </span>
                                     </td>
                                     <td class="px-3">
+                                        <div class="text-center">
+                                            <div class="fw-bold text-primary">{{ \Carbon\Carbon::parse($item->tanggal_lahir)->format('d/m/Y') }}</div>
+                                            <small class="text-muted">{{ \Carbon\Carbon::parse($item->tanggal_lahir)->diffForHumans() }}</small>
+                                        </div>
+                                    </td>
+                                    <td class="px-3">
                                         @php
                                             $age = \Carbon\Carbon::parse($item->tanggal_lahir)->diff(\Carbon\Carbon::create(2026,7,1));
+                                            $currentAge = \Carbon\Carbon::parse($item->tanggal_lahir)->age;
                                         @endphp
                                         <div class="text-center">
-                                            <div class="fw-bold fs-5">{{ $age->y }}</div>
-                                            <small class="text-muted">tahun {{ $age->m }} bln</small>
+                                            <div class="fw-bold fs-4 text-success">{{ $age->y }} tahun</div>
+                                            <small class="text-muted">{{ $age->m }} bulan</small>
+                                            @if($currentAge != $age->y)
+                                                <div class="mt-1">
+                                                    <span class="badge bg-warning text-dark" style="font-size: 0.6rem;">
+                                                        Sekarang: {{ $currentAge }} tahun
+                                                    </span>
+                                                </div>
+                                            @endif
                                         </div>
                                     </td>
                                     <td class="px-3">
@@ -411,7 +428,7 @@
                                 </tr>
                             @empty
                                 <tr id="noDataRow">
-                                    <td colspan="9" class="text-center py-5">
+                                    <td colspan="10" class="text-center py-5">
                                         <div class="text-muted">
                                             <i class="bi bi-inbox display-4 text-secondary mb-3"></i>
                                             <h5 class="mt-3">Belum ada data pendaftar</h5>
