@@ -163,7 +163,11 @@ class Payment extends Model
      */
     public function getFormattedAmountAttribute(): string
     {
-        return 'Rp ' . number_format($this->amount, 0, ',', '.');
+        if ($this->amount === null) {
+            return 'Rp 0';
+        }
+
+        return 'Rp ' . number_format((float)$this->amount, 0, ',', '.');
     }
 
     /**
