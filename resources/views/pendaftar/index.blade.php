@@ -542,789 +542,794 @@
 
     <!-- Main JavaScript -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded - Initializing...');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - Initializing...');
 
-            // Initialize AOS
-            AOS.init({
-                duration: 600,
-                easing: 'ease-in-out',
-                once: true
-            });
+    // Initialize AOS
+    AOS.init({
+        duration: 600,
+        easing: 'ease-in-out',
+        once: true
+    });
 
-            // Initialize tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 
-            // Counter animation
-            function animateCounter(element) {
-                const target = parseInt(element.getAttribute('data-target'));
-                const duration = 1500;
-                const step = target / (duration / 16);
-                let current = 0;
+    // Counter animation
+    function animateCounter(element) {
+        const target = parseInt(element.getAttribute('data-target'));
+        const duration = 1500;
+        const step = target / (duration / 16);
+        let current = 0;
 
-                const timer = setInterval(() => {
-                    current += step;
-                    if (current >= target) {
-                        current = target;
-                        clearInterval(timer);
-                    }
-                    element.textContent = Math.floor(current);
-                }, 16);
+        const timer = setInterval(() => {
+            current += step;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
             }
+            element.textContent = Math.floor(current);
+        }, 16);
+    }
 
-            // Trigger counter animation
-            const counters = document.querySelectorAll('.counter');
-            const observer = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        animateCounter(entry.target);
-                        observer.unobserve(entry.target);
+    // Trigger counter animation
+    const counters = document.querySelectorAll('.counter');
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateCounter(entry.target);
+                observer.unobserve(entry.target);
+            }
+        });
+    });
+
+    counters.forEach(counter => {
+        observer.observe(counter);
+    });
+
+    // Get CSRF token and route template
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const updateRouteTemplate = document.querySelector('meta[name="update-route"]').getAttribute('content');
+
+    // Variables
+    const quickSearch = document.getElementById('quickSearch');
+    const clearQuickSearch = document.getElementById('clearQuickSearch');
+    const statusFilter = document.getElementById('statusFilter');
+    const unitFilter = document.getElementById('unitFilter');
+    const ageFilter = document.getElementById('ageFilter');
+    const resetBtn = document.getElementById('resetFilter');
+    const entriesPerPage = document.getElementById('entriesPerPage');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const tableRows = document.querySelectorAll('.table-row');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const searchResultCount = document.getElementById('searchResultCount');
+    const searchProgress = document.getElementById('searchProgress');
+    const exportBtn = document.getElementById('exportBtn');
+    const printBtn = document.getElementById('printBtn');
+    const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const bulkVerify = document.getElementById('bulkVerify');
+
+    let currentPage = 1;
+    let filteredRows = Array.from(tableRows);
+    let searchTimeout; // Tambahkan variable untuk timeout
+
+    // Auto close alerts
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            if (alert.classList.contains('show')) {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 300);
+            }
+        });
+    }, 5000);
+
+    // Show loading spinner
+    function showLoading(show) {
+        if (loadingOverlay) {
+            loadingOverlay.classList.toggle('d-none', !show);
+        }
+    }
+
+    // Highlight search text - PERBAIKAN
+    function highlightSearchText(text, searchTerm) {
+        if (!searchTerm) return text;
+        const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<span class="search-highlight">$1</span>');
+    }
+
+    // Remove highlights - PERBAIKAN
+    function removeHighlights() {
+        document.querySelectorAll('.search-highlight').forEach(el => {
+            const parent = el.parentNode;
+            parent.replaceChild(document.createTextNode(el.textContent), el);
+            parent.normalize();
+        });
+        document.querySelectorAll('.table-row').forEach(row => {
+            row.classList.remove('highlight');
+        });
+    }
+
+    // Quick search function - PERBAIKAN UTAMA
+    function performQuickSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            showLoading(true);
+
+            const searchTerm = quickSearch ? quickSearch.value.toLowerCase().trim() : '';
+            let visibleCount = 0;
+            filteredRows = [];
+
+            // Hapus highlight sebelumnya
+            removeHighlights();
+
+            // Reset originalText untuk semua elemen yang akan di-search
+            document.querySelectorAll('.nama-murid, .no-pendaftaran').forEach(el => {
+                if (!el.dataset.originalText) {
+                    el.dataset.originalText = el.textContent;
+                }
+                el.textContent = el.dataset.originalText;
+            });
+
+            tableRows.forEach(row => {
+                const searchableText = row.dataset.search || '';
+                const status = row.dataset.status;
+                const unit = row.dataset.unit;
+                const age = parseInt(row.dataset.age);
+
+                let show = true;
+
+                // Quick search - PERBAIKAN
+                if (searchTerm) {
+                    if (!searchableText.includes(searchTerm)) {
+                        show = false;
+                    } else {
+                        row.classList.add('highlight');
+
+                        // Highlight nama murid
+                        const namaMuridEl = row.querySelector('.nama-murid');
+                        if (namaMuridEl) {
+                            const originalText = namaMuridEl.dataset.originalText;
+                            if (originalText.toLowerCase().includes(searchTerm)) {
+                                namaMuridEl.innerHTML = highlightSearchText(originalText, searchTerm);
+                            }
+                        }
+
+                        // Highlight nomor pendaftaran
+                        const noPendaftaranEl = row.querySelector('.no-pendaftaran');
+                        if (noPendaftaranEl) {
+                            const originalText = noPendaftaranEl.dataset.originalText;
+                            if (originalText.toLowerCase().includes(searchTerm)) {
+                                noPendaftaranEl.innerHTML = highlightSearchText(originalText, searchTerm);
+                            }
+                        }
                     }
-                });
+                }
+
+                // Apply other filters
+                const statusValue = statusFilter ? statusFilter.value : '';
+                const unitValue = unitFilter ? unitFilter.value : '';
+                const ageValue = ageFilter ? ageFilter.value : '';
+
+                if (statusValue && status !== statusValue) show = false;
+                if (unitValue && unit !== unitValue) show = false;
+
+                if (ageValue) {
+                    const [minAge, maxAge] = ageValue.split('-').map(Number);
+                    if (age < minAge || age > maxAge) show = false;
+                }
+
+                if (show) {
+                    filteredRows.push(row);
+                    visibleCount++;
+                }
             });
 
-            counters.forEach(counter => {
-                observer.observe(counter);
-            });
-
-            // Get CSRF token and route template
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            const updateRouteTemplate = document.querySelector('meta[name="update-route"]').getAttribute('content');
-
-            // Variables
-            const quickSearch = document.getElementById('quickSearch');
-            const clearQuickSearch = document.getElementById('clearQuickSearch');
-            const statusFilter = document.getElementById('statusFilter');
-            const unitFilter = document.getElementById('unitFilter');
-            const ageFilter = document.getElementById('ageFilter');
-            const resetBtn = document.getElementById('resetFilter');
-            const entriesPerPage = document.getElementById('entriesPerPage');
-            const selectAllCheckbox = document.getElementById('selectAll');
-            const tableRows = document.querySelectorAll('.table-row');
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const searchResultCount = document.getElementById('searchResultCount');
-            const searchProgress = document.getElementById('searchProgress');
-            const exportBtn = document.getElementById('exportBtn');
-            const printBtn = document.getElementById('printBtn');
-            const bulkActionsBar = document.getElementById('bulkActionsBar');
-            const bulkVerify = document.getElementById('bulkVerify');
-
-            let currentPage = 1;
-            let filteredRows = Array.from(tableRows);
-
-            // Urutkan baris tabel agar status="pending" berada di atas
+            // Sort filtered rows - pending first
             filteredRows.sort((rowA, rowB) => {
                 const statusA = rowA.dataset.status;
                 const statusB = rowB.dataset.status;
 
-                // Prioritaskan status "pending" di atas
                 if (statusA === 'pending' && statusB !== 'pending') {
-                    return -1; // A (pending) sebelum B (non-pending)
+                    return -1;
                 } else if (statusA !== 'pending' && statusB === 'pending') {
-                    return 1;  // B (pending) sebelum A (non-pending)
+                    return 1;
                 }
 
-                // Jika keduanya memiliki status sama, pertahankan urutan berdasarkan index asli
                 const indexA = parseInt(rowA.dataset.index) || 0;
                 const indexB = parseInt(rowB.dataset.index) || 0;
                 return indexA - indexB;
             });
 
-            // Auto close alerts
-            setTimeout(() => {
-                const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(alert => {
-                    if (alert.classList.contains('show')) {
-                        alert.classList.remove('show');
-                        setTimeout(() => alert.remove(), 300);
-                    }
-                });
-            }, 5000);
-
-            // Show loading spinner
-            function showLoading(show) {
-                if (loadingOverlay) {
-                    loadingOverlay.classList.toggle('d-none', !show);
-                }
+            // Update counters
+            if (searchResultCount) {
+                searchResultCount.textContent = visibleCount;
             }
 
-            // Highlight search text
-            function highlightSearchText(text, searchTerm) {
-                if (!searchTerm) return text;
-                const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-                return text.replace(regex, '<span class="search-highlight">$1</span>');
+            // Update progress bar
+            if (searchProgress) {
+                const totalRows = tableRows.length;
+                const percentage = totalRows > 0 ? (visibleCount / totalRows) * 100 : 0;
+                searchProgress.style.width = percentage + '%';
             }
 
-            // Remove highlights
-            function removeHighlights() {
-                document.querySelectorAll('.search-highlight').forEach(el => {
-                    el.outerHTML = el.innerHTML;
-                });
-                document.querySelectorAll('.table-row').forEach(row => {
-                    row.classList.remove('highlight');
-                });
-            }
-
-            // Quick search function
-            function performQuickSearch() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    showLoading(true);
-
-                    const searchTerm = quickSearch ? quickSearch.value.toLowerCase().trim() : '';
-                    let visibleCount = 0;
-                    let pendingCount = 0;
-                    let verifiedCount = 0;
-                    filteredRows = [];
-
-                    removeHighlights();
-
-                    tableRows.forEach(row => {
-                        const namaMurid = row.dataset.nama || '';
-                        const noPendaftaran = row.dataset.noPendaftaran || '';
-                        const status = row.dataset.status;
-                        const unit = row.dataset.unit;
-                        const age = parseInt(row.dataset.age);
-
-                        let show = true;
-
-                        // Quick search
-                        if (searchTerm) {
-                            if (!namaMurid.includes(searchTerm) && !noPendaftaran.includes(searchTerm)) {
-                                show = false;
-                            } else {
-                                row.classList.add('highlight');
-
-                                const namaMuridEl = row.querySelector('.nama-murid');
-                                if (namaMuridEl && namaMurid.includes(searchTerm)) {
-                                    namaMuridEl.innerHTML = highlightSearchText(namaMuridEl.textContent, searchTerm);
-                                }
-
-                                const noPendaftaranEl = row.querySelector('.no-pendaftaran');
-                                if (noPendaftaranEl && noPendaftaran.includes(searchTerm)) {
-                                    noPendaftaranEl.innerHTML = highlightSearchText(noPendaftaranEl.textContent, searchTerm);
-                                }
-                            }
-                        }
-
-                        // Apply other filters
-                        const statusValue = statusFilter ? statusFilter.value : '';
-                        const unitValue = unitFilter ? unitFilter.value : '';
-                        const ageValue = ageFilter ? ageFilter.value : '';
-
-                        if (statusValue && status !== statusValue) show = false;
-                        if (unitValue && unit !== unitValue) show = false;
-
-                        if (ageValue) {
-                            const [minAge, maxAge] = ageValue.split('-').map(Number);
-                            if (age < minAge || age > maxAge) show = false;
-                        }
-
-                        if (show) {
-                            filteredRows.push(row);
-                            visibleCount++;
-                            if (status === 'pending') pendingCount++;
-                            if (status === 'diverifikasi') verifiedCount++;
-                        }
-                    });
-
-                    // TAMBAHKAN KODE SORTING DI SINI - setelah filtering selesai
-                    // Urutkan filteredRows agar status="pending" berada di atas
-                    filteredRows.sort((rowA, rowB) => {
-                        const statusA = rowA.dataset.status;
-                        const statusB = rowB.dataset.status;
-
-                        // Prioritaskan status "pending" di atas
-                        if (statusA === 'pending' && statusB !== 'pending') {
-                            return -1;
-                        } else if (statusA !== 'pending' && statusB === 'pending') {
-                            return 1;
-                        }
-
-                        // Jika keduanya memiliki status sama, pertahankan urutan berdasarkan index asli
-                        const indexA = parseInt(rowA.dataset.index) || 0;
-                        const indexB = parseInt(rowB.dataset.index) || 0;
-                        return indexA - indexB;
-                    });
-
-                    // Update counters
-                    if (searchResultCount) {
-                        searchResultCount.textContent = visibleCount;
-                    }
-
-                    // Update progress bar
-                    if (searchProgress) {
-                        const totalRows = tableRows.length;
-                        const percentage = totalRows > 0 ? (visibleCount / totalRows) * 100 : 0;
-                        searchProgress.style.width = percentage + '%';
-                    }
-
-                    currentPage = 1;
-                    updateTableDisplay();
-                    updatePagination();
-                    showLoading(false);
-                }, 300);
-            }
-
-            // Update table display
-            function updateTableDisplay() {
-                const perPage = entriesPerPage ? parseInt(entriesPerPage.value) : 25;
-                const startIndex = (currentPage - 1) * perPage;
-                const endIndex = startIndex + perPage;
-
-                // Hide all rows first
-                tableRows.forEach(row => {
-                    row.style.display = 'none';
-                });
-
-                // Show filtered rows for current page
-                filteredRows.slice(startIndex, endIndex).forEach(row => {
-                    row.style.display = '';
-                });
-
-                // Handle no data row
-                const noDataRow = document.getElementById('noDataRow');
-                if (noDataRow) {
-                    noDataRow.style.display = filteredRows.length === 0 ? '' : 'none';
-                }
-
-                // Update showing count
-                const showing = Math.min(endIndex, filteredRows.length);
-                const start = filteredRows.length > 0 ? startIndex + 1 : 0;
-                const showingCountEl = document.getElementById('showingCount');
-                if (showingCountEl) {
-                    showingCountEl.textContent = filteredRows.length > 0 ? `${start}-${showing}` : '0';
-                }
-            }
-
-            // Generate pagination
-            function updatePagination() {
-                const perPage = entriesPerPage ? parseInt(entriesPerPage.value) : 25;
-                const totalPages = Math.ceil(filteredRows.length / perPage);
-                const pagination = document.getElementById('pagination');
-
-                if (!pagination) return;
-                pagination.innerHTML = '';
-                if (totalPages <= 1) return;
-
-                // Previous button
-                const prevLi = document.createElement('li');
-                prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-                prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}">
-                    <i class="bi bi-chevron-left"></i></a>`;
-                pagination.appendChild(prevLi);
-
-                // Page numbers
-                const startPage = Math.max(1, currentPage - 2);
-                const endPage = Math.min(totalPages, currentPage + 2);
-
-                for (let i = startPage; i <= endPage; i++) {
-                    const li = document.createElement('li');
-                    li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-                    li.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
-                    pagination.appendChild(li);
-                }
-
-                // Next button
-                const nextLi = document.createElement('li');
-                nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-                nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}">
-                    <i class="bi bi-chevron-right"></i></a>`;
-                pagination.appendChild(nextLi);
-            }
-
-            // Toggle bulk actions
-            function toggleBulkActions() {
-                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-                const hasChecked = checkedBoxes.length > 0;
-
-                if (bulkActionsBar) {
-                    bulkActionsBar.classList.toggle('d-none', !hasChecked);
-                    const selectedCountText = document.getElementById('selectedCountText');
-                    if (selectedCountText) selectedCountText.textContent = checkedBoxes.length;
-                }
-            }
-
-            // Clear selection
-            window.clearSelection = function() {
-                const checkboxes = document.querySelectorAll('.row-checkbox, #selectAll');
-                checkboxes.forEach(checkbox => checkbox.checked = false);
-                toggleBulkActions();
-            }
-
-            // Export to Excel
-            function exportToExcel() {
-                if (typeof XLSX === 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: 'Library XLSX tidak ditemukan. Silakan refresh halaman.',
-                        confirmButtonColor: '#dc3545'
-                    });
-                    return;
-                }
-
-                const visibleData = [];
-                visibleData.push([
-                    'No', 'Nama Calon Murid', 'NISN', 'No Pendaftaran',
-                    'Unit Sekolah', 'Tanggal Lahir', 'Umur (Juli 2026)', 'Alamat', 'Status'
-                ]);
-
-                filteredRows.forEach((row, index) => {
-                    const nama = (row.dataset.nama || '').replace(/^\w/, c => c.toUpperCase());
-                    const nisn = row.dataset.nisn || 'Belum diisi';
-                    const noPendaftaran = (row.dataset.noPendaftaran || '').toUpperCase();
-                    const unit = row.dataset.unit || '';
-                    const tanggalLahir = row.dataset.tanggalLahir || '';
-                    const umur = row.dataset.age || '';
-                    const alamat = row.dataset.alamat || '';
-                    const status = row.dataset.status || '';
-
-                    visibleData.push([
-                        index + 1, nama, nisn, noPendaftaran, unit,
-                        tanggalLahir, `${umur} tahun`, alamat,
-                        status === 'pending' ? 'Pending' : 'Diverifikasi'
-                    ]);
-                });
-
-                try {
-                    const wb = XLSX.utils.book_new();
-                    const ws = XLSX.utils.aoa_to_sheet(visibleData);
-
-                    ws['!cols'] = [
-                        { wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
-                        { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 12 }
-                    ];
-
-                    XLSX.utils.book_append_sheet(wb, ws, 'Data Pendaftar');
-
-                    const now = new Date();
-                    const timestamp = now.toISOString().slice(0, 10);
-                    const filename = `Data_Pendaftar_PPDB_${timestamp}.xlsx`;
-
-                    XLSX.writeFile(wb, filename);
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Export Berhasil!',
-                        text: `File ${filename} berhasil didownload.`,
-                        confirmButtonColor: '#28a745'
-                    });
-                } catch (error) {
-                    console.error('Export error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Export Gagal!',
-                        text: 'Terjadi kesalahan saat export data.',
-                        confirmButtonColor: '#dc3545'
-                    });
-                }
-            }
-
-            // Print function
-            function printTable() {
-                const printWindow = window.open('', '_blank');
-                let printContent = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Data Pendaftar PPDB 2026/2027</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
-                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                            th { background-color: #f2f2f2; font-weight: bold; }
-                            .header { text-align: center; margin-bottom: 20px; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h2>Data Pendaftar Murid Baru</h2>
-                            <h3>Tahun Ajaran 2026/2027</h3>
-                            <p>Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}</p>
-                        </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>No</th><th>Nama Calon Murid</th><th>NISN</th>
-                                    <th>No Pendaftaran</th><th>Unit Sekolah</th><th>Umur</th><th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-
-                filteredRows.forEach((row, index) => {
-                    const nama = (row.dataset.nama || '').replace(/^\w/, c => c.toUpperCase());
-                    const nisn = row.dataset.nisn || 'Belum diisi';
-                    const noPendaftaran = (row.dataset.noPendaftaran || '').toUpperCase();
-                    const unit = row.dataset.unit || '';
-                    const umur = row.dataset.age || '';
-                    const status = row.dataset.status || '';
-
-                    printContent += `
-                        <tr>
-                            <td>${index + 1}</td><td>${nama}</td><td>${nisn}</td>
-                            <td>${noPendaftaran}</td><td>${unit}</td><td>${umur} tahun</td>
-                            <td>${status === 'pending' ? 'Pending' : 'Diverifikasi'}</td>
-                        </tr>
-                    `;
-                });
-
-                printContent += `
-                            </tbody>
-                        </table>
-                    </body>
-                    </html>
-                `;
-
-                printWindow.document.write(printContent);
-                printWindow.document.close();
-                printWindow.print();
-            }
-
-            // Single verification
-            function handleSingleVerification(id, name) {
-                Swal.fire({
-                    title: 'Konfirmasi Verifikasi',
-                    text: `Yakin ingin memverifikasi pendaftar ${name}?`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Ya, Verifikasi!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire({
-                            title: 'Memproses...',
-                            text: 'Sedang memverifikasi pendaftar',
-                            allowOutsideClick: false,
-                            didOpen: () => Swal.showLoading()
-                        });
-
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = updateRouteTemplate.replace(':id', id);
-
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = '_token';
-                        csrfInput.value = csrfToken;
-
-                        const methodField = document.createElement('input');
-                        methodField.type = 'hidden';
-                        methodField.name = '_method';
-                        methodField.value = 'PATCH';
-
-                        form.appendChild(csrfInput);
-                        form.appendChild(methodField);
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-                });
-            }
-
-            // Refresh data
-            window.refreshData = function() {
-                showLoading(true);
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            }
-
-            // Event listeners
-            if (quickSearch) {
-                quickSearch.addEventListener('input', performQuickSearch);
-            }
-
-            if (statusFilter) {
-                statusFilter.addEventListener('change', performQuickSearch);
-            }
-
-            if (unitFilter) {
-                unitFilter.addEventListener('change', performQuickSearch);
-            }
-
-            if (ageFilter) {
-                ageFilter.addEventListener('change', performQuickSearch);
-            }
-
-            if (entriesPerPage) {
-                entriesPerPage.addEventListener('change', () => {
-                    currentPage = 1;
-                    updateTableDisplay();
-                    updatePagination();
-                });
-            }
-
-            if (clearQuickSearch) {
-                clearQuickSearch.addEventListener('click', () => {
-                    if (quickSearch) {
-                        quickSearch.value = '';
-                        removeHighlights();
-                        performQuickSearch();
-                        quickSearch.focus();
-                    }
-                });
-            }
-
-            if (resetBtn) {
-                resetBtn.addEventListener('click', () => {
-                    if (quickSearch) quickSearch.value = '';
-                    if (statusFilter) statusFilter.value = '';
-                    if (unitFilter) unitFilter.value = '';
-                    if (ageFilter) ageFilter.value = '';
-                    currentPage = 1;
-                    removeHighlights();
-                    performQuickSearch();
-                });
-            }
-
-            if (exportBtn) {
-                exportBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    exportToExcel();
-                });
-            }
-
-            if (printBtn) {
-                printBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    printTable();
-                });
-            }
-
-            // Pagination click handler
-            document.addEventListener('click', function(e) {
-                if (e.target.closest('.page-link') && e.target.closest('.page-link').dataset.page) {
-                    e.preventDefault();
-                    const page = parseInt(e.target.closest('.page-link').dataset.page);
-                    if (page !== currentPage && page > 0) {
-                        currentPage = page;
-                        updateTableDisplay();
-                        updatePagination();
-                    }
-                }
-            });
-
-            // Verify button click handler
-            document.addEventListener('click', function(e) {
-                if (e.target.closest('.verify-btn')) {
-                    e.preventDefault();
-                    const btn = e.target.closest('.verify-btn');
-                    const id = btn.dataset.id;
-                    const name = btn.dataset.name;
-                    handleSingleVerification(id, name);
-                }
-            });
-
-            // Select all functionality
-            if (selectAllCheckbox) {
-                selectAllCheckbox.addEventListener('change', function() {
-                    filteredRows.forEach(row => {
-                        if (row.style.display !== 'none') {
-                            const checkbox = row.querySelector('.row-checkbox');
-                            if (checkbox) {
-                                checkbox.checked = this.checked;
-                            }
-                        }
-                    });
-                    toggleBulkActions();
-                });
-            }
-
-            // Individual checkbox change
-            document.addEventListener('change', function(e) {
-                if (e.target.classList.contains('row-checkbox')) {
-                    toggleBulkActions();
-
-                    const visibleCheckboxes = filteredRows
-                        .filter(row => row.style.display !== 'none')
-                        .map(row => row.querySelector('.row-checkbox'))
-                        .filter(checkbox => checkbox !== null);
-
-                    const checkedVisibleBoxes = visibleCheckboxes.filter(checkbox => checkbox.checked);
-
-                    if (selectAllCheckbox) {
-                        selectAllCheckbox.checked = visibleCheckboxes.length > 0 && checkedVisibleBoxes.length === visibleCheckboxes.length;
-                        selectAllCheckbox.indeterminate = checkedVisibleBoxes.length > 0 && checkedVisibleBoxes.length < visibleCheckboxes.length;
-                    }
-                }
-            });
-
-            if (bulkVerify) {
-            bulkVerify.addEventListener('click', function(e) {
-                e.preventDefault();
-
-                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-                const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
-
-                if (selectedIds.length === 0) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Peringatan!',
-                        text: 'Silakan pilih data yang akan diverifikasi.',
-                        confirmButtonColor: '#ffc107'
-                    });
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Konfirmasi Verifikasi Massal',
-                    text: `Yakin ingin memverifikasi ${selectedIds.length} pendaftar terpilih?`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Ya, Verifikasi Semua!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        performBulkVerification(selectedIds);
-                    }
-                });
-            });
-        }
-
-        // Bulk delete
-        const bulkDelete = document.getElementById('bulkDelete');
-        if (bulkDelete) {
-            bulkDelete.addEventListener('click', function(e) {
-                e.preventDefault();
-
-                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-                const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
-
-                if (selectedIds.length === 0) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Peringatan!',
-                        text: 'Silakan pilih data yang akan dihapus.',
-                        confirmButtonColor: '#ffc107'
-                    });
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Konfirmasi Hapus Massal',
-                    text: `Yakin ingin menghapus ${selectedIds.length} pendaftar terpilih? Data yang dihapus tidak dapat dikembalikan!`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Ya, Hapus Semua!',
-                    cancelButtonText: 'Batal',
-                    inputLabel: 'Ketik "HAPUS" untuk konfirmasi',
-                    input: 'text',
-                    inputPlaceholder: 'Ketik HAPUS',
-                    inputValidator: (value) => {
-                        if (value !== 'HAPUS') {
-                            return 'Ketik "HAPUS" untuk melanjutkan!';
-                        }
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        performBulkDelete(selectedIds);
-                    }
-                });
-            });
-        }
-
-        // Function to perform bulk verification
-        function performBulkVerification(selectedIds) {
-            Swal.fire({
-                title: 'Memproses Verifikasi...',
-                text: 'Sedang memverifikasi data terpilih',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // Create form for bulk verification
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ route("pendaftar.bulk-verify") }}'; // Buat route ini di Laravel
-            form.style.display = 'none';
-
-            // Add CSRF token
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = csrfToken;
-            form.appendChild(csrfInput);
-
-            // Add selected IDs
-            selectedIds.forEach(id => {
-                const idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'ids[]';
-                idInput.value = id;
-                form.appendChild(idInput);
-            });
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        // Function to perform bulk delete
-        function performBulkDelete(selectedIds) {
-            Swal.fire({
-                title: 'Menghapus Data...',
-                text: 'Sedang menghapus data terpilih',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // Create form for bulk delete
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ route("pendaftar.bulk-delete") }}'; // Buat route ini di Laravel
-            form.style.display = 'none';
-
-            // Add CSRF token
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = csrfToken;
-            form.appendChild(csrfInput);
-
-            // Add method DELETE
-            const methodInput = document.createElement('input');
-            methodInput.type = 'hidden';
-            methodInput.name = '_method';
-            methodInput.value = 'DELETE';
-            form.appendChild(methodInput);
-
-            // Add selected IDs
-            selectedIds.forEach(id => {
-                const idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'ids[]';
-                idInput.value = id;
-                form.appendChild(idInput);
-            });
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-            // Initialize
-            console.log('Initializing table with', tableRows.length, 'rows');
-            performQuickSearch();
-
-            if (quickSearch) {
-                quickSearch.focus();
-            }
-
-            console.log('Initialization complete');
+            currentPage = 1;
+            updateTableDisplay();
+            updatePagination();
+            showLoading(false);
+        }, 300);
+    }
+
+    // Update table display
+    function updateTableDisplay() {
+        const perPage = entriesPerPage ? parseInt(entriesPerPage.value) : 25;
+        const startIndex = (currentPage - 1) * perPage;
+        const endIndex = startIndex + perPage;
+
+        // Hide all rows first
+        tableRows.forEach(row => {
+            row.style.display = 'none';
         });
+
+        // Show filtered rows for current page
+        filteredRows.slice(startIndex, endIndex).forEach(row => {
+            row.style.display = '';
+        });
+
+        // Handle no data row
+        const noDataRow = document.getElementById('noDataRow');
+        if (noDataRow) {
+            noDataRow.style.display = filteredRows.length === 0 ? '' : 'none';
+        }
+
+        // Update showing count
+        const showing = Math.min(endIndex, filteredRows.length);
+        const start = filteredRows.length > 0 ? startIndex + 1 : 0;
+        const showingCountEl = document.getElementById('showingCount');
+        if (showingCountEl) {
+            showingCountEl.textContent = filteredRows.length > 0 ? `${start}-${showing}` : '0';
+        }
+
+        // Update total records count
+        const totalRecordsEl = document.getElementById('totalRecords');
+        if (totalRecordsEl) {
+            totalRecordsEl.textContent = filteredRows.length;
+        }
+    }
+
+    // Generate pagination
+    function updatePagination() {
+        const perPage = entriesPerPage ? parseInt(entriesPerPage.value) : 25;
+        const totalPages = Math.ceil(filteredRows.length / perPage);
+        const pagination = document.getElementById('pagination');
+
+        if (!pagination) return;
+        pagination.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}">
+            <i class="bi bi-chevron-left"></i></a>`;
+        pagination.appendChild(prevLi);
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+            pagination.appendChild(li);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}">
+            <i class="bi bi-chevron-right"></i></a>`;
+        pagination.appendChild(nextLi);
+    }
+
+    // Toggle bulk actions
+    function toggleBulkActions() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        const hasChecked = checkedBoxes.length > 0;
+
+        if (bulkActionsBar) {
+            bulkActionsBar.classList.toggle('d-none', !hasChecked);
+            const selectedCountText = document.getElementById('selectedCountText');
+            if (selectedCountText) selectedCountText.textContent = checkedBoxes.length;
+        }
+    }
+
+    // Clear selection
+    window.clearSelection = function() {
+        const checkboxes = document.querySelectorAll('.row-checkbox, #selectAll');
+        checkboxes.forEach(checkbox => checkbox.checked = false);
+        toggleBulkActions();
+    }
+
+    // Export to Excel
+    function exportToExcel() {
+        if (typeof XLSX === 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'Library XLSX tidak ditemukan. Silakan refresh halaman.',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+
+        const visibleData = [];
+        visibleData.push([
+            'No', 'Nama Calon Murid', 'NISN', 'No Pendaftaran',
+            'Unit Sekolah', 'Tanggal Lahir', 'Umur (Juli 2026)', 'Alamat', 'Status'
+        ]);
+
+        filteredRows.forEach((row, index) => {
+            const nama = (row.dataset.nama || '').replace(/^\w/, c => c.toUpperCase());
+            const nisn = row.dataset.nisn || 'Belum diisi';
+            const noPendaftaran = (row.dataset.noPendaftaran || '').toUpperCase();
+            const unit = row.dataset.unit || '';
+            const tanggalLahir = row.dataset.tanggalLahir || '';
+            const umur = row.dataset.age || '';
+            const alamat = row.dataset.alamat || '';
+            const status = row.dataset.status || '';
+
+            visibleData.push([
+                index + 1, nama, nisn, noPendaftaran, unit,
+                tanggalLahir, `${umur} tahun`, alamat,
+                status === 'pending' ? 'Pending' : 'Diverifikasi'
+            ]);
+        });
+
+        try {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(visibleData);
+
+            ws['!cols'] = [
+                { wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
+                { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 12 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Data Pendaftar');
+
+            const now = new Date();
+            const timestamp = now.toISOString().slice(0, 10);
+            const filename = `Data_Pendaftar_PPDB_${timestamp}.xlsx`;
+
+            XLSX.writeFile(wb, filename);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Export Berhasil!',
+                text: `File ${filename} berhasil didownload.`,
+                confirmButtonColor: '#28a745'
+            });
+        } catch (error) {
+            console.error('Export error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Export Gagal!',
+                text: 'Terjadi kesalahan saat export data.',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+
+    // Print function
+    function printTable() {
+        const printWindow = window.open('', '_blank');
+        let printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Data Pendaftar PPDB 2026/2027</title>
+                <style>
+                    body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; font-weight: bold; }
+                    .header { text-align: center; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>Data Pendaftar Murid Baru</h2>
+                    <h3>Tahun Ajaran 2026/2027</h3>
+                    <p>Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th><th>Nama Calon Murid</th><th>NISN</th>
+                            <th>No Pendaftaran</th><th>Unit Sekolah</th><th>Umur</th><th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        filteredRows.forEach((row, index) => {
+            const nama = (row.dataset.nama || '').replace(/^\w/, c => c.toUpperCase());
+            const nisn = row.dataset.nisn || 'Belum diisi';
+            const noPendaftaran = (row.dataset.noPendaftaran || '').toUpperCase();
+            const unit = row.dataset.unit || '';
+            const umur = row.dataset.age || '';
+            const status = row.dataset.status || '';
+
+            printContent += `
+                <tr>
+                    <td>${index + 1}</td><td>${nama}</td><td>${nisn}</td>
+                    <td>${noPendaftaran}</td><td>${unit}</td><td>${umur} tahun</td>
+                    <td>${status === 'pending' ? 'Pending' : 'Diverifikasi'}</td>
+                </tr>
+            `;
+        });
+
+        printContent += `
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    // Single verification
+    function handleSingleVerification(id, name) {
+        Swal.fire({
+            title: 'Konfirmasi Verifikasi',
+            text: `Yakin ingin memverifikasi pendaftar ${name}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Verifikasi!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses...',
+                    text: 'Sedang memverifikasi pendaftar',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = updateRouteTemplate.replace(':id', id);
+
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = csrfToken;
+
+                const methodField = document.createElement('input');
+                methodField.type = 'hidden';
+                methodField.name = '_method';
+                methodField.value = 'PATCH';
+
+                form.appendChild(csrfInput);
+                form.appendChild(methodField);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+
+    // Refresh data
+    window.refreshData = function() {
+        showLoading(true);
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+
+    // Event listeners
+    if (quickSearch) {
+        quickSearch.addEventListener('input', performQuickSearch);
+
+        // Tambah event listener untuk clear button
+        if (clearQuickSearch) {
+            clearQuickSearch.addEventListener('click', () => {
+                quickSearch.value = '';
+                removeHighlights();
+                performQuickSearch();
+                quickSearch.focus();
+            });
+        }
+    }
+
+    if (statusFilter) {
+        statusFilter.addEventListener('change', performQuickSearch);
+    }
+
+    if (unitFilter) {
+        unitFilter.addEventListener('change', performQuickSearch);
+    }
+
+    if (ageFilter) {
+        ageFilter.addEventListener('change', performQuickSearch);
+    }
+
+    if (entriesPerPage) {
+        entriesPerPage.addEventListener('change', () => {
+            currentPage = 1;
+            updateTableDisplay();
+            updatePagination();
+        });
+    }
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (quickSearch) quickSearch.value = '';
+            if (statusFilter) statusFilter.value = '';
+            if (unitFilter) unitFilter.value = '';
+            if (ageFilter) ageFilter.value = '';
+            currentPage = 1;
+            removeHighlights();
+            performQuickSearch();
+        });
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            exportToExcel();
+        });
+    }
+
+    if (printBtn) {
+        printBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            printTable();
+        });
+    }
+
+    // Pagination click handler
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.page-link') && e.target.closest('.page-link').dataset.page) {
+            e.preventDefault();
+            const page = parseInt(e.target.closest('.page-link').dataset.page);
+            if (page !== currentPage && page > 0) {
+                currentPage = page;
+                updateTableDisplay();
+                updatePagination();
+            }
+        }
+    });
+
+    // Verify button click handler
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.verify-btn')) {
+            e.preventDefault();
+            const btn = e.target.closest('.verify-btn');
+            const id = btn.dataset.id;
+            const name = btn.dataset.name;
+            handleSingleVerification(id, name);
+        }
+    });
+
+    // Select all functionality
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            filteredRows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const checkbox = row.querySelector('.row-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = this.checked;
+                    }
+                }
+            });
+            toggleBulkActions();
+        });
+    }
+
+    // Individual checkbox change
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('row-checkbox')) {
+            toggleBulkActions();
+
+            const visibleCheckboxes = filteredRows
+                .filter(row => row.style.display !== 'none')
+                .map(row => row.querySelector('.row-checkbox'))
+                .filter(checkbox => checkbox !== null);
+
+            const checkedVisibleBoxes = visibleCheckboxes.filter(checkbox => checkbox.checked);
+
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = visibleCheckboxes.length > 0 && checkedVisibleBoxes.length === visibleCheckboxes.length;
+                selectAllCheckbox.indeterminate = checkedVisibleBoxes.length > 0 && checkedVisibleBoxes.length < visibleCheckboxes.length;
+            }
+        }
+    });
+
+    if (bulkVerify) {
+    bulkVerify.addEventListener('click', function(e) {
+        e.preventDefault();
+
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+        if (selectedIds.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan!',
+                text: 'Silakan pilih data yang akan diverifikasi.',
+                confirmButtonColor: '#ffc107'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Konfirmasi Verifikasi Massal',
+            text: `Yakin ingin memverifikasi ${selectedIds.length} pendaftar terpilih?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Verifikasi Semua!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performBulkVerification(selectedIds);
+            }
+        });
+    });
+}
+
+    // Bulk delete
+    const bulkDelete = document.getElementById('bulkDelete');
+    if (bulkDelete) {
+        bulkDelete.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (selectedIds.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Silakan pilih data yang akan dihapus.',
+                    confirmButtonColor: '#ffc107'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Konfirmasi Hapus Massal',
+                text: `Yakin ingin menghapus ${selectedIds.length} pendaftar terpilih? Data yang dihapus tidak dapat dikembalikan!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus Semua!',
+                cancelButtonText: 'Batal',
+                inputLabel: 'Ketik "HAPUS" untuk konfirmasi',
+                input: 'text',
+                inputPlaceholder: 'Ketik HAPUS',
+                inputValidator: (value) => {
+                    if (value !== 'HAPUS') {
+                        return 'Ketik "HAPUS" untuk melanjutkan!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    performBulkDelete(selectedIds);
+                }
+            });
+        });
+    }
+
+    // Function to perform bulk verification
+    function performBulkVerification(selectedIds) {
+        Swal.fire({
+            title: 'Memproses Verifikasi...',
+            text: 'Sedang memverifikasi data terpilih',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Create form for bulk verification
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ route("pendaftar.bulk-verify") }}'; // Buat route ini di Laravel
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        // Add selected IDs
+        selectedIds.forEach(id => {
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'ids[]';
+            idInput.value = id;
+            form.appendChild(idInput);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Function to perform bulk delete
+    function performBulkDelete(selectedIds) {
+        Swal.fire({
+            title: 'Menghapus Data...',
+            text: 'Sedang menghapus data terpilih',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Create form for bulk delete
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ route("pendaftar.bulk-delete") }}'; // Buat route ini di Laravel
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        // Add method DELETE
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+
+        // Add selected IDs
+        selectedIds.forEach(id => {
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'ids[]';
+            idInput.value = id;
+            form.appendChild(idInput);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Initialize
+    console.log('Initializing table with', tableRows.length, 'rows');
+
+    // Set original text untuk nama dan nomor pendaftaran
+    document.querySelectorAll('.nama-murid, .no-pendaftaran').forEach(el => {
+        el.dataset.originalText = el.textContent;
+    });
+
+    performQuickSearch();
+
+    if (quickSearch) {
+        quickSearch.focus();
+    }
+
+    console.log('Initialization complete');
+});
     </script>
 </x-app-layout>
