@@ -10,10 +10,24 @@
                 <p class="text-muted small mb-0">Monitoring dan pengelolaan transaksi pembayaran formulir PPDB</p>
             </div>
             <div class="d-flex gap-2">
-                <button onclick="exportTransactions()" class="btn btn-success" data-bs-toggle="tooltip" title="Export data transaksi ke Excel">
-                    <i class="bi bi-file-excel-fill me-1"></i>Export Excel
-                </button>
-                <button onclick="refreshData()" class="btn btn-outline-primary" data-bs-toggle="tooltip" title="Refresh data terbaru">
+                <div class="dropdown">
+                    <button class="btn btn-success btn-sm rounded-pill px-3 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-toggle="tooltip" title="Export data transaksi">
+                        <i class="bi bi-file-earmark-arrow-down me-1"></i>Export
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li>
+                            <a href="{{ route('admin.transactions.export', request()->query()) }}" class="dropdown-item">
+                                <i class="bi bi-file-excel me-2 text-success"></i>Export Excel
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('admin.transactions.export.pdf', request()->query()) }}" class="dropdown-item" target="_blank">
+                                <i class="bi bi-file-pdf me-2 text-danger"></i>Export PDF
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <button onclick="refreshData()" class="btn btn-outline-primary btn-sm rounded-pill px-3" data-bs-toggle="tooltip" title="Refresh data terbaru">
                     <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                 </button>
             </div>
@@ -24,7 +38,7 @@
         <!-- Statistics Cards with Animation -->
         <div class="row g-4 mb-4">
             <div class="col-xl-3 col-md-6">
-                <div class="card border-0 shadow-sm h-100 card-hover" data-aos="fade-up" data-aos-delay="100">
+                <div class="card border-0 shadow-sm h-100 card-hover rounded-4" data-aos="fade-up" data-aos-delay="100">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -46,7 +60,7 @@
             </div>
 
             <div class="col-xl-3 col-md-6">
-                <div class="card border-0 shadow-sm h-100 card-hover" data-aos="fade-up" data-aos-delay="200">
+                <div class="card border-0 shadow-sm h-100 card-hover rounded-4" data-aos="fade-up" data-aos-delay="200">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -69,7 +83,7 @@
             </div>
 
             <div class="col-xl-3 col-md-6">
-                <div class="card border-0 shadow-sm h-100 card-hover" data-aos="fade-up" data-aos-delay="300">
+                <div class="card border-0 shadow-sm h-100 card-hover rounded-4" data-aos="fade-up" data-aos-delay="300">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -92,7 +106,7 @@
             </div>
 
             <div class="col-xl-3 col-md-6">
-                <div class="card border-0 shadow-sm h-100 card-hover" data-aos="fade-up" data-aos-delay="400">
+                <div class="card border-0 shadow-sm h-100 card-hover rounded-4" data-aos="fade-up" data-aos-delay="400">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -117,8 +131,8 @@
         </div>
 
         <!-- Advanced Filter Section -->
-        <div class="card border-0 shadow-sm mb-4" data-aos="fade-up" data-aos-delay="500">
-            <div class="card-header bg-white border-bottom py-3">
+        <div class="card border-0 shadow-sm mb-4 rounded-4" data-aos="fade-up" data-aos-delay="500">
+            <div class="card-header bg-white border-bottom py-3 rounded-top-4">
                 <h5 class="card-title mb-0 fw-bold">
                     <i class="bi bi-funnel me-2 text-primary"></i>Filter Transaksi
                 </h5>
@@ -127,7 +141,7 @@
                 <form method="GET" action="{{ route('admin.transactions.index') }}" class="row g-3">
                     <div class="col-lg-2 col-md-4">
                         <label for="status" class="form-label fw-semibold">Status Pembayaran</label>
-                        <select name="status" id="status" class="form-select">
+                        <select name="status" id="status" class="form-select rounded-pill">
                             <option value="">🔍 Semua Status</option>
                             <option value="PAID" {{ request('status') === 'PAID' ? 'selected' : '' }}>✅ Lunas</option>
                             <option value="PENDING" {{ request('status') === 'PENDING' ? 'selected' : '' }}>⏳ Menunggu</option>
@@ -136,7 +150,7 @@
                     </div>
                     <div class="col-lg-2 col-md-4">
                         <label for="jenjang" class="form-label fw-semibold">Jenjang Pendidikan</label>
-                        <select name="jenjang" id="jenjang" class="form-select">
+                        <select name="jenjang" id="jenjang" class="form-select rounded-pill">
                             <option value="">🎓 Semua Jenjang</option>
                             <option value="sanggar" {{ request('jenjang') === 'sanggar' ? 'selected' : '' }}>🧸 Sanggar</option>
                             <option value="kelompok" {{ request('jenjang') === 'kelompok' ? 'selected' : '' }}>👶 Kelompok</option>
@@ -149,24 +163,24 @@
                     </div>
                     <div class="col-lg-2 col-md-4">
                         <label for="date_from" class="form-label fw-semibold">Dari Tanggal</label>
-                        <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request('date_from') }}">
+                        <input type="date" name="date_from" id="date_from" class="form-control rounded-pill" value="{{ request('date_from') }}">
                     </div>
                     <div class="col-lg-2 col-md-4">
                         <label for="date_to" class="form-label fw-semibold">Sampai Tanggal</label>
-                        <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request('date_to') }}">
+                        <input type="date" name="date_to" id="date_to" class="form-control rounded-pill" value="{{ request('date_to') }}">
                     </div>
                     <div class="col-lg-2 col-md-4">
                         <label for="search" class="form-label fw-semibold">Pencarian</label>
-                        <input type="text" name="search" id="search" class="form-control"
+                        <input type="text" name="search" id="search" class="form-control rounded-pill"
                                placeholder="Nama atau No. Pendaftaran" value="{{ request('search') }}">
                     </div>
                     <div class="col-lg-2 col-md-4">
                         <label class="form-label fw-semibold">&nbsp;</label>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary flex-fill" data-bs-toggle="tooltip" title="Terapkan filter">
+                            <button type="submit" class="btn btn-primary rounded-pill flex-fill" data-bs-toggle="tooltip" title="Terapkan filter">
                                 <i class="bi bi-search me-1"></i>Filter
                             </button>
-                            <a href="{{ route('admin.transactions.index') }}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Reset semua filter">
+                            <a href="{{ route('admin.transactions.index') }}" class="btn btn-outline-secondary rounded-pill" data-bs-toggle="tooltip" title="Reset semua filter">
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </a>
                         </div>
@@ -176,31 +190,42 @@
         </div>
 
         <!-- Main Transactions Table -->
-        <div class="card border-0 shadow-sm" data-aos="fade-up" data-aos-delay="600">
-            <div class="card-header bg-white border-bottom py-3">
+        <div class="card border-0 shadow-sm rounded-4" data-aos="fade-up" data-aos-delay="600">
+            <div class="card-header bg-white border-bottom py-3 rounded-top-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0 fw-bold">
                         <i class="bi bi-table me-2 text-primary"></i>Daftar Transaksi
                     </h5>
                     <div class="d-flex align-items-center gap-3">
-                        <span class="badge bg-primary fs-6 px-3 py-2">
+                        <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">
                             {{ $payments->total() }} transaksi ditemukan
                         </span>
                         <div class="dropdown">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm rounded-pill dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="printTable()">
-                                    <i class="bi bi-printer me-2"></i>Print Tabel
-                                </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="exportTransactions()">
-                                    <i class="bi bi-file-excel me-2"></i>Export Excel
-                                </a></li>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.transactions.print', request()->query()) }}" target="_blank">
+                                        <i class="bi bi-printer me-2 text-primary"></i>Print Tabel
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.transactions.export', request()->query()) }}">
+                                        <i class="bi bi-file-excel me-2 text-success"></i>Export Excel
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.transactions.export.pdf', request()->query()) }}" target="_blank">
+                                        <i class="bi bi-file-pdf me-2 text-danger"></i>Export PDF
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="refreshData()">
-                                    <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
-                                </a></li>
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="refreshData()">
+                                        <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -210,30 +235,33 @@
                 @if($payments->count() > 0)
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0" id="transactionsTable">
-                            <thead class="table-dark">
+                            <thead class="table-light text-muted">
                                 <tr>
-                                    <th class="border-0 px-4 py-3" style="width: 5%;">
+                                    <th class="border-0 px-4 py-3 text-uppercase" style="width: 5%;">
                                         <i class="bi bi-hash"></i>
                                     </th>
-                                    <th class="border-0 px-4 py-3" style="width: 15%;">
+                                    <th class="border-0 px-4 py-3 text-uppercase" style="width: 13%;">
                                         <i class="bi bi-credit-card me-1"></i>Transaction ID
                                     </th>
-                                    <th class="border-0 px-4 py-3" style="width: 25%;">
+                                    <th class="border-0 px-4 py-3 text-uppercase" style="width: 20%;">
                                         <i class="bi bi-person me-1"></i>Data Siswa
                                     </th>
-                                    <th class="border-0 px-4 py-3" style="width: 10%;">
+                                    <th class="border-0 px-4 py-3 text-uppercase" style="width: 10%;">
                                         <i class="bi bi-bookmark me-1"></i>Jenjang
                                     </th>
-                                    <th class="border-0 px-4 py-3" style="width: 12%;">
+                                    <th class="border-0 px-4 py-3 text-uppercase" style="width: 12%;">
                                         <i class="bi bi-currency-dollar me-1"></i>Amount
                                     </th>
-                                    <th class="border-0 px-4 py-3" style="width: 10%;">
+                                    <th class="border-0 px-4 py-3 text-uppercase" style="width: 12%;">
+                                        <i class="bi bi-wallet2 me-1"></i>Metode Transfer
+                                    </th>
+                                    <th class="border-0 px-4 py-3 text-uppercase" style="width: 8%;">
                                         <i class="bi bi-flag me-1"></i>Status
                                     </th>
-                                    <th class="border-0 px-4 py-3" style="width: 13%;">
+                                    <th class="border-0 px-4 py-3 text-uppercase" style="width: 12%;">
                                         <i class="bi bi-calendar me-1"></i>Tanggal
                                     </th>
-                                    <th class="border-0 px-4 py-3 text-center" style="width: 10%;">
+                                    <th class="border-0 px-4 py-3 text-center text-uppercase" style="width: 8%;">
                                         <i class="bi bi-gear me-1"></i>Aksi
                                     </th>
                                 </tr>
@@ -258,9 +286,9 @@
                                     <td class="px-4">
                                         <div class="d-flex align-items-center">
                                             <div class="flex-shrink-0 me-3">
-                                                <div class="rounded-circle bg-gradient-primary d-flex align-items-center justify-content-center text-white"
-                                                     style="width: 45px; height: 45px;">
-                                                    <i class="bi bi-person fs-5"></i>
+                                                <div class="avatar-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
+                                                     style="width: 45px; height: 45px; border-radius: 50%;">
+                                                    {{ substr($payment->pendaftar->nama_murid, 0, 1) }}
                                                 </div>
                                             </div>
                                             <div>
@@ -270,14 +298,14 @@
                                                     {{ $payment->pendaftar->no_pendaftaran }}
                                                 </small>
                                                 <br>
-                                                <span class="badge bg-info bg-gradient text-white small">
+                                                <span class="badge bg-info bg-opacity-10 text-info small">
                                                     {{ $payment->pendaftar->unit }}
                                                 </span>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="px-4">
-                                        <span class="badge bg-primary bg-gradient px-3 py-2 rounded-pill">
+                                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
                                             {{ strtoupper($payment->pendaftar->jenjang) }}
                                         </span>
                                     </td>
@@ -287,21 +315,82 @@
                                         </div>
                                         <small class="text-muted">Uang Formulir</small>
                                     </td>
+                                    <!-- Payment method column -->
+                                    <td class="px-4">
+                                        @php
+                                            $paymentMethod = '';
+                                            $paymentChannel = '';
+                                            $badgeClass = 'bg-light text-secondary';
+                                            $icon = 'credit-card';
+
+                                            // Extract payment method from xendit_response
+                                            if (isset($payment->xendit_response['payment_method'])) {
+                                                $paymentMethod = $payment->xendit_response['payment_method'];
+                                                $paymentChannel = $payment->xendit_response['payment_channel'] ?? '';
+
+                                                // Set icon and badge based on payment method
+                                                if ($paymentMethod == 'EWALLET') {
+                                                    $icon = 'wallet2';
+                                                    $badgeClass = 'bg-info bg-opacity-10 text-info';
+                                                } elseif ($paymentMethod == 'BANK_TRANSFER' || $paymentMethod == 'VIRTUAL_ACCOUNT') {
+                                                    $icon = 'bank';
+                                                    $badgeClass = 'bg-primary bg-opacity-10 text-primary';
+                                                } elseif ($paymentMethod == 'QR_CODE' || $paymentMethod == 'QRIS') {
+                                                    $icon = 'qr-code';
+                                                    $badgeClass = 'bg-warning bg-opacity-10 text-warning';
+                                                } elseif ($paymentMethod == 'CREDIT_CARD') {
+                                                    $icon = 'credit-card';
+                                                    $badgeClass = 'bg-dark bg-opacity-10 text-dark';
+                                                } elseif ($paymentMethod == 'RETAIL_OUTLET') {
+                                                    $icon = 'shop';
+                                                    $badgeClass = 'bg-success bg-opacity-10 text-success';
+                                                }
+                                            }
+
+                                            // Display friendly name
+                                            $displayMethod = '';
+                                            if ($paymentMethod == 'EWALLET') {
+                                                $displayMethod = $paymentChannel ?: 'E-Wallet';
+                                            } elseif ($paymentMethod == 'BANK_TRANSFER' || $paymentMethod == 'VIRTUAL_ACCOUNT') {
+                                                $displayMethod = ($paymentChannel ?: 'VA') . ' Virtual Account';
+                                            } elseif ($paymentMethod == 'QR_CODE' || $paymentMethod == 'QRIS') {
+                                                $displayMethod = 'QRIS';
+                                            } elseif ($paymentMethod == 'CREDIT_CARD') {
+                                                $displayMethod = 'Kartu Kredit/Debit';
+                                            } elseif ($paymentMethod == 'RETAIL_OUTLET') {
+                                                $displayMethod = $paymentChannel ?: 'Retail Store';
+                                            } else {
+                                                if ($payment->status == 'PENDING') {
+                                                    $displayMethod = 'Menunggu pembayaran';
+                                                } else {
+                                                    $displayMethod = 'N/A';
+                                                }
+                                            }
+                                        @endphp
+
+                                        <span class="badge {{ $badgeClass }} px-3 py-2 rounded-pill fw-semibold">
+                                            <i class="bi bi-{{ $icon }} me-1"></i>{{ $displayMethod }}
+                                        </span>
+
+                                        @if($payment->status == 'PAID' && !empty($paymentChannel))
+                                            <div class="small text-muted mt-1">{{ $paymentChannel }}</div>
+                                        @endif
+                                    </td>
                                     <td class="px-4">
                                         @if($payment->status === 'PAID')
-                                            <span class="badge bg-success px-3 py-2 rounded-pill">
+                                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
                                                 <i class="bi bi-check-circle-fill me-1"></i>Lunas
                                             </span>
                                         @elseif($payment->status === 'PENDING')
-                                            <span class="badge bg-warning px-3 py-2 rounded-pill">
+                                            <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill">
                                                 <i class="bi bi-clock-fill me-1"></i>Pending
                                             </span>
                                         @elseif($payment->status === 'FAILED')
-                                            <span class="badge bg-danger px-3 py-2 rounded-pill">
+                                            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">
                                                 <i class="bi bi-x-circle-fill me-1"></i>Gagal
                                             </span>
                                         @else
-                                            <span class="badge bg-secondary px-3 py-2 rounded-pill">
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill">
                                                 {{ $payment->status }}
                                             </span>
                                         @endif
@@ -310,18 +399,17 @@
                                         <div class="fw-semibold">{{ $payment->created_at->format('d/m/Y') }}</div>
                                         <small class="text-muted">{{ $payment->created_at->format('H:i') }} WIB</small>
                                         @if($payment->paid_at)
-                                            <br>
-                                            <small class="text-success">
+                                            <div class="small text-success mt-1">
                                                 <i class="bi bi-check-circle me-1"></i>
                                                 Lunas: {{ $payment->paid_at->format('d/m/Y H:i') }}
-                                            </small>
+                                            </div>
                                         @endif
                                     </td>
                                     <td class="px-4 text-center">
                                         <div class="btn-group" role="group">
                                             <!-- Detail Button -->
                                             <a href="{{ route('admin.transactions.show', $payment->id) }}"
-                                               class="btn btn-outline-info btn-sm"
+                                               class="btn btn-outline-info btn-sm rounded-pill"
                                                data-bs-toggle="tooltip"
                                                data-bs-placement="top"
                                                title="Lihat detail lengkap transaksi">
@@ -331,7 +419,7 @@
                                             <!-- Confirm Payment Button (hanya untuk status PENDING) -->
                                             @if($payment->status === 'PENDING')
                                                 <button onclick="confirmPayment({{ $payment->id }}, '{{ $payment->pendaftar->nama_murid }}')"
-                                                        class="btn btn-outline-success btn-sm"
+                                                        class="btn btn-outline-success btn-sm rounded-pill"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="top"
                                                         title="Konfirmasi pembayaran secara manual">
@@ -342,7 +430,7 @@
                                             <!-- Invoice Button -->
                                             @if($payment->invoice_url)
                                                 <a href="{{ $payment->invoice_url }}"
-                                                   class="btn btn-outline-primary btn-sm"
+                                                   class="btn btn-outline-primary btn-sm rounded-pill"
                                                    target="_blank"
                                                    data-bs-toggle="tooltip"
                                                    data-bs-placement="top"
@@ -359,7 +447,7 @@
                     </div>
 
                     <!-- Enhanced Pagination -->
-                    <div class="card-footer bg-white border-top">
+                    <div class="card-footer bg-white border-top p-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="text-muted small">
                                 <i class="bi bi-info-circle me-1"></i>
@@ -374,20 +462,22 @@
                     </div>
                 @else
                     <!-- Enhanced Empty State -->
-                    <div class="text-center py-5">
+                    <div class="text-center py-5 my-4">
                         <div class="mb-4">
-                            <i class="bi bi-receipt text-muted opacity-50" style="font-size: 5rem;"></i>
+                            <div class="d-inline-flex justify-content-center align-items-center rounded-circle bg-light p-4" style="width: 120px; height: 120px;">
+                                <i class="bi bi-receipt-cutoff text-primary" style="font-size: 3.5rem;"></i>
+                            </div>
                         </div>
                         <h4 class="text-muted fw-bold mb-3">Tidak Ada Transaksi Ditemukan</h4>
-                        <p class="text-muted mb-4">
+                        <p class="text-muted mb-4 col-md-6 mx-auto">
                             Belum ada transaksi yang sesuai dengan filter yang dipilih.<br>
                             Coba ubah filter atau hapus beberapa kriteria pencarian.
                         </p>
                         <div class="d-flex justify-content-center gap-2">
-                            <a href="{{ route('admin.transactions.index') }}" class="btn btn-outline-primary">
+                            <a href="{{ route('admin.transactions.index') }}" class="btn btn-outline-primary rounded-pill px-4">
                                 <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Filter
                             </a>
-                            <button onclick="refreshData()" class="btn btn-primary">
+                            <button onclick="refreshData()" class="btn btn-primary rounded-pill px-4">
                                 <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
                             </button>
                         </div>
@@ -400,8 +490,8 @@
     <!-- Enhanced Confirmation Modal -->
     <div class="modal fade" id="confirmPaymentModal" tabindex="-1" aria-labelledby="confirmPaymentModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-gradient-primary text-white border-0">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-gradient-primary text-white border-0 rounded-top-4">
                     <h5 class="modal-title fw-bold" id="confirmPaymentModalLabel">
                         <i class="bi bi-check-circle me-2"></i>Konfirmasi Pembayaran Manual
                     </h5>
@@ -414,21 +504,21 @@
                         </div>
                     </div>
                     <h6 class="text-center mb-3">Konfirmasi Pembayaran untuk:</h6>
-                    <div class="alert alert-light border">
+                    <div class="alert alert-light border rounded-3">
                         <div class="fw-bold" id="studentName">-</div>
                         <small class="text-muted">Pastikan pembayaran sudah benar-benar diterima</small>
                     </div>
-                    <div class="alert alert-warning border-warning">
+                    <div class="alert alert-warning border-warning rounded-3">
                         <i class="bi bi-info-circle me-2"></i>
                         <strong>Perhatian:</strong> Aksi ini akan mengubah status pembayaran menjadi <strong>LUNAS</strong>
                         dan akan mengirim notifikasi konfirmasi kepada orang tua. Aksi ini tidak dapat dibatalkan.
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle me-1"></i>Batal
                     </button>
-                    <button type="button" class="btn btn-success" id="confirmPaymentBtn">
+                    <button type="button" class="btn btn-success rounded-pill" id="confirmPaymentBtn">
                         <i class="bi bi-check-circle me-1"></i>Ya, Konfirmasi Pembayaran
                     </button>
                 </div>
@@ -452,91 +542,185 @@
 
     <!-- Custom Styles -->
     <style>
-        .bg-gradient-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        :root {
+            --bs-primary-rgb: 65, 105, 225;
+            --bs-success-rgb: 40, 167, 69;
+            --bs-warning-rgb: 255, 193, 7;
+            --bs-info-rgb: 23, 162, 184;
+            --bs-danger-rgb: 220, 53, 69;
         }
 
-        .card-hover {
-            transition: all 0.3s ease;
+        /* New elegant styling */
+        body {
+            background-color: #f9fafb;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #4169e1 0%, #3f51b5 100%) !important;
+        }
+
+        /* Enhanced cards */
+        .card {
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            overflow: hidden;
         }
 
         .card-hover:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
         }
 
-        .table-row {
-            transition: all 0.3s ease;
+        /* Rounded corners */
+        .rounded-4 {
+            border-radius: 1rem !important;
         }
 
-        .table-row:hover {
-            background-color: #f8f9fa !important;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        .rounded-top-4 {
+            border-top-left-radius: 1rem !important;
+            border-top-right-radius: 1rem !important;
+        }
+
+        /* Table improvements */
+        .table {
+            margin-bottom: 0;
         }
 
         .table th {
             font-weight: 600;
-            font-size: 0.875rem;
-            vertical-align: middle;
-            text-transform: uppercase;
+            font-size: 0.8rem;
+            color: #718096;
             letter-spacing: 0.5px;
+            border-top: none;
         }
 
-        .table td {
-            vertical-align: middle;
-            border-color: #f1f3f4;
+        .table-row {
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            border-left: 3px solid transparent;
         }
 
+        .table-row:hover {
+            background-color: #f8fafd !important;
+            transform: translateX(5px);
+            border-left: 3px solid rgba(var(--bs-primary-rgb), 0.5);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        /* Enhance badges */
         .badge {
-            font-size: 0.75rem;
             font-weight: 500;
+            letter-spacing: 0.3px;
+            padding: 0.4rem 0.65rem;
         }
 
+        /* Better code formatting */
         code {
             background-color: #f8f9fa;
-            padding: 0.4rem 0.6rem;
             border-radius: 0.375rem;
-            font-size: 0.8rem;
-            border: 1px solid #e9ecef;
+            font-size: 0.85rem;
+            padding: 0.3rem 0.5rem;
+            border: 1px solid #edf2f7;
+            color: #4a5568;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        /* Button enhancements */
+        .btn {
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
         }
 
         .btn-group .btn {
-            border-radius: 0.375rem !important;
-            margin-right: 3px;
-            transition: all 0.3s ease;
+            margin: 0 0.15rem;
         }
 
-        .btn-group .btn:hover {
-            transform: scale(1.05);
-        }
-
+        /* Animated elements */
         .counter {
             font-family: 'Inter', sans-serif;
         }
 
-        .form-select:focus,
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        /* Avatar styling */
+        .avatar-circle {
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
         }
 
-        .modal-content {
-            border-radius: 1rem;
+        /* Form controls */
+        .form-control, .form-select {
+            padding: 0.6rem 1rem;
+            border-color: #e2e8f0;
+            transition: all 0.2s;
         }
 
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+            border-color: rgba(var(--bs-primary-rgb), 0.5);
+        }
+
+        /* Dropdown styling */
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            border-radius: 0.5rem;
+        }
+
+        .dropdown-item {
+            padding: 0.6rem 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(var(--bs-primary-rgb), 0.1);
+        }
+
+        /* Toast styling */
         .toast {
+            background: white;
+            border: none;
+            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
             border-radius: 0.75rem;
         }
 
+        /* Pagination styling */
+        .pagination {
+            gap: 0.25rem;
+        }
+
+        .page-item .page-link {
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4169e1;
+            border: none;
+        }
+
+        .page-item.active .page-link {
+            background-color: #4169e1;
+            color: white;
+        }
+
+        /* Responsive tweaks */
         @media (max-width: 768px) {
             .btn-group {
-                flex-direction: column;
+                flex-direction: row;
             }
 
             .btn-group .btn {
-                margin-right: 0;
-                margin-bottom: 2px;
+                padding: 0.375rem;
+                font-size: 0.75rem;
+                margin: 0.1rem;
             }
         }
     </style>
@@ -552,7 +736,8 @@
             AOS.init({
                 duration: 600,
                 easing: 'ease-in-out',
-                once: true
+                once: true,
+                offset: 100
             });
 
             // Initialize tooltips
@@ -642,22 +827,11 @@
         }
 
         function exportTransactions() {
-            // Show loading state
-            const exportBtn = document.querySelector('[onclick="exportTransactions()"]');
-            const originalContent = exportBtn.innerHTML;
-            exportBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Exporting...';
-            exportBtn.disabled = true;
-
-            // Simulate export process
-            setTimeout(() => {
-                alert('Export Excel akan segera tersedia!');
-                exportBtn.innerHTML = originalContent;
-                exportBtn.disabled = false;
-            }, 2000);
+            window.location.href = "{{ route('admin.transactions.export', request()->query()) }}";
         }
 
         function printTable() {
-            window.print();
+            window.open("{{ route('admin.transactions.print', request()->query()) }}", "_blank");
         }
 
         function showToast(message) {

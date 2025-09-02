@@ -279,9 +279,11 @@ class PaymentController extends Controller
 
             $payment->update($updateData);
 
-            // Update pendaftar - mark as paid
+            // Update pendaftar - mark as paid and update statuses
             $payment->pendaftar->update([
-                'sudah_bayar_formulir' => true
+                'sudah_bayar_formulir' => true,
+                'overall_status' => 'Sudah Bayar',
+                'current_status' => 'Sudah Bayar'
             ]);
 
             Log::info('✅ Payment success processed successfully', [
@@ -290,7 +292,8 @@ class PaymentController extends Controller
                 'student_name' => $payment->pendaftar->nama_murid,
                 'amount' => $payment->amount,
                 'paid_at' => $payment->paid_at,
-                'pendaftar_sudah_bayar' => true
+                'pendaftar_sudah_bayar' => true,
+                'overall_status' => 'Sudah Bayar'
             ]);
         });
     }
@@ -307,30 +310,39 @@ class PaymentController extends Controller
             'current_status' => $payment->status
         ]);
 
-        $updateData = [
-            'status' => $status,
-            'xendit_response' => array_merge($payment->xendit_response ?? [], $webhookData)
-        ];
+        DB::transaction(function() use ($payment, $status, $webhookData) {
+            $updateData = [
+                'status' => $status,
+                'xendit_response' => array_merge($payment->xendit_response ?? [], $webhookData)
+            ];
 
-        // Set appropriate timestamp based on status
-        switch ($status) {
-            case self::STATUS_EXPIRED:
-                $updateData['expired_at'] = now();
-                break;
-            case self::STATUS_FAILED:
-            case self::STATUS_CANCELLED:
-                $updateData['failed_at'] = now();
-                break;
-        }
+            // Set appropriate timestamp based on status
+            switch ($status) {
+                case self::STATUS_EXPIRED:
+                    $updateData['expired_at'] = now();
+                    break;
+                case self::STATUS_FAILED:
+                case self::STATUS_CANCELLED:
+                    $updateData['failed_at'] = now();
+                    break;
+            }
 
-        $payment->update($updateData);
+            $payment->update($updateData);
 
-        Log::info('Payment failure processed', [
-            'payment_id' => $payment->id,
-            'external_id' => $payment->external_id,
-            'new_status' => $status,
-            'timestamp' => now()
-        ]);
+            // Set sudah_bayar_formulir to false
+            // We don't change overall_status to avoid overwriting admin-set statuses
+            $payment->pendaftar->update([
+                'sudah_bayar_formulir' => false
+            ]);
+
+            Log::info('Payment failure processed', [
+                'payment_id' => $payment->id,
+                'external_id' => $payment->external_id,
+                'new_status' => $status,
+                'timestamp' => now(),
+                'pendaftar_sudah_bayar' => false
+            ]);
+        });
     }
 
     /**

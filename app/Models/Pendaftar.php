@@ -43,6 +43,8 @@ class Pendaftar extends Model
         'bukti_pendaftaran_path',
         'bukti_pendaftaran_mime',
         'bukti_pendaftaran_size',
+        'current_status',
+        'overall_status',
     ];
 
     protected $casts = [

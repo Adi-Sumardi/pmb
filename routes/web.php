@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminTransactionController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PendaftarController;
 use App\Http\Controllers\ProfileController;
@@ -71,11 +72,16 @@ Route::post('/pendaftaran', [PendaftarController::class, 'store'])->name('pendaf
 
 Route::middleware('auth')->group(function () {
     Route::get('/pendaftar', [PendaftarController::class, 'index'])->name('pendaftar');
+
+    // Place specific routes before wildcard routes - IMPORTANT!
+    Route::post('/pendaftar/bulk-verify', [PendaftarController::class, 'bulkVerify'])->name('pendaftar.bulk-verify');
+    Route::delete('/pendaftar/bulk-delete', [PendaftarController::class, 'bulkDelete'])->name('pendaftar.bulk-delete');
+    Route::patch('/pendaftar/bulk-update-status', [PendaftarController::class, 'bulkUpdateStatus'])->name('pendaftar.bulk-update-status');
+
+    // Then the wildcard routes
     Route::get('/pendaftar/{id}/validasi', [PendaftarController::class, 'validasi'])->name('pendaftar.validasi');
     Route::patch('/pendaftar/{id}', [PendaftarController::class, 'update'])->name('pendaftar.update');
     Route::delete('/pendaftar', [PendaftarController::class, 'destroy'])->name('pendaftar.destroy');
-    Route::post('/pendaftar/bulk-verify', [PendaftarController::class, 'bulkVerify'])->name('pendaftar.bulk-verify');
-    Route::delete('/pendaftar/bulk-delete', [PendaftarController::class, 'bulkDelete'])->name('pendaftar.bulk-delete');
 });
 
 // Payment Routes (User & Admin) - REMOVE ALL DEMO ROUTES
@@ -95,6 +101,10 @@ Route::middleware('auth')->group(function () {
     // Payment utilities
     Route::post('/payment/cleanup-expired', [PaymentController::class, 'cleanupAllExpiredPayments'])->name('payment.cleanup');
     Route::get('/payment/debug', [PaymentController::class, 'debugPaymentMode'])->name('payment.debug');
+
+    Route::get('/admin/transactions/export', [AdminTransactionController::class, 'export'])->name('admin.transactions.export');
+    Route::get('/admin/transactions/export/pdf', [AdminTransactionController::class, 'exportPdf'])->name('admin.transactions.export.pdf');
+    Route::get('/admin/transactions/print', [AdminTransactionController::class, 'printView'])->name('admin.transactions.print');
 });
 
 // Public webhook route (no auth required)

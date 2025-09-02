@@ -32,6 +32,14 @@
             </div>
         @endif
 
+        @if(session()->has('info'))
+            <div class="alert alert-info alert-dismissible fade show" role="alert" id="alertInfo">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Info!</strong> {{ session('info') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         @if(session()->has('deleted'))
             <div class="alert alert-info alert-dismissible fade show" role="alert" id="alertDeleted">
                 <i class="bi bi-info-circle me-2"></i>
@@ -186,6 +194,20 @@
                                     <option value="diverifikasi">🟢 Diverifikasi</option>
                                 </select>
 
+                                <select class="form-select form-select-sm" id="overallStatusFilter" style="width: auto;">
+                                    <option value="">Semua Status Overall</option>
+                                    <option value="Draft">Draft</option>
+                                    <option value="Diverifikasi">Diverifikasi</option>
+                                    <option value="Sudah Bayar">Sudah Bayar</option>
+                                    <option value="Observasi">Observasi</option>
+                                    <option value="Tes Tulis">Tes Tulis</option>
+                                    <option value="Praktek Shalat & BTQ">Praktek Shalat & BTQ</option>
+                                    <option value="Wawancara">Wawancara</option>
+                                    <option value="Psikotest">Psikotest</option>
+                                    <option value="Lulus">Lulus</option>
+                                    <option value="Tidak Lulus">Tidak Lulus</option>
+                                </select>
+
                                 <select class="form-select form-select-sm" id="unitFilter" style="width: auto;">
                                     <option value="">Semua Unit</option>
                                     @foreach($dt_pendaftars->pluck('unit')->unique()->sort() as $unit)
@@ -237,6 +259,26 @@
                             <span id="selectedCountText">0</span> item dipilih
                         </div>
                         <div class="d-flex gap-2">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="bulkStatusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-diagram-3 me-1"></i>Update Status
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="bulkStatusDropdown">
+                                    <li><h6 class="dropdown-header">Pilih Status</h6></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Draft"><i class="bi bi-file-earmark me-2 text-secondary"></i>Draft</a></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Diverifikasi"><i class="bi bi-check-circle-fill me-2 text-success"></i>Diverifikasi</a></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Sudah Bayar"><i class="bi bi-credit-card-check me-2 text-info"></i>Sudah Bayar</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Observasi"><i class="bi bi-eyeglasses me-2 text-primary"></i>Observasi</a></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Tes Tulis"><i class="bi bi-pencil-square me-2 text-primary"></i>Tes Tulis</a></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Praktek Shalat & BTQ"><i class="bi bi-book me-2 text-primary"></i>Praktek Shalat & BTQ</a></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Wawancara"><i class="bi bi-chat-dots me-2 text-primary"></i>Wawancara</a></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Psikotest"><i class="bi bi-brain me-2 text-primary"></i>Psikotest</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Lulus"><i class="bi bi-trophy me-2 text-success"></i>Lulus</a></li>
+                                    <li><a class="dropdown-item bulk-status-option" href="#" data-status="Tidak Lulus"><i class="bi bi-x-circle me-2 text-danger"></i>Tidak Lulus</a></li>
+                                </ul>
+                            </div>
                             <button class="btn btn-outline-success btn-sm" id="bulkVerify">
                                 <i class="bi bi-check-all me-1"></i>Verifikasi Terpilih
                             </button>
@@ -284,6 +326,9 @@
                                 <th class="border-0 px-3 py-3 text-muted small fw-semibold text-uppercase" style="width: 120px;">
                                     <i class="bi bi-check-circle me-1"></i>Status
                                 </th>
+                                <th class="border-0 px-3 py-3 text-muted small fw-semibold text-uppercase" style="width: 150px;">
+                                    <i class="bi bi-diagram-3 me-1"></i>Status Overall
+                                </th>
                                 <th class="border-0 px-3 py-3 text-muted small fw-semibold text-uppercase text-center" style="width: 150px;">
                                     <i class="bi bi-gear me-1"></i>Aksi
                                 </th>
@@ -293,6 +338,7 @@
                             @forelse ($dt_pendaftars as $index => $item)
                                 <tr class="table-row"
                                     data-status="{{ $item->status }}"
+                                    data-overall-status="{{ $item->overall_status ?? 'Draft' }}"
                                     data-unit="{{ $item->unit }}"
                                     data-age="{{ \Carbon\Carbon::parse($item->tanggal_lahir)->diff(\Carbon\Carbon::create(2026,7,1))->y }}"
                                     data-nama="{{ strtolower($item->nama_murid) }}"
@@ -404,6 +450,35 @@
                                                 <i class="bi bi-check-circle-fill me-1"></i>Verified
                                             </span>
                                         @endif
+                                    </td>
+                                    <td class="px-3">
+                                        @php
+                                            $overallClass = match($item->overall_status ?? 'Draft') {
+                                                'Diverifikasi' => 'bg-success',
+                                                'Sudah Bayar' => 'bg-info',
+                                                'Observasi', 'Tes Tulis', 'Praktek Shalat & BTQ', 'Wawancara', 'Psikotest' => 'bg-primary',
+                                                'Lulus' => 'bg-success',
+                                                'Tidak Lulus' => 'bg-danger',
+                                                default => 'bg-secondary'
+                                            };
+
+                                            $overallIcon = match($item->overall_status ?? 'Draft') {
+                                                'Diverifikasi' => 'bi-check-circle-fill',
+                                                'Sudah Bayar' => 'bi-credit-card-check',
+                                                'Observasi' => 'bi-eyeglasses',
+                                                'Tes Tulis' => 'bi-pencil-square',
+                                                'Praktek Shalat & BTQ' => 'bi-book',
+                                                'Wawancara' => 'bi-chat-dots',
+                                                'Psikotest' => 'bi-brain',
+                                                'Lulus' => 'bi-trophy',
+                                                'Tidak Lulus' => 'bi-x-circle',
+                                                default => 'bi-file-earmark'
+                                            };
+                                        @endphp
+                                        <span class="badge {{ $overallClass }} px-3 py-2 rounded-pill">
+                                            <i class="bi {{ $overallIcon }} me-1"></i>
+                                            {{ $item->overall_status ?? 'Draft' }}
+                                        </span>
                                     </td>
                                     <td class="px-3 text-center">
                                         <div class="btn-group" role="group">
@@ -559,21 +634,21 @@
 
     <!-- Main JavaScript -->
     <script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM Content Loaded - Initializing...');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM Content Loaded - Initializing...');
 
-    // Initialize AOS
-    AOS.init({
-        duration: 600,
-        easing: 'ease-in-out',
-        once: true
-    });
+        // Initialize AOS
+        AOS.init({
+            duration: 600,
+            easing: 'ease-in-out',
+            once: true
+        });
 
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
 
     // Counter animation
     function animateCounter(element) {
@@ -628,6 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const printBtn = document.getElementById('printBtn');
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const bulkVerify = document.getElementById('bulkVerify');
+    const overallStatusFilter = document.getElementById('overallStatusFilter');
 
     let currentPage = 1;
     let filteredRows = Array.from(tableRows);
@@ -730,9 +806,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const statusValue = statusFilter ? statusFilter.value : '';
                 const unitValue = unitFilter ? unitFilter.value : '';
                 const ageValue = ageFilter ? ageFilter.value : '';
+                const overallStatusValue = overallStatusFilter ? overallStatusFilter.value : '';
 
                 if (statusValue && status !== statusValue) show = false;
                 if (unitValue && unit !== unitValue) show = false;
+                if (overallStatusValue && (row.dataset.overallStatus !== overallStatusValue)) show = false;
 
                 if (ageValue) {
                     const [minAge, maxAge] = ageValue.split('-').map(Number);
@@ -1079,6 +1157,10 @@ document.addEventListener('DOMContentLoaded', function() {
         ageFilter.addEventListener('change', performQuickSearch);
     }
 
+    if (overallStatusFilter) {
+        overallStatusFilter.addEventListener('change', performQuickSearch);
+    }
+
     if (entriesPerPage) {
         entriesPerPage.addEventListener('change', () => {
             currentPage = 1;
@@ -1091,6 +1173,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resetBtn.addEventListener('click', () => {
             if (quickSearch) quickSearch.value = '';
             if (statusFilter) statusFilter.value = '';
+            if (overallStatusFilter) overallStatusFilter.value = '';
             if (unitFilter) unitFilter.value = '';
             if (ageFilter) ageFilter.value = '';
             currentPage = 1;
@@ -1331,6 +1414,96 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(form);
         form.submit();
     }
+
+    // Function to perform bulk status update
+    function performBulkStatusUpdate(selectedIds, newStatus) {
+        Swal.fire({
+            title: 'Memperbarui Status...',
+            text: `Sedang mengubah status ${selectedIds.length} pendaftar menjadi "${newStatus}"`,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Create form for bulk status update
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ route("pendaftar.bulk-update-status") }}';
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        // Add method PATCH
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'PATCH';
+        form.appendChild(methodInput);
+
+        // Add status
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'overall_status';
+        statusInput.value = newStatus;
+        form.appendChild(statusInput);
+
+        // Add selected IDs
+        selectedIds.forEach(id => {
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'ids[]';
+            idInput.value = id;
+            form.appendChild(idInput);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Add event listener for the bulk status options
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.bulk-status-option')) {
+            e.preventDefault();
+
+            const statusOption = e.target.closest('.bulk-status-option');
+            const newStatus = statusOption.dataset.status;
+
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (selectedIds.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Silakan pilih data yang akan diubah statusnya.',
+                    confirmButtonColor: '#ffc107'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Konfirmasi Perubahan Status',
+                text: `Yakin ingin mengubah status ${selectedIds.length} pendaftar terpilih menjadi "${newStatus}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Ubah Status!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    performBulkStatusUpdate(selectedIds, newStatus);
+                }
+            });
+        }
+    });
 
     // Initialize
     console.log('Initializing table with', tableRows.length, 'rows');

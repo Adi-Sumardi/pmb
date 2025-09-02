@@ -178,35 +178,76 @@
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">
-                                    Status Pendaftaran
+                                    Tahap Pendaftaran
                                 </div>
                                 <div class="h4 fw-bold mb-2" id="registrationStatusText">
-                                    @if($registrationStatus == 'verified')
+                                    @if($registrationStatus == 'Diverifikasi')
                                         <span class="text-success">VERIFIED</span>
-                                    @elseif($registrationStatus == 'pending')
-                                        <span class="text-warning">REVIEW</span>
+                                    @elseif($registrationStatus == 'Sudah Bayar')
+                                        <span class="text-info">SUDAH BAYAR</span>
+                                    @elseif(in_array($registrationStatus, ['Observasi', 'Tes Tulis', 'Praktek Shalat & BTQ', 'Wawancara', 'Psikotest']))
+                                        <span class="text-primary">{{ $registrationStatus }}</span>
+                                    @elseif($registrationStatus == 'Lulus')
+                                        <span class="text-success">LULUS</span>
+                                    @elseif($registrationStatus == 'Tidak Lulus')
+                                        <span class="text-danger">TIDAK LULUS</span>
                                     @else
                                         <span class="text-secondary">DRAFT</span>
                                     @endif
                                 </div>
                                 <div class="d-flex align-items-center small" id="registrationStatusDetail">
-                                    @if($registrationStatus == 'verified')
+                                    @if($registrationStatus == 'Diverifikasi')
                                         <i class="bi bi-shield-check me-1 text-success"></i>
                                         <span class="fw-semibold text-success">Terverifikasi</span>
-                                    @elseif($registrationStatus == 'pending')
-                                        <i class="bi bi-hourglass-split me-1 text-warning"></i>
-                                        <span class="fw-semibold text-warning">Dalam Review</span>
+                                    @elseif($registrationStatus == 'Sudah Bayar')
+                                        <i class="bi bi-credit-card-check me-1 text-info"></i>
+                                        <span class="fw-semibold text-info">Pembayaran Diterima</span>
+                                    @elseif($registrationStatus == 'Observasi')
+                                        <i class="bi bi-eyeglasses me-1 text-primary"></i>
+                                        <span class="fw-semibold text-primary">Dalam Observasi</span>
+                                    @elseif($registrationStatus == 'Tes Tulis')
+                                        <i class="bi bi-pencil-square me-1 text-primary"></i>
+                                        <span class="fw-semibold text-primary">Tes Tulis</span>
+                                    @elseif($registrationStatus == 'Praktek Shalat & BTQ')
+                                        <i class="bi bi-book me-1 text-primary"></i>
+                                        <span class="fw-semibold text-primary">Praktek Shalat & BTQ</span>
+                                    @elseif($registrationStatus == 'Wawancara')
+                                        <i class="bi bi-chat-dots me-1 text-primary"></i>
+                                        <span class="fw-semibold text-primary">Wawancara</span>
+                                    @elseif($registrationStatus == 'Psikotest')
+                                        <i class="bi bi-brain me-1 text-primary"></i>
+                                        <span class="fw-semibold text-primary">Psikotest</span>
+                                    @elseif($registrationStatus == 'Lulus')
+                                        <i class="bi bi-award me-1 text-success"></i>
+                                        <span class="fw-semibold text-success">Lulus Seleksi</span>
+                                    @elseif($registrationStatus == 'Tidak Lulus')
+                                        <i class="bi bi-x-circle me-1 text-danger"></i>
+                                        <span class="fw-semibold text-danger">Tidak Lulus Seleksi</span>
                                     @else
                                         <i class="bi bi-pencil me-1 text-secondary"></i>
-                                        <span class="fw-semibold text-secondary">Belum Submit</span>
+                                        <span class="fw-semibold text-secondary">Draft</span>
                                     @endif
                                 </div>
                             </div>
                             <div class="stat-icon bg-opacity-10 rounded-3 p-3" id="registrationStatusIcon">
-                                @if($registrationStatus == 'verified')
+                                @if($registrationStatus == 'Diverifikasi')
                                     <i class="bi bi-shield-check text-success fs-2"></i>
-                                @elseif($registrationStatus == 'pending')
-                                    <i class="bi bi-hourglass-split text-warning fs-2"></i>
+                                @elseif($registrationStatus == 'Sudah Bayar')
+                                    <i class="bi bi-credit-card-check text-info fs-2"></i>
+                                @elseif($registrationStatus == 'Observasi')
+                                    <i class="bi bi-eyeglasses text-primary fs-2"></i>
+                                @elseif($registrationStatus == 'Tes Tulis')
+                                    <i class="bi bi-pencil-square text-primary fs-2"></i>
+                                @elseif($registrationStatus == 'Praktek Shalat & BTQ')
+                                    <i class="bi bi-book text-primary fs-2"></i>
+                                @elseif($registrationStatus == 'Wawancara')
+                                    <i class="bi bi-chat-dots text-primary fs-2"></i>
+                                @elseif($registrationStatus == 'Psikotest')
+                                    <i class="bi bi-brain text-primary fs-2"></i>
+                                @elseif($registrationStatus == 'Lulus')
+                                    <i class="bi bi-award text-success fs-2"></i>
+                                @elseif($registrationStatus == 'Tidak Lulus')
+                                    <i class="bi bi-x-circle text-danger fs-2"></i>
                                 @else
                                     <i class="bi bi-pencil text-secondary fs-2"></i>
                                 @endif
@@ -1141,22 +1182,64 @@
             let statusText, statusClass, statusDetail, statusIcon;
 
             switch(newStatus) {
-                case 'verified':
+                case 'Diverifikasi':
                     statusText = 'VERIFIED';
                     statusClass = 'text-success';
                     statusDetail = '<i class="bi bi-shield-check me-1 text-success"></i><span class="fw-semibold text-success">Terverifikasi</span>';
                     statusIcon = '<i class="bi bi-shield-check text-success fs-2"></i>';
                     break;
-                case 'pending':
-                    statusText = 'REVIEW';
-                    statusClass = 'text-warning';
-                    statusDetail = '<i class="bi bi-hourglass-split me-1 text-warning"></i><span class="fw-semibold text-warning">Dalam Review</span>';
-                    statusIcon = '<i class="bi bi-hourglass-split text-warning fs-2"></i>';
+                case 'Sudah Bayar':
+                    statusText = 'SUDAH BAYAR';
+                    statusClass = 'text-info';
+                    statusDetail = '<i class="bi bi-credit-card-check me-1 text-info"></i><span class="fw-semibold text-info">Pembayaran Diterima</span>';
+                    statusIcon = '<i class="bi bi-credit-card-check text-info fs-2"></i>';
+                    break;
+                case 'Observasi':
+                    statusText = 'OBSERVASI';
+                    statusClass = 'text-primary';
+                    statusDetail = '<i class="bi bi-eyeglasses me-1 text-primary"></i><span class="fw-semibold text-primary">Dalam Observasi</span>';
+                    statusIcon = '<i class="bi bi-eyeglasses text-primary fs-2"></i>';
+                    break;
+                case 'Tes Tulis':
+                    statusText = 'TES TULIS';
+                    statusClass = 'text-primary';
+                    statusDetail = '<i class="bi bi-pencil-square me-1 text-primary"></i><span class="fw-semibold text-primary">Tes Tulis</span>';
+                    statusIcon = '<i class="bi bi-pencil-square text-primary fs-2"></i>';
+                    break;
+                case 'Praktek Shalat & BTQ':
+                    statusText = 'PRAKTEK';
+                    statusClass = 'text-primary';
+                    statusDetail = '<i class="bi bi-book me-1 text-primary"></i><span class="fw-semibold text-primary">Praktek Shalat & BTQ</span>';
+                    statusIcon = '<i class="bi bi-book text-primary fs-2"></i>';
+                    break;
+                case 'Wawancara':
+                    statusText = 'WAWANCARA';
+                    statusClass = 'text-primary';
+                    statusDetail = '<i class="bi bi-chat-dots me-1 text-primary"></i><span class="fw-semibold text-primary">Wawancara</span>';
+                    statusIcon = '<i class="bi bi-chat-dots text-primary fs-2"></i>';
+                    break;
+                case 'Psikotest':
+                    statusText = 'PSIKOTEST';
+                    statusClass = 'text-primary';
+                    statusDetail = '<i class="bi bi-brain me-1 text-primary"></i><span class="fw-semibold text-primary">Psikotest</span>';
+                    statusIcon = '<i class="bi bi-brain text-primary fs-2"></i>';
+                    break;
+                case 'Lulus':
+                    statusText = 'LULUS';
+                    statusClass = 'text-success';
+                    statusDetail = '<i class="bi bi-award me-1 text-success"></i><span class="fw-semibold text-success">Lulus Seleksi</span>';
+                    statusIcon = '<i class="bi bi-award text-success fs-2"></i>';
+                    break;
+                case 'Tidak Lulus':
+                    statusText = 'TIDAK LULUS';
+                    statusClass = 'text-danger';
+                    statusDetail = '<i class="bi bi-x-circle me-1 text-danger"></i><span class="fw-semibold text-danger">Tidak Lulus Seleksi</span>';
+                    statusIcon = '<i class="bi bi-x-circle text-danger fs-2"></i>';
                     break;
                 default:
                     statusText = 'DRAFT';
                     statusClass = 'text-secondary';
-                    statusDetail = '<i class="bi bi-pencil me-1 text-secondary"></i><span class="fw-semibold text-secondary">Belum Submit</span>';
+                    statusDetail = '<i class="bi bi-pencil me-1 text-secondary"></i><span class="fw-semibold text-secondary">Draft</span>';
                     statusIcon = '<i class="bi bi-pencil text-secondary fs-2"></i>';
                     break;
             }

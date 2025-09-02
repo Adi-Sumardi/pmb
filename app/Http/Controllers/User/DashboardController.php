@@ -128,7 +128,7 @@ class DashboardController extends Controller
         $dataCompletion = $totalSections > 0 ? round(($completedSections / $totalSections) * 100) : 0;
 
         // Determine registration status
-        $registrationStatus = $this->determineRegistrationStatus($pendaftar, $completedSections, $totalSections);
+        $registrationStatus = $pendaftar ? $pendaftar->overall_status : 'draft';
 
         return view('user.dashboard', compact(
             'user',
@@ -226,7 +226,7 @@ class DashboardController extends Controller
         }
 
         $dataCompletion = $totalSections > 0 ? round(($completedSections / $totalSections) * 100) : 0;
-        $registrationStatus = $this->determineRegistrationStatus($pendaftar, $completedSections, $totalSections);
+        $registrationStatus = $pendaftar ? $pendaftar->overall_status : 'draft';
 
         return response()->json([
             'isPaid' => $isPaid,

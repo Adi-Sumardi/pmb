@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash; // Add this import
 use Illuminate\Support\Str; // Add this import
 use App\Http\Controllers\WhatsAppController;
+use Illuminate\Support\Facades\DB;
 
 class PendaftarController extends Controller
 {
@@ -354,6 +355,37 @@ class PendaftarController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkUpdateStatus(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:pendaftars,id',
+            'overall_status' => 'required|string|in:Draft,Diverifikasi,Sudah Bayar,Observasi,Tes Tulis,Praktek Shalat & BTQ,Wawancara,Psikotest,Lulus,Tidak Lulus'
+        ]);
+
+        $ids = $request->input('ids');
+        $status = $request->input('overall_status');
+
+        try {
+            // Log the received IDs and status for debugging
+            Log::info('Bulk updating status', [
+                'ids' => $ids,
+                'status' => $status,
+                'count' => count($ids)
+            ]);
+
+            // Use update on the query builder directly
+            $updated = DB::table('pendaftars')
+                ->whereIn('id', $ids)
+                ->update(['overall_status' => $status, 'current_status' => $status]);
+
+            return redirect()->back()->with('info', "$updated pendaftar telah diperbarui statusnya menjadi '$status'");
+        } catch (\Exception $e) {
+            Log::error('Error in bulk update status: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memperbarui status pendaftar: ' . $e->getMessage());
         }
     }
 }
