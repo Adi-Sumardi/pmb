@@ -91,21 +91,7 @@ class DashboardController extends Controller
                 $completedSections++;
             }
 
-            // 6. Subject Grades
-            $subjectGradesCount = SubjectGrade::where('pendaftar_id', $pendaftar->id)->count();
-            if ($subjectGradesCount >= 3) { // At least 3 subject grades
-                $subjectGradesComplete = true;
-                $completedSections++;
-            }
-
-            // 7. Character Assessment
-            $characterAssessment = CharacterAssessment::where('pendaftar_id', $pendaftar->id)->first();
-            if ($characterAssessment && $this->isCharacterAssessmentComplete($characterAssessment)) {
-                $characterAssessmentComplete = true;
-                $completedSections++;
-            }
-
-            // 8. Achievements (Optional - but counts toward completion)
+            // 6. Achievements (Optional - but counts toward completion)
             $achievementsCount = Achievement::where('pendaftar_id', $pendaftar->id)->count();
             if ($achievementsCount >= 1) {
                 $achievementsComplete = true;
@@ -186,16 +172,6 @@ class DashboardController extends Controller
 
             $documentsCount = Document::where('pendaftar_id', $pendaftar->id)->count();
             if ($documentsCount >= 3) {
-                $completedSections++;
-            }
-
-            $subjectGradesCount = SubjectGrade::where('pendaftar_id', $pendaftar->id)->count();
-            if ($subjectGradesCount >= 3) {
-                $completedSections++;
-            }
-
-            $characterAssessment = CharacterAssessment::where('pendaftar_id', $pendaftar->id)->first();
-            if ($characterAssessment && $this->isCharacterAssessmentComplete($characterAssessment)) {
                 $completedSections++;
             }
 
