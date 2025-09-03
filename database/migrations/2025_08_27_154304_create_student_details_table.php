@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('no_kk', 20)->nullable();
             $table->string('tempat_lahir', 100)->nullable();
             $table->date('tanggal_lahir')->nullable();
-            $table->enum('jenis_kelamin', ['L', 'P'])->nullable();
+            $table->enum('jenis_kelamin', ['Laki-laki', 'Perempuan'])->nullable();
             $table->enum('agama', ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya'])->nullable();
             $table->string('kewarganegaraan', 50)->default('Indonesia');
             $table->string('bahasa_sehari_hari', 100)->nullable();
@@ -49,14 +49,9 @@ return new class extends Migration
             $table->enum('tinggal_dengan', ['Orang Tua', 'Wali', 'Kos', 'Asrama', 'Panti Asuhan', 'Lainnya'])->nullable();
             $table->integer('anak_ke')->nullable();
             $table->integer('jumlah_saudara_kandung')->nullable();
-            $table->integer('jumlah_saudara_tiri')->nullable();
-            $table->integer('jumlah_saudara_angkat')->nullable();
-
             // Data Prestasi/Khusus
             $table->text('hobi')->nullable();
             $table->string('cita_cita', 100)->nullable();
-            $table->text('prestasi_yang_dimiliki')->nullable();
-            $table->text('beasiswa_yang_pernah_diterima')->nullable();
 
             // Data Kesehatan Mental
             $table->text('kepribadian')->nullable();

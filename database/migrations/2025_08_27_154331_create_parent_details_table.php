@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('jabatan_ayah', 100)->nullable();
             $table->string('instansi_ayah', 200)->nullable();
             $table->text('alamat_kantor_ayah')->nullable();
-            $table->enum('penghasilan_ayah', ['Kurang dari 1 Juta', '1-2 Juta', '2-3 Juta', '3-5 Juta', '5-10 Juta', 'Lebih dari 10 Juta'])->nullable();
+            $table->enum('penghasilan_ayah', ['Kurang dari 5 Juta', '5-10 Juta', '10-30 Juta', '30-50 Juta', '50-100 Juta', 'Lebih dari 100 Juta'])->nullable();
             $table->string('no_hp_ayah', 15)->nullable();
             $table->string('email_ayah', 100)->nullable();
 
@@ -43,7 +43,7 @@ return new class extends Migration
             $table->string('jabatan_ibu', 100)->nullable();
             $table->string('instansi_ibu', 200)->nullable();
             $table->text('alamat_kantor_ibu')->nullable();
-            $table->enum('penghasilan_ibu', ['Kurang dari 1 Juta', '1-2 Juta', '2-3 Juta', '3-5 Juta', '5-10 Juta', 'Lebih dari 10 Juta'])->nullable();
+            $table->enum('penghasilan_ibu', ['Kurang dari 5 Juta', '5-10 Juta', '10-30 Juta', '30-50 Juta', '50-100 Juta', 'Lebih dari 100 Juta'])->nullable();
             $table->string('no_hp_ibu', 15)->nullable();
             $table->string('email_ibu', 100)->nullable();
 
@@ -55,15 +55,11 @@ return new class extends Migration
             $table->enum('agama_wali', ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu', 'Lainnya'])->nullable();
             $table->enum('pendidikan_wali', ['SD', 'SMP', 'SMA', 'D1', 'D2', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'])->nullable();
             $table->string('pekerjaan_wali', 100)->nullable();
-            $table->enum('penghasilan_wali', ['Kurang dari 1 Juta', '1-2 Juta', '2-3 Juta', '3-5 Juta', '5-10 Juta', 'Lebih dari 10 Juta'])->nullable();
+            $table->enum('penghasilan_wali', ['Kurang dari 5 Juta', '5-10 Juta', '10-30 Juta', '30-50 Juta', '50-100 Juta', 'Lebih dari 100 Juta'])->nullable();
             $table->string('hubungan_dengan_siswa', 50)->nullable();
             $table->string('no_hp_wali', 15)->nullable();
             $table->string('email_wali', 100)->nullable();
             $table->text('alamat_wali')->nullable();
-
-            // Status Keluarga
-            $table->enum('status_keluarga', ['Lengkap', 'Yatim', 'Piatu', 'Yatim Piatu'])->nullable();
-            $table->enum('status_pernikahan_ortu', ['Menikah', 'Cerai Hidup', 'Cerai Mati'])->nullable();
 
             $table->timestamps();
 

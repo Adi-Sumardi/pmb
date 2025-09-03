@@ -10,9 +10,17 @@ class Achievement extends Model
     use HasFactory;
 
     protected $fillable = [
-        'pendaftar_id', 'grade_report_id', 'nama_prestasi', 'kategori',
-        'tingkat', 'juara', 'nama_event', 'penyelenggara', 'tanggal_event',
-        'tempat_event', 'sertifikat_path', 'foto_kegiatan_path'
+        'pendaftar_id',
+        'nama_prestasi',
+        'kategori',
+        'tingkat',
+        'juara',
+        'nama_event',
+        'penyelenggara',
+        'tanggal_event',
+        'tempat_event',
+        'sertifikat_path',
+        'foto_kegiatan_path'
     ];
 
     protected $casts = [
@@ -22,11 +30,6 @@ class Achievement extends Model
     public function pendaftar()
     {
         return $this->belongsTo(Pendaftar::class);
-    }
-
-    public function gradeReport()
-    {
-        return $this->belongsTo(GradeReport::class);
     }
 
     public function getJuaraColorAttribute()

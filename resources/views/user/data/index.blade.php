@@ -245,46 +245,6 @@
                 </div>
             </div>
 
-            <!-- Grades -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card border-0 shadow-sm h-100 data-card {{ $completionStatus['grades'] ? 'completed' : 'incomplete' }}">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="icon-wrapper me-3">
-                                @if($completionStatus['grades'])
-                                    <i class="bi bi-check-circle-fill text-success fs-3"></i>
-                                @else
-                                    <i class="bi bi-journal-text text-warning fs-3"></i>
-                                @endif
-                            </div>
-                            <div>
-                                <h5 class="card-title mb-1 fw-bold">Raport & Nilai</h5>
-                                <p class="text-muted small mb-0">Input nilai raport</p>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar {{ $completionStatus['grades'] ? 'bg-success' : 'bg-warning' }}"
-                                     style="width: {{ $completionStatus['grades'] ? '100' : '20' }}%"></div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="badge {{ $completionStatus['grades'] ? 'bg-success' : 'bg-warning' }}">
-                                {{ $completionStatus['grades'] ? 'Lengkap' : 'Wajib' }}
-                            </span>
-                        </div>
-
-                        <a href="{{ route('user.data.grades') }}"
-                           class="btn {{ $completionStatus['grades'] ? 'btn-outline-success' : 'btn-warning' }} w-100">
-                            <i class="bi bi-{{ $completionStatus['grades'] ? 'eye' : 'plus' }} me-2"></i>
-                            {{ $completionStatus['grades'] ? 'Lihat / Edit' : 'Input Nilai' }}
-                        </a>
-                    </div>
-                </div>
-            </div>
-
             <!-- Achievements -->
             <div class="col-md-6 col-lg-4">
                 <div class="card border-0 shadow-sm h-100 data-card {{ $completionStatus['achievements'] ? 'completed' : 'incomplete' }}">

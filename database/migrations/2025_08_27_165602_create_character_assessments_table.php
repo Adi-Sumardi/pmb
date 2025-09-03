@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('character_assessments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('grade_report_id');
+            $table->unsignedBigInteger('pendaftar_id');
 
             // Sikap Utama
             $table->enum('sikap_spiritual', ['SB', 'B', 'C', 'K']);
@@ -31,7 +31,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->foreign('grade_report_id')->references('id')->on('grade_reports')->onDelete('cascade');
+            $table->foreign('pendaftar_id')->references('id')->on('pendaftars')->onDelete('cascade');
         });
     }
 

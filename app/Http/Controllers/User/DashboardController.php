@@ -41,7 +41,7 @@ class DashboardController extends Controller
 
         // Initialize completion tracking
         $completedSections = 0;
-        $totalSections = 9; // Total sections to track
+        $totalSections = 6; // Total sections to track
 
         // Check each section completion
         $studentDetailComplete = false;
@@ -91,32 +91,21 @@ class DashboardController extends Controller
                 $completedSections++;
             }
 
-            // 6. Grade Reports
-            $gradeReportsCount = GradeReport::where('pendaftar_id', $pendaftar->id)->count();
-            if ($gradeReportsCount >= 1) { // At least 1 grade report
-                $gradeReportsComplete = true;
-                $completedSections++;
-            }
-
-            // 7. Subject Grades
-            $subjectGradesCount = SubjectGrade::whereHas('gradeReport', function($query) use ($pendaftar) {
-                $query->where('pendaftar_id', $pendaftar->id);
-            })->count();
-            if ($subjectGradesCount >= 5) { // At least 5 subject grades
+            // 6. Subject Grades
+            $subjectGradesCount = SubjectGrade::where('pendaftar_id', $pendaftar->id)->count();
+            if ($subjectGradesCount >= 3) { // At least 3 subject grades
                 $subjectGradesComplete = true;
                 $completedSections++;
             }
 
-            // 8. Character Assessment
-            $characterAssessment = CharacterAssessment::whereHas('gradeReport', function($query) use ($pendaftar) {
-                $query->where('pendaftar_id', $pendaftar->id);
-            })->first();
+            // 7. Character Assessment
+            $characterAssessment = CharacterAssessment::where('pendaftar_id', $pendaftar->id)->first();
             if ($characterAssessment && $this->isCharacterAssessmentComplete($characterAssessment)) {
                 $characterAssessmentComplete = true;
                 $completedSections++;
             }
 
-            // 9. Achievements (Optional - but counts toward completion)
+            // 8. Achievements (Optional - but counts toward completion)
             $achievementsCount = Achievement::where('pendaftar_id', $pendaftar->id)->count();
             if ($achievementsCount >= 1) {
                 $achievementsComplete = true;
@@ -200,21 +189,12 @@ class DashboardController extends Controller
                 $completedSections++;
             }
 
-            $gradeReportsCount = GradeReport::where('pendaftar_id', $pendaftar->id)->count();
-            if ($gradeReportsCount >= 1) {
+            $subjectGradesCount = SubjectGrade::where('pendaftar_id', $pendaftar->id)->count();
+            if ($subjectGradesCount >= 3) {
                 $completedSections++;
             }
 
-            $subjectGradesCount = SubjectGrade::whereHas('gradeReport', function($query) use ($pendaftar) {
-                $query->where('pendaftar_id', $pendaftar->id);
-            })->count();
-            if ($subjectGradesCount >= 5) {
-                $completedSections++;
-            }
-
-            $characterAssessment = CharacterAssessment::whereHas('gradeReport', function($query) use ($pendaftar) {
-                $query->where('pendaftar_id', $pendaftar->id);
-            })->first();
+            $characterAssessment = CharacterAssessment::where('pendaftar_id', $pendaftar->id)->first();
             if ($characterAssessment && $this->isCharacterAssessmentComplete($characterAssessment)) {
                 $completedSections++;
             }
@@ -238,68 +218,14 @@ class DashboardController extends Controller
     }
 
     /**
-     * Demo payment function for testing
-     */
-    public function demoPayment(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            $pendaftar = Pendaftar::where('user_id', $user->id)->first();
-
-            if (!$pendaftar) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data pendaftar tidak ditemukan'
-                ]);
-            }
-
-            // Check if payment already exists via pendaftar_id
-            $existingPayment = Payment::where('pendaftar_id', $pendaftar->id)->first();
-
-            if ($existingPayment) {
-                // Update existing payment
-                $existingPayment->update([
-                    'status' => 'paid',
-                    'payment_method' => 'demo',
-                    'payment_date' => now(),
-                    'external_id' => 'DEMO_' . time(),
-                    'payment_channel' => 'DEMO_CHANNEL'
-                ]);
-            } else {
-                // Create new payment
-                Payment::create([
-                    'pendaftar_id' => $pendaftar->id,
-                    'amount' => 150000,
-                    'status' => 'paid',
-                    'payment_method' => 'demo',
-                    'payment_date' => now(),
-                    'external_id' => 'DEMO_' . time(),
-                    'payment_channel' => 'DEMO_CHANNEL'
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Demo payment berhasil'
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
      * Check if student detail is complete
      */
     private function isStudentDetailComplete($studentDetail)
     {
         $requiredFields = [
-            'nama_lengkap', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
-            'agama', 'kewarganegaraan', 'alamat_lengkap', 'kode_pos',
-            'no_telepon', 'email'
+            'nama_lengkap', 'nik', 'no_kk', 'tempat_lahir',
+            'tanggal_lahir', 'jenis_kelamin', 'agama', 'alamat_lengkap',
+            'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi'
         ];
 
         foreach ($requiredFields as $field) {
@@ -317,8 +243,8 @@ class DashboardController extends Controller
     private function isParentDetailComplete($parentDetail)
     {
         $requiredFields = [
-            'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu',
-            'alamat_orangtua', 'no_telepon_orangtua'
+            'nama_ayah', 'pekerjaan_ayah', 'no_hp_ayah',
+            'nama_ibu', 'pekerjaan_ibu', 'no_hp_ibu'
         ];
 
         foreach ($requiredFields as $field) {
@@ -336,7 +262,10 @@ class DashboardController extends Controller
     private function isAcademicHistoryComplete($academicHistory)
     {
         $requiredFields = [
-            'nama_sekolah', 'alamat_sekolah', 'tahun_lulus', 'jenjang_sekolah'
+            'nama_sekolah_sebelumnya',
+            'alamat_sekolah_sebelumnya',
+            'jenjang_sebelumnya',
+            'tahun_lulus'
         ];
 
         foreach ($requiredFields as $field) {
@@ -353,17 +282,9 @@ class DashboardController extends Controller
      */
     private function isHealthRecordComplete($healthRecord)
     {
-        $requiredFields = [
-            'tinggi_badan', 'berat_badan', 'golongan_darah'
-        ];
-
-        foreach ($requiredFields as $field) {
-            if (empty($healthRecord->$field)) {
-                return false;
-            }
-        }
-
-        return true;
+        // Data kesehatan dianggap lengkap jika objek healthRecord ada
+        // karena kebanyakan data kesehatan bersifat opsional
+        return $healthRecord !== null;
     }
 
     /**
@@ -372,7 +293,17 @@ class DashboardController extends Controller
     private function isCharacterAssessmentComplete($characterAssessment)
     {
         $requiredFields = [
-            'sikap_spiritual', 'sikap_sosial', 'catatan_prestasi'
+            'pendaftar_id',
+            'sikap_spiritual',
+            'deskripsi_spiritual',
+            'sikap_sosial',
+            'deskripsi_sosial',
+            'jujur',
+            'disiplin',
+            'tanggung_jawab',
+            'santun',
+            'peduli',
+            'percaya_diri'
         ];
 
         foreach ($requiredFields as $field) {

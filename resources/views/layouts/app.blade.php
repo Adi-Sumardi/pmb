@@ -21,6 +21,8 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
+    @stack('styles')
+
     <!-- Custom CSS -->
     <style>
         body {
@@ -54,6 +56,17 @@
             {{ $slot }}
         </main>
     </div>
+
+    <!-- Scripts -->
+    @stack('scripts')
+
+    <!-- Inline SweetAlert fallback -->
+    <script>
+        if (typeof Swal === 'undefined') {
+            console.warn('SweetAlert not loaded from stack, loading inline');
+            document.write('<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"><\/script>');
+        }
+    </script>
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

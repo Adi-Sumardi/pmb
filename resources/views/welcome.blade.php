@@ -853,7 +853,7 @@
                             <!-- Foto Murid -->
                             <div class="col-12 animate-on-scroll">
                                 <label class="form-label">
-                                    <i class="bi bi-camera me-1"></i>Foto Calon Murid (3x4 cm)
+                                    <i class="bi bi-camera me-1"></i>Foto Calon Murid (3x4 cm) <span class="text-danger">*</span>
                                 </label>
                                 <div class="file-input-wrapper">
                                     <input type="file" name="foto_murid" id="foto_murid" accept="image/*" required>
@@ -872,7 +872,7 @@
                             <!-- Akta & KK -->
                             <div class="col-md-6 animate-on-scroll">
                                 <label class="form-label">
-                                    <i class="bi bi-file-earmark-text me-1"></i>Akta Kelahiran
+                                    <i class="bi bi-file-earmark-text me-1"></i>Akta Kelahiran <span class="text-danger">*</span>
                                 </label>
                                 <div class="file-input-wrapper">
                                     <input type="file" name="akta_kelahiran" id="akta_kelahiran"
@@ -887,7 +887,7 @@
 
                             <div class="col-md-6 animate-on-scroll">
                                 <label class="form-label">
-                                    <i class="bi bi-file-earmark-person me-1"></i>Kartu Keluarga
+                                    <i class="bi bi-file-earmark-person me-1"></i>Kartu Keluarga <span class="text-danger">*</span>
                                 </label>
                                 <div class="file-input-wrapper">
                                     <input type="file" name="kartu_keluarga" id="kartu_keluarga"

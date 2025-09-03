@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('achievements', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('pendaftar_id');
-            $table->unsignedBigInteger('grade_report_id')->nullable();
 
             // Data Prestasi
             $table->string('nama_prestasi', 200);
@@ -35,7 +34,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('pendaftar_id')->references('id')->on('pendaftars')->onDelete('cascade');
-            $table->foreign('grade_report_id')->references('id')->on('grade_reports')->onDelete('set null');
         });
     }
 

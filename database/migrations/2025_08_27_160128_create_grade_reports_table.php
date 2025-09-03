@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('tahun_ajaran', 20);
             $table->enum('semester', ['Ganjil', 'Genap']);
             $table->string('kelas', 10);
-            $table->enum('jenjang', ['SD', 'SMP', 'SMA', 'SMK']);
+            $table->enum('jenjang', ['Kelompok Bermain', 'Sanggar Bermain', 'TKA', 'TKB', 'SD', 'SMP', 'SMA', 'SMK']);
 
             // Data Sekolah
             $table->string('nama_sekolah', 200);

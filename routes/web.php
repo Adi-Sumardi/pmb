@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminTransactionController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PendaftarController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StudentDetailController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\DataController;
 use Illuminate\Support\Facades\Auth;
@@ -41,21 +42,24 @@ Route::middleware(['auth', 'user.role'])->prefix('user')->name('user.')->group(f
     Route::get('/data', [DataController::class, 'index'])->name('data');
     Route::get('/data/student', [DataController::class, 'student'])->name('data.student');
     Route::post('/data/student', [DataController::class, 'storeStudent'])->name('data.student.store');
+
     Route::get('/data/parent', [DataController::class, 'parent'])->name('data.parent');
     Route::post('/data/parent', [DataController::class, 'storeParent'])->name('data.parent.store');
+
     Route::get('/data/academic', [DataController::class, 'academic'])->name('data.academic');
     Route::post('/data/academic', [DataController::class, 'storeAcademic'])->name('data.academic.store');
+
     Route::get('/data/health', [DataController::class, 'health'])->name('data.health');
     Route::post('/data/health', [DataController::class, 'storeHealth'])->name('data.health.store');
+
     Route::get('/data/documents', [DataController::class, 'documents'])->name('data.documents');
     Route::post('/data/documents', [DataController::class, 'storeDocuments'])->name('data.documents.store');
     Route::delete('/data/documents/{id}', [DataController::class, 'destroyDocument'])->name('data.documents.destroy');
-    Route::get('/data/grades', [DataController::class, 'grades'])->name('data.grades');
-    Route::post('/data/grades', [DataController::class, 'storeGrades'])->name('data.grades.store');
-    Route::delete('/data/grades/{id}', [DataController::class, 'destroyGrade'])->name('data.grades.destroy');
+
     Route::get('/data/achievements', [DataController::class, 'achievements'])->name('data.achievements');
     Route::post('/data/achievements', [DataController::class, 'storeAchievements'])->name('data.achievements.store');
     Route::delete('/data/achievements/{id}', [DataController::class, 'destroyAchievement'])->name('data.achievements.destroy');
+
     Route::get('/data/review', [DataController::class, 'review'])->name('data.review');
     Route::post('/data/submit', [DataController::class, 'submit'])->name('data.submit');
 });

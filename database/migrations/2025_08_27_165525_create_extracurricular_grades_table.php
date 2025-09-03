@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('extracurricular_grades', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('grade_report_id');
+            $table->unsignedBigInteger('pendaftar_id');
 
             $table->string('nama_ekstrakurikuler', 100);
             $table->enum('kategori', ['Wajib', 'Pilihan'])->default('Pilihan');
@@ -25,7 +25,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->foreign('grade_report_id')->references('id')->on('grade_reports')->onDelete('cascade');
+            $table->foreign('pendaftar_id')->references('id')->on('pendaftars')->onDelete('cascade');
         });
     }
 

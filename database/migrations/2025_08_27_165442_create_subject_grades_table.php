@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('subject_grades', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('grade_report_id');
-            $table->unsignedBigInteger('academic_subject_id');
+            $table->unsignedBigInteger('pendaftar_id');
 
             // Nilai Komponen
             $table->decimal('nilai_tugas', 4, 2)->nullable();
@@ -39,9 +38,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->foreign('grade_report_id')->references('id')->on('grade_reports')->onDelete('cascade');
-            $table->foreign('academic_subject_id')->references('id')->on('academic_subjects')->onDelete('cascade');
-            $table->unique(['grade_report_id', 'academic_subject_id'], 'unique_subject_grade');
+            $table->foreign('pendaftar_id')->references('id')->on('pendaftars')->onDelete('cascade');
         });
     }
 

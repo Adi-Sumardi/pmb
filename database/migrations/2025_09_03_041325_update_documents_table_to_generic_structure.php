@@ -11,6 +11,34 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Drop the existing table if it exists
+        Schema::dropIfExists('documents');
+
+        // Create the table with generic structure
+        Schema::create('documents', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('pendaftar_id');
+            $table->string('document_type');
+            $table->string('document_name');
+            $table->string('file_path');
+            $table->unsignedBigInteger('file_size')->nullable();
+            $table->string('mime_type')->nullable();
+            $table->text('description')->nullable();
+            $table->boolean('is_verified')->default(false);
+            $table->timestamps();
+
+            $table->foreign('pendaftar_id')->references('id')->on('pendaftars')->onDelete('cascade');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('documents');
+
+        // Recreate the original structure if needed
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('pendaftar_id');
@@ -31,25 +59,7 @@ return new class extends Migration
             $table->string('surat_sehat_path', 500)->nullable();
             $table->string('surat_vaksin_path', 500)->nullable();
 
-            // Dokumen Prestasi (JSON untuk multiple files)
-            $table->json('sertifikat_prestasi_paths')->nullable();
-
-            // Dokumen Tambahan
-            $table->string('surat_tidak_mampu_path', 500)->nullable();
-            $table->string('surat_yatim_piatu_path', 500)->nullable();
-            $table->json('dokumen_lainnya_paths')->nullable();
-
-            $table->timestamps();
-
             $table->foreign('pendaftar_id')->references('id')->on('pendaftars')->onDelete('cascade');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('documents');
     }
 };

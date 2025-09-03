@@ -19,6 +19,7 @@ use App\Models\ExtracurricularGrade;
 use App\Models\CharacterAssessment;
 use App\Models\Achievement;
 use App\Models\AcademicSubject;
+use Illuminate\Support\Facades\Log;
 
 class DataController extends Controller
 {
@@ -43,6 +44,11 @@ class DataController extends Controller
     {
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
+
+        if (!$pendaftar) {
+            return redirect()->route('dashboard')->with('error', 'Data pendaftar tidak ditemukan.');
+        }
+
         $studentDetail = StudentDetail::where('pendaftar_id', $pendaftar->id)->first();
 
         return view('user.data.student', compact('pendaftar', 'studentDetail'));
@@ -52,30 +58,40 @@ class DataController extends Controller
     {
         $request->validate([
             'nama_lengkap' => 'required|string|max:255',
-            'tempat_lahir' => 'required|string|max:255',
+            'nik' => 'required|string|max:20',
+            'no_kk' => 'required|string|max:20',
+            'tempat_lahir' => 'required|string|max:100',
             'tanggal_lahir' => 'required|date',
-            'jenis_kelamin' => 'required|in:L,P',
-            'agama' => 'required|string|max:100',
-            'kewarganegaraan' => 'required|string|max:100',
+            'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
+            'agama' => 'required|string|max:20',
+            'kewarganegaraan' => 'required|string|max:10',
             'alamat_lengkap' => 'required|string',
-            'kode_pos' => 'required|string|max:10',
-            'no_telepon' => 'required|string|max:20',
-            'email' => 'required|email|max:255',
-            'anak_ke' => 'nullable|integer',
-            'jumlah_saudara' => 'nullable|integer',
-            'hobi' => 'nullable|string|max:255',
-            'cita_cita' => 'nullable|string|max:255'
+            'kelurahan' => 'required|string|max:100',
+            'kecamatan' => 'required|string|max:100',
+            'kota_kabupaten' => 'required|string|max:100',
+            'provinsi' => 'required|string|max:100',
         ]);
 
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
-        StudentDetail::updateOrCreate(
+        if (!$pendaftar) {
+            return redirect()->route('dashboard')->with('error', 'Data pendaftar tidak ditemukan.');
+        }
+
+        // Find existing record or create new one
+        $studentDetail = StudentDetail::updateOrCreate(
             ['pendaftar_id' => $pendaftar->id],
             $request->all()
         );
 
-        return redirect()->route('user.data')->with('success', 'Data siswa berhasil disimpan.');
+        // Update NISN in pendaftar table if needed
+        if ($pendaftar->nisn !== $request->nisn) {
+            $pendaftar->nisn = $request->nisn;
+            $pendaftar->save();
+        }
+
+        return redirect()->route('user.data')->with('success', 'Data siswa berhasil disimpan. Silahkan lengkapi data orang tua.');
     }
 
     public function parent()
@@ -95,16 +111,14 @@ class DataController extends Controller
             'tanggal_lahir_ayah' => 'nullable|date',
             'pendidikan_ayah' => 'nullable|string|max:100',
             'pekerjaan_ayah' => 'required|string|max:255',
-            'penghasilan_ayah' => 'nullable|integer',
+            'penghasilan_ayah' => 'nullable|string',
             'nama_ibu' => 'required|string|max:255',
             'tempat_lahir_ibu' => 'nullable|string|max:255',
             'tanggal_lahir_ibu' => 'nullable|date',
             'pendidikan_ibu' => 'nullable|string|max:100',
             'pekerjaan_ibu' => 'required|string|max:255',
-            'penghasilan_ibu' => 'nullable|integer',
+            'penghasilan_ibu' => 'nullable|string',
             'nama_wali' => 'nullable|string|max:255',
-            'alamat_orangtua' => 'required|string',
-            'no_telepon_orangtua' => 'required|string|max:20'
         ]);
 
         $user = Auth::user();
@@ -130,12 +144,26 @@ class DataController extends Controller
     public function storeAcademic(Request $request)
     {
         $request->validate([
-            'nama_sekolah' => 'required|string|max:255',
-            'alamat_sekolah' => 'required|string',
-            'tahun_masuk' => 'required|integer',
+            'nama_sekolah_sebelumnya' => 'required|string|max:255',
+            'alamat_sekolah_sebelumnya' => 'required|string',
+            'jenjang_sebelumnya' => 'required|string|max:50',
             'tahun_lulus' => 'required|integer',
-            'jenjang_sekolah' => 'required|string|max:50',
-            'rata_rata_nilai' => 'nullable|numeric|between:0,100'
+            'npsn_sekolah_sebelumnya' => 'nullable|string|max:20',
+            'kelas_terakhir' => 'nullable|string|max:10',
+            'no_ijazah' => 'nullable|string|max:50',
+            'no_skhun' => 'nullable|string|max:50',
+            'rata_rata_nilai' => 'nullable|numeric|between:0,100',
+            'nilai_bahasa_indonesia' => 'nullable|numeric|between:0,100',
+            'nilai_matematika' => 'nullable|numeric|between:0,100',
+            'nilai_ipa' => 'nullable|numeric|between:0,100',
+            'nilai_ips' => 'nullable|numeric|between:0,100',
+            'nilai_bahasa_inggris' => 'nullable|numeric|between:0,100',
+            'ranking_kelas' => 'nullable|integer|min:1',
+            'jumlah_siswa_sekelas' => 'nullable|integer|min:1',
+            'prestasi_akademik' => 'nullable|string',
+            'prestasi_non_akademik' => 'nullable|string',
+            'organisasi_yang_diikuti' => 'nullable|string',
+            'jabatan_organisasi' => 'nullable|string',
         ]);
 
         $user = Auth::user();
@@ -153,17 +181,15 @@ class DataController extends Controller
     {
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
+        $studentDetail = StudentDetail::where('pendaftar_id', $pendaftar->id)->first();
         $healthRecord = HealthRecord::where('pendaftar_id', $pendaftar->id)->first();
 
-        return view('user.data.health', compact('pendaftar', 'healthRecord'));
+        return view('user.data.health', compact('pendaftar', 'healthRecord', 'studentDetail'));
     }
 
     public function storeHealth(Request $request)
     {
         $request->validate([
-            'tinggi_badan' => 'required|integer',
-            'berat_badan' => 'required|integer',
-            'golongan_darah' => 'required|string|max:5',
             'riwayat_penyakit' => 'nullable|string',
             'alergi' => 'nullable|string',
             'obat_yang_dikonsumsi' => 'nullable|string'
@@ -192,93 +218,77 @@ class DataController extends Controller
     public function storeDocuments(Request $request)
     {
         $request->validate([
-            'document_type' => 'required|string|max:100',
+            'document_type' => 'required|string|max:255',
             'document_name' => 'required|string|max:255',
-            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048'
+            'file' => 'required|file|max:2048|mimes:pdf,jpg,jpeg,png',
         ]);
 
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('documents', $fileName, 'public');
-
-            Document::create([
-                'pendaftar_id' => $pendaftar->id,
-                'document_type' => $request->document_type,
-                'document_name' => $request->document_name,
-                'file_path' => $filePath,
-                'file_size' => $file->getSize(),
-                'mime_type' => $file->getMimeType()
-            ]);
+        if (!$pendaftar) {
+            return redirect()->route('user.data.student')->with('error', 'Anda harus melengkapi data diri terlebih dahulu.');
         }
+
+        $file = $request->file('file');
+        $fileName = time() . '_' . $pendaftar->id . '_' . $file->getClientOriginalName();
+        $filePath = $file->storeAs('documents/' . $pendaftar->id, $fileName, 'public');
+
+        Document::create([
+            'pendaftar_id' => $pendaftar->id,
+            'document_type' => $request->document_type,
+            'document_name' => $request->document_name,
+            'file_path' => $filePath,
+            'file_size' => $file->getSize(),
+            'mime_type' => $file->getMimeType()
+        ]);
 
         return redirect()->route('user.data.documents')->with('success', 'Dokumen berhasil diupload.');
     }
 
-    public function grades()
+    public function destroyDocument($id)
     {
-        $user = Auth::user();
-        $pendaftar = Pendaftar::where('user_id', $user->id)->first();
+        try {
+            $user = Auth::user();
+            $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
-        $gradeReports = GradeReport::where('pendaftar_id', $pendaftar->id)
-            ->with('subjectGrades.academicSubject')
-            ->orderBy('tahun_ajaran', 'desc')
-            ->orderBy('semester', 'desc')
-            ->get();
+            if (!$pendaftar) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data pendaftar tidak ditemukan'
+                ], 404);
+            }
 
-        // Pastikan academicSubjects tidak null
-        $academicSubjects = AcademicSubject::active()
-            ->orderBy('kategori')
-            ->orderBy('nama_mapel')
-            ->get();
+            $document = Document::where('id', $id)
+                            ->where('pendaftar_id', $pendaftar->id)
+                            ->first();
 
-        // Jika tidak ada data, berikan collection kosong
-        if($academicSubjects->isEmpty()) {
-            $academicSubjects = collect();
+            if (!$document) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dokumen tidak ditemukan atau Anda tidak memiliki akses'
+                ], 404);
+            }
+
+            // Hapus file dari storage
+            if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
+                Storage::disk('public')->delete($document->file_path);
+            }
+
+            $documentName = $document->document_name;
+            $document->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Dokumen $documentName berhasil dihapus"
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting document: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus dokumen'
+            ], 500);
         }
-
-        return view('user.data.grades', compact('pendaftar', 'gradeReports', 'academicSubjects'));
-    }
-
-    public function storeGrades(Request $request)
-    {
-        $request->validate([
-            'semester' => 'required|integer|between:1,8',
-            'tahun_ajaran' => 'required|string|max:20',
-            'subjects' => 'required|array',
-            'subjects.*.academic_subject_id' => 'required|exists:academic_subjects,id',
-            'subjects.*.nilai' => 'required|numeric|between:0,100'
-        ]);
-
-        $user = Auth::user();
-        $pendaftar = Pendaftar::where('user_id', $user->id)->first();
-
-        // Create or update grade report
-        $gradeReport = GradeReport::updateOrCreate(
-            [
-                'pendaftar_id' => $pendaftar->id,
-                'semester' => $request->semester,
-                'tahun_ajaran' => $request->tahun_ajaran
-            ]
-        );
-
-        // Store subject grades
-        foreach ($request->subjects as $subjectData) {
-            SubjectGrade::updateOrCreate(
-                [
-                    'grade_report_id' => $gradeReport->id,
-                    'academic_subject_id' => $subjectData['academic_subject_id']
-                ],
-                [
-                    'nilai' => $subjectData['nilai']
-                ]
-            );
-        }
-
-        return redirect()->route('user.data')->with('success', 'Data nilai berhasil disimpan.');
     }
 
     public function achievements()
@@ -328,12 +338,11 @@ class DataController extends Controller
         $academicHistory = AcademicHistory::where('pendaftar_id', $pendaftar->id)->first();
         $healthRecord = HealthRecord::where('pendaftar_id', $pendaftar->id)->first();
         $documents = Document::where('pendaftar_id', $pendaftar->id)->get();
-        $gradeReports = GradeReport::where('pendaftar_id', $pendaftar->id)->with('subjectGrades.academicSubject')->get();
         $achievements = Achievement::where('pendaftar_id', $pendaftar->id)->get();
 
         return view('user.data.review', compact(
             'pendaftar', 'studentDetail', 'parentDetail', 'academicHistory',
-            'healthRecord', 'documents', 'gradeReports', 'achievements'
+            'healthRecord', 'documents', 'achievements'
         ));
     }
 
@@ -343,7 +352,7 @@ class DataController extends Controller
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
         // Update status to submitted
-        $pendaftar->update(['status' => 'submitted']);
+        $pendaftar->update(['current_status' => 'submitted']);
 
         return redirect()->route('user.dashboard')->with('success', 'Data pendaftaran berhasil disubmit untuk review.');
     }
@@ -372,10 +381,6 @@ class DataController extends Controller
         $documentsCount = Document::where('pendaftar_id', $pendaftar->id)->count();
         $status['documents'] = $documentsCount >= 3;
 
-        // Grade Reports
-        $gradeReportsCount = GradeReport::where('pendaftar_id', $pendaftar->id)->count();
-        $status['grades'] = $gradeReportsCount >= 1;
-
         // Achievements
         $achievementsCount = Achievement::where('pendaftar_id', $pendaftar->id)->count();
         $status['achievements'] = $achievementsCount >= 1;
@@ -386,9 +391,9 @@ class DataController extends Controller
     private function isStudentDetailComplete($studentDetail)
     {
         $requiredFields = [
-            'nama_lengkap', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
-            'agama', 'kewarganegaraan', 'alamat_lengkap', 'kode_pos',
-            'no_telepon', 'email'
+            'nama_lengkap', 'nik', 'no_kk', 'tempat_lahir',
+            'tanggal_lahir', 'jenis_kelamin', 'agama', 'alamat_lengkap',
+            'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi'
         ];
 
         foreach ($requiredFields as $field) {
@@ -403,8 +408,8 @@ class DataController extends Controller
     private function isParentDetailComplete($parentDetail)
     {
         $requiredFields = [
-            'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu',
-            'alamat_orangtua', 'no_telepon_orangtua'
+            'nama_ayah', 'pekerjaan_ayah', 'no_hp_ayah',
+            'nama_ibu', 'pekerjaan_ibu', 'no_hp_ibu'
         ];
 
         foreach ($requiredFields as $field) {
@@ -419,7 +424,10 @@ class DataController extends Controller
     private function isAcademicHistoryComplete($academicHistory)
     {
         $requiredFields = [
-            'nama_sekolah', 'alamat_sekolah', 'tahun_lulus', 'jenjang_sekolah'
+            'nama_sekolah_sebelumnya',
+            'alamat_sekolah_sebelumnya',
+            'jenjang_sebelumnya',
+            'tahun_lulus'
         ];
 
         foreach ($requiredFields as $field) {
@@ -433,16 +441,8 @@ class DataController extends Controller
 
     private function isHealthRecordComplete($healthRecord)
     {
-        $requiredFields = [
-            'tinggi_badan', 'berat_badan', 'golongan_darah'
-        ];
-
-        foreach ($requiredFields as $field) {
-            if (empty($healthRecord->$field)) {
-                return false;
-            }
-        }
-
-        return true;
+        // Data kesehatan dianggap lengkap jika objek healthRecord ada
+        // karena kebanyakan data kesehatan bersifat opsional
+        return $healthRecord !== null;
     }
 }

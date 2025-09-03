@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('pendaftar_id');
 
             // Pendidikan Sebelumnya
-            $table->enum('jenjang_sebelumnya', ['TK', 'SD', 'SMP', 'SMA', 'SMK'])->nullable();
+            $table->enum('jenjang_sebelumnya', ['Sanggar Bermain', 'Kelompok Bermain', 'TKA', 'TKB', 'SD', 'SMP', 'SMA', 'SMK'])->nullable();
             $table->string('nama_sekolah_sebelumnya', 200)->nullable();
             $table->string('npsn_sekolah_sebelumnya', 20)->nullable();
             $table->text('alamat_sekolah_sebelumnya')->nullable();

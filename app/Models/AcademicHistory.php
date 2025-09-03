@@ -10,12 +10,26 @@ class AcademicHistory extends Model
     use HasFactory;
 
     protected $fillable = [
-        'pendaftar_id', 'jenjang_sebelumnya', 'nama_sekolah_sebelumnya',
-        'npsn_sekolah_sebelumnya', 'alamat_sekolah_sebelumnya', 'kelas_terakhir',
-        'tahun_lulus', 'no_ijazah', 'no_skhun', 'rata_rata_nilai',
-        'nilai_bahasa_indonesia', 'nilai_matematika', 'nilai_ipa', 'nilai_ips',
-        'nilai_bahasa_inggris', 'ranking_kelas', 'jumlah_siswa_sekelas',
-        'prestasi_akademik', 'prestasi_non_akademik', 'organisasi_yang_diikuti',
+        'pendaftar_id',
+        'jenjang_sebelumnya',
+        'nama_sekolah_sebelumnya',
+        'npsn_sekolah_sebelumnya',
+        'alamat_sekolah_sebelumnya',
+        'kelas_terakhir',
+        'tahun_lulus',
+        'no_ijazah',
+        'no_skhun',
+        'rata_rata_nilai',
+        'nilai_bahasa_indonesia',
+        'nilai_matematika',
+        'nilai_ipa',
+        'nilai_ips',
+        'nilai_bahasa_inggris',
+        'ranking_kelas',
+        'jumlah_siswa_sekelas',
+        'prestasi_akademik',
+        'prestasi_non_akademik',
+        'organisasi_yang_diikuti',
         'jabatan_organisasi'
     ];
 

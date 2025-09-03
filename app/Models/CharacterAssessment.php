@@ -10,14 +10,22 @@ class CharacterAssessment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'grade_report_id', 'sikap_spiritual', 'deskripsi_spiritual',
-        'sikap_sosial', 'deskripsi_sosial', 'jujur', 'disiplin',
-        'tanggung_jawab', 'santun', 'peduli', 'percaya_diri'
+        'pendaftar_id',
+        'sikap_spiritual',
+        'deskripsi_spiritual',
+        'sikap_sosial',
+        'deskripsi_sosial',
+        'jujur',
+        'disiplin',
+        'tanggung_jawab',
+        'santun',
+        'peduli',
+        'percaya_diri'
     ];
 
-    public function gradeReport()
+    public function pendaftar()
     {
-        return $this->belongsTo(GradeReport::class);
+        return $this->belongsTo(Pendaftar::class);
     }
 
     public function getPredikatText($value)

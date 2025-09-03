@@ -471,31 +471,31 @@
                                     </div>
                                 </div>
 
-                                <!-- Grade Reports -->
+                                <!-- Achievements Reports -->
                                 <div class="col-lg-4 col-md-6">
-                                    <div class="completion-item {{ $gradeReportsComplete ? 'completed' : 'incomplete' }}">
+                                    <div class="completion-item {{ $achievementsComplete ? 'completed' : 'incomplete' }}">
                                         <div class="d-flex align-items-center mb-2">
                                             <div class="completion-icon me-3">
-                                                @if($gradeReportsComplete)
+                                                @if($achievementsComplete)
                                                     <i class="bi bi-check-circle-fill text-success fs-4"></i>
                                                 @else
                                                     <i class="bi bi-circle text-muted fs-4"></i>
                                                 @endif
                                             </div>
                                             <div class="flex-grow-1">
-                                                <h6 class="mb-1 fw-semibold">Raport & Nilai</h6>
-                                                <small class="text-muted">Upload raport dan nilai</small>
+                                                <h6 class="mb-1 fw-semibold">Prestasi</h6>
+                                                <small class="text-muted">Pencapaian dan Prestasi</small>
                                             </div>
                                         </div>
                                         <div class="progress mb-2" style="height: 6px;">
-                                            <div class="progress-bar {{ $gradeReportsComplete ? 'bg-success' : 'bg-warning' }}"
-                                                 style="width: {{ $gradeReportsComplete ? '100' : '15' }}%"></div>
+                                            <div class="progress-bar {{ $achievementsComplete ? 'bg-success' : 'bg-warning' }}"
+                                                 style="width: {{ $achievementsComplete ? '100' : '15' }}%"></div>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">
-                                                {{ $gradeReportsComplete ? 'Lengkap' : 'Perlu diupload' }}
+                                                {{ $achievementsComplete ? 'Lengkap' : 'Perlu diupload' }}
                                             </small>
-                                            @if($gradeReportsComplete)
+                                            @if($achievementsComplete)
                                                 <small class="text-success fw-semibold">✓ Selesai</small>
                                             @else
                                                 <small class="text-warning fw-semibold">⚠ Belum</small>

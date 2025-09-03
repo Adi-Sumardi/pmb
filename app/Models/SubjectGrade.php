@@ -10,10 +10,20 @@ class SubjectGrade extends Model
     use HasFactory;
 
     protected $fillable = [
-        'grade_report_id', 'academic_subject_id', 'nilai_tugas', 'nilai_harian',
-        'nilai_uts', 'nilai_uas', 'nilai_praktik', 'nilai_pengetahuan',
-        'nilai_keterampilan', 'nilai_akhir', 'predikat', 'status_ketuntasan',
-        'remedial_nilai', 'deskripsi_pengetahuan', 'deskripsi_keterampilan'
+        'pendaftar_id',
+        'nilai_tugas',
+        'nilai_harian',
+        'nilai_uts',
+        'nilai_uas',
+        'nilai_praktik',
+        'nilai_pengetahuan',
+        'nilai_keterampilan',
+        'nilai_akhir',
+        'predikat',
+        'status_ketuntasan',
+        'remedial_nilai',
+        'deskripsi_pengetahuan',
+        'deskripsi_keterampilan'
     ];
 
     protected $casts = [
@@ -28,14 +38,9 @@ class SubjectGrade extends Model
         'remedial_nilai' => 'decimal:2',
     ];
 
-    public function gradeReport()
+    public function pendaftar()
     {
-        return $this->belongsTo(GradeReport::class);
-    }
-
-    public function academicSubject()
-    {
-        return $this->belongsTo(AcademicSubject::class);
+        return $this->belongsTo(Pendaftar::class);
     }
 
     public function getIsTuntasAttribute()
