@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasEncryptedAttributes;
 
 class StudentDetail extends Model
 {
-    use HasFactory;
+    use HasFactory, HasEncryptedAttributes;
 
     protected $fillable = [
         'pendaftar_id',
@@ -42,6 +43,15 @@ class StudentDetail extends Model
         'cita_cita',
         'kepribadian',
         'kesulitan_belajar'
+    ];
+
+    /**
+     * Attributes that should be encrypted
+     */
+    protected $encrypted = [
+        'nisn',
+        'nik',
+        'no_kk'
     ];
 
     protected $casts = [

@@ -1,14 +1,32 @@
 <?php
 
 use App\Http\Controllers\AdminTransactionController;
+use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PendaftarController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentDetailController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\DataController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+// Health Check Routes (no authentication required)
+Route::prefix('health')->name('health.')->group(function () {
+    Route::get('/', [HealthCheckController::class, 'basic'])->name('basic');
+    Route::get('/comprehensive', [HealthCheckController::class, 'comprehensive'])->name('comprehensive');
+    Route::get('/metrics', [HealthCheckController::class, 'metrics'])->name('metrics');
+    Route::get('/dashboard', [HealthCheckController::class, 'dashboard'])->name('dashboard');
+    Route::get('/readiness', [HealthCheckController::class, 'readiness'])->name('readiness');
+    Route::get('/liveness', [HealthCheckController::class, 'liveness'])->name('liveness');
+    Route::post('/restart', [HealthCheckController::class, 'markRestart'])->name('restart');
+});
+
+// System Status Dashboard (admin only)
+Route::get('/system-status', function () {
+    return view('dashboard.system-status');
+})->middleware(['auth', 'admin'])->name('system.status');
 
 Route::get('/', function () {
     return view('welcome');
@@ -71,6 +89,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Secure File Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/file/download/{path}', [FileController::class, 'download'])->name('file.download');
+    Route::get('/file/info/{path}', [FileController::class, 'info'])->name('file.info');
+});
+
 // Pendaftar routes
 Route::post('/pendaftaran', [PendaftarController::class, 'store'])->name('pendaftaran.store');
 
@@ -111,8 +135,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/transactions/print', [AdminTransactionController::class, 'printView'])->name('admin.transactions.print');
 });
 
-// Public webhook route (no auth required)
-Route::post('/webhook/xendit', [PaymentController::class, 'webhook'])->name('payment.webhook');
+// Public webhook route (no auth required, no CSRF, but with enhanced security)
+Route::post('/webhook/xendit', [PaymentController::class, 'webhook'])
+    ->name('payment.webhook')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->middleware(['secure.webhook']);
 
 Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/logs', [App\Http\Controllers\LogController::class, 'viewLogs'])->name('logs.view');
@@ -121,5 +148,3 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/logs/stream', [App\Http\Controllers\LogController::class, 'streamLogs'])->name('logs.stream');
     Route::get('/debug/payment-methods', [PaymentController::class, 'debugPaymentMethods'])->name('admin.debug.payment-methods');
 });
-
-require __DIR__.'/auth.php';

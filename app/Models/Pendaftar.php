@@ -93,17 +93,6 @@ class Pendaftar extends Model
         return $this->hasOne(Document::class);
     }
 
-    // Relasi ke tabel nilai dan raport
-    public function gradeReports()
-    {
-        return $this->hasMany(GradeReport::class)->orderBy('tahun_ajaran', 'desc')->orderBy('semester', 'desc');
-    }
-
-    public function latestGradeReport()
-    {
-        return $this->hasOne(GradeReport::class)->latest();
-    }
-
     public function achievements()
     {
         return $this->hasMany(Achievement::class)->orderBy('tanggal_event', 'desc');

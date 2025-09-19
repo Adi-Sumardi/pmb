@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DocumentUploadRequest;
+use App\Services\SecureFileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -23,6 +25,12 @@ use Illuminate\Support\Facades\Log;
 
 class DataController extends Controller
 {
+    private SecureFileUploadService $uploadService;
+
+    public function __construct(SecureFileUploadService $uploadService)
+    {
+        $this->uploadService = $uploadService;
+    }
     public function index()
     {
         $user = Auth::user();
@@ -215,14 +223,8 @@ class DataController extends Controller
         return view('user.data.documents', compact('pendaftar', 'documents'));
     }
 
-    public function storeDocuments(Request $request)
+    public function storeDocuments(DocumentUploadRequest $request)
     {
-        $request->validate([
-            'document_type' => 'required|string|max:255',
-            'document_name' => 'required|string|max:255',
-            'file' => 'required|file|max:2048|mimes:pdf,jpg,jpeg,png',
-        ]);
-
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
@@ -230,20 +232,49 @@ class DataController extends Controller
             return redirect()->route('user.data.student')->with('error', 'Anda harus melengkapi data diri terlebih dahulu.');
         }
 
-        $file = $request->file('file');
-        $fileName = time() . '_' . $pendaftar->id . '_' . $file->getClientOriginalName();
-        $filePath = $file->storeAs('documents/' . $pendaftar->id, $fileName, 'public');
+        $uploadResult = $this->uploadService->uploadFile(
+            $request->file('file'),
+            'documents/' . $pendaftar->id
+        );
 
-        Document::create([
-            'pendaftar_id' => $pendaftar->id,
-            'document_type' => $request->document_type,
-            'document_name' => $request->document_name,
-            'file_path' => $filePath,
-            'file_size' => $file->getSize(),
-            'mime_type' => $file->getMimeType()
-        ]);
+        if (!$uploadResult['success']) {
+            return redirect()->back()
+                ->with('error', 'Upload gagal: ' . $uploadResult['error'])
+                ->withInput();
+        }
 
-        return redirect()->route('user.data.documents')->with('success', 'Dokumen berhasil diupload.');
+        try {
+            Document::create([
+                'pendaftar_id' => $pendaftar->id,
+                'document_type' => $request->document_type,
+                'document_name' => $request->document_name,
+                'file_path' => $uploadResult['path'],
+                'file_size' => $uploadResult['size'],
+                'mime_type' => $uploadResult['mime_type']
+            ]);
+
+            Log::info('Document uploaded successfully', [
+                'pendaftar_id' => $pendaftar->id,
+                'document_type' => $request->document_type,
+                'file_size' => $uploadResult['size']
+            ]);
+
+            return redirect()->route('user.data.documents')
+                ->with('success', 'Dokumen berhasil diupload dengan aman.');
+                
+        } catch (\Exception $e) {
+            // Cleanup uploaded file if database insert fails
+            $this->uploadService->deleteFile($uploadResult['path']);
+            
+            Log::error('Document save failed', [
+                'pendaftar_id' => $pendaftar->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan saat menyimpan dokumen.')
+                ->withInput();
+        }
     }
 
     public function destroyDocument($id)
@@ -270,13 +301,19 @@ class DataController extends Controller
                 ], 404);
             }
 
-            // Hapus file dari storage
-            if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
-                Storage::disk('public')->delete($document->file_path);
+            // Hapus file dari storage menggunakan secure service
+            if ($document->file_path) {
+                $this->uploadService->deleteFile($document->file_path);
             }
 
             $documentName = $document->document_name;
             $document->delete();
+
+            Log::info('Document deleted successfully', [
+                'document_id' => $id,
+                'pendaftar_id' => $pendaftar->id,
+                'document_name' => $documentName
+            ]);
 
             return response()->json([
                 'success' => true,

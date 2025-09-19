@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'pgsql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -87,14 +87,19 @@ return [
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
+            'database' => env('DB_DATABASE', 'ppdb_yapi'),
+            'username' => env('DB_USERNAME', 'postgres'),
             'password' => env('DB_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'options' => [
+                PDO::ATTR_TIMEOUT => env('DB_TIMEOUT', 60),
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_STRINGIFY_FETCHES => false,
+            ],
         ],
 
         'sqlsrv' => [
@@ -148,7 +153,9 @@ return [
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
             'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
-            'persistent' => env('REDIS_PERSISTENT', false),
+            'persistent' => env('REDIS_PERSISTENT', true),
+            'serializer' => env('REDIS_SERIALIZER', 'php'), // php, igbinary, or json
+            'compression' => env('REDIS_COMPRESSION', 'lz4'), // lz4, zstd, lzf, or none
         ],
 
         'default' => [
@@ -158,6 +165,8 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 5),
+            'timeout' => env('REDIS_TIMEOUT', 5),
         ],
 
         'cache' => [
@@ -167,6 +176,30 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 5),
+            'timeout' => env('REDIS_TIMEOUT', 5),
+        ],
+
+        'session' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_SESSION_DB', '2'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 5),
+            'timeout' => env('REDIS_TIMEOUT', 5),
+        ],
+
+        'queue' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_QUEUE_DB', '3'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 5),
+            'timeout' => env('REDIS_TIMEOUT', 5),
         ],
 
     ],

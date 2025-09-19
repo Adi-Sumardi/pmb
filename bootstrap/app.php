@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
+            // Register auth routes
+            Route::middleware('web')
+                ->group(base_path('routes/auth.php'));
+
             // Register admin routes
             Route::middleware('web')
                 ->prefix('admin')
@@ -19,10 +23,30 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Global middleware
+        $middleware->web(append: [
+            \App\Http\Middleware\CloudflareMiddleware::class,
+            \App\Http\Middleware\SecurityHeadersMiddleware::class,
+            \App\Http\Middleware\SessionTimeoutMiddleware::class,
+        ]);
+
+        $middleware->api(append: [
+            \App\Http\Middleware\CloudflareMiddleware::class,
+            \App\Http\Middleware\ApiRateLimitMiddleware::class,
+            \App\Http\Middleware\ApiSecurityMiddleware::class,
+            \App\Http\Middleware\SecurityHeadersMiddleware::class,
+        ]);
+
         // Register middleware aliases
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'user.role' => \App\Http\Middleware\UserMiddleware::class,
+            'api.rate.limit' => \App\Http\Middleware\ApiRateLimitMiddleware::class,
+            'api.security' => \App\Http\Middleware\ApiSecurityMiddleware::class,
+            'session.timeout' => \App\Http\Middleware\SessionTimeoutMiddleware::class,
+            'security.headers' => \App\Http\Middleware\SecurityHeadersMiddleware::class,
+            'cloudflare' => \App\Http\Middleware\CloudflareMiddleware::class,
+            'secure.webhook' => \App\Http\Middleware\SecureWebhookMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

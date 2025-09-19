@@ -17,8 +17,8 @@ class DashboardController extends Controller
             'total_users' => User::where('role', 'user')->count(),
             'total_admins' => User::where('role', 'admin')->count(),
             'total_pendaftar' => Pendaftar::count(),
-            'pending_pendaftar' => Pendaftar::where('status', 'pending')->count(),
-            'verified_pendaftar' => Pendaftar::where('status', 'diverifikasi')->count(),
+            'pending_pendaftar' => Pendaftar::where('overall_status', 'Draft')->count(),
+            'verified_pendaftar' => Pendaftar::where('overall_status', 'Diverifikasi')->count(),
             'paid_pendaftar' => Pendaftar::where('sudah_bayar_formulir', true)->count(),
         ];
 
@@ -29,8 +29,8 @@ class DashboardController extends Controller
         // Unit-specific statistics for the unit analysis table
         $unit_stats = Pendaftar::select('unit')
             ->selectRaw('COUNT(*) as total')
-            ->selectRaw('SUM(CASE WHEN status = "diverifikasi" THEN 1 ELSE 0 END) as verified')
-            ->selectRaw('SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending')
+            ->selectRaw('SUM(CASE WHEN overall_status = ? THEN 1 ELSE 0 END) as verified', ['Diverifikasi'])
+            ->selectRaw('SUM(CASE WHEN overall_status = ? THEN 1 ELSE 0 END) as pending', ['Draft'])
             ->selectRaw('SUM(CASE WHEN sudah_bayar_formulir = true THEN 1 ELSE 0 END) as paid')
             ->groupBy('unit')
             ->get();
@@ -52,7 +52,7 @@ class DashboardController extends Controller
             ->get();
 
         // Yearly registration trends
-        $yearly_trends = Pendaftar::select(DB::raw('MONTH(created_at) as month'))
+        $yearly_trends = Pendaftar::select(DB::raw('EXTRACT(MONTH FROM created_at) as month'))
             ->selectRaw('COUNT(*) as total')
             ->whereYear('created_at', now()->year)
             ->groupBy('month')

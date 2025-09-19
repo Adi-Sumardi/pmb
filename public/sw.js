@@ -2,6 +2,5 @@ self.addEventListener("install", (event) => {
   console.log("Service Worker Installed");
 });
 
-self.addEventListener("fetch", (event) => {
-  // bisa tambahkan cache nanti
-});
+// Removed empty fetch event handler to prevent no-op warning
+// Add fetch handler only when implementing actual caching strategy
