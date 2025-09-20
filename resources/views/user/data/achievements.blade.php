@@ -305,7 +305,7 @@
         <!-- Action Buttons -->
         <div class="row mt-4">
             <div class="col-12 text-center">
-                <a href="{{ route('user.data') }}" class="btn btn-outline-secondary btn-lg px-4" style="transition: all 0.3s">
+                <a href="{{ route('user.data.index') }}" class="btn btn-outline-secondary btn-lg px-4" style="transition: all 0.3s">
                     <i class="bi bi-arrow-left me-2"></i>Kembali ke Menu Utama
                 </a>
             </div>

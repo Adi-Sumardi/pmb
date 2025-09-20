@@ -774,6 +774,7 @@
                                     <option value="dalam">Dari Sekolah YAPI</option>
                                     <option value="luar">Dari Sekolah Luar</option>
                                     <option value="pindahan">Pindahan</option>
+                                    <option value="tidak_ada">Tidak Ada</option>
                                 </select>
                             </div>
 
@@ -1005,6 +1006,24 @@
         asalSekolahSelect.addEventListener("change", function() {
             const selectedAsal = this.value;
             const selectedJenjang = jenjangSelect.value;
+
+            // Reset kelas group
+            kelasGroup.classList.add("d-none");
+
+            // Handle "tidak_ada" case - hide nama sekolah group and set value to null
+            if (selectedAsal === "tidak_ada") {
+                namaSekolahGroup.classList.add("d-none");
+                namaSekolahWrapper.innerHTML = "";
+                // Create hidden input with null value
+                const hiddenInput = document.createElement("input");
+                hiddenInput.type = "hidden";
+                hiddenInput.name = "nama_sekolah";
+                hiddenInput.value = "";
+                namaSekolahWrapper.appendChild(hiddenInput);
+                return;
+            }
+
+            // Show nama sekolah group for other options
             namaSekolahGroup.classList.remove("d-none");
             namaSekolahWrapper.innerHTML = "";
 
@@ -1033,8 +1052,7 @@
                 });
 
                 namaSekolahWrapper.appendChild(select);
-                kelasGroup.classList.add("d-none");
-            } else {
+            } else if (selectedAsal === "luar" || selectedAsal === "pindahan") {
                 const input = document.createElement("input");
                 input.type = "text";
                 input.name = "nama_sekolah";
@@ -1044,8 +1062,6 @@
 
                 if (selectedAsal === "pindahan") {
                     kelasGroup.classList.remove("d-none");
-                } else {
-                    kelasGroup.classList.add("d-none");
                 }
             }
         });

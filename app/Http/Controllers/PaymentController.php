@@ -433,15 +433,6 @@ class PaymentController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'admin') {
-            $pendaftars = Pendaftar::with(['latestPayment'])
-                ->select('id', 'nama_murid', 'no_pendaftaran', 'unit', 'jenjang', 'payment_amount', 'sudah_bayar_formulir', 'created_at')
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            return view('payment.admin.index', compact('pendaftars'));
-        }
-
         $pendaftar = Pendaftar::where('user_id', $user->id)
             ->with(['payments' => function($query) {
                 $query->orderBy('created_at', 'desc');
@@ -456,7 +447,17 @@ class PaymentController extends Controller
         // Cleanup expired payments
         $this->cleanupExpiredPayments($pendaftar->id);
 
-        return view('payment.user.index', compact('pendaftar'));
+        return view('user.payment.index', compact('pendaftar'));
+    }
+
+    public function adminIndex()
+    {
+        $pendaftars = Pendaftar::with(['latestPayment'])
+            ->select('id', 'nama_murid', 'no_pendaftaran', 'unit', 'jenjang', 'payment_amount', 'sudah_bayar_formulir', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.payment.index', compact('pendaftars'));
     }
 
     public function createInvoice(Request $request)
@@ -472,7 +473,10 @@ class PaymentController extends Controller
 
         $request->validate([
             'pendaftar_id' => 'required|exists:pendaftars,id',
-            'amount' => 'required|numeric|min:100000|max:10000000'
+            'amount' => 'required|numeric|min:100000|max:10000000',
+            'items' => 'nullable|string',
+            'promo_code' => 'nullable|string|max:50',
+            'discount_id' => 'nullable|string|max:50'
         ]);
 
         $user = Auth::user();
@@ -485,6 +489,14 @@ class PaymentController extends Controller
             'sudah_bayar' => $pendaftar->sudah_bayar_formulir ?? 'N/A'
         ]);
 
+        // Log cart data
+        Log::info('Cart data received', [
+            'items' => $request->items,
+            'promo_code' => $request->promo_code,
+            'discount_id' => $request->discount_id,
+            'amount' => $request->amount
+        ]);
+
         if (!$pendaftar) {
             Log::error('Pendaftar not found');
             return back()->with('error', 'Data pendaftaran tidak ditemukan.');
@@ -495,13 +507,11 @@ class PaymentController extends Controller
             return back()->with('info', 'Pembayaran sudah lunas.');
         }
 
-        if ($request->amount != $pendaftar->payment_amount) {
-            Log::error('Amount mismatch', [
-                'request_amount' => $request->amount,
-                'pendaftar_amount' => $pendaftar->payment_amount
-            ]);
-            return back()->with('error', 'Jumlah pembayaran tidak sesuai.');
-        }
+        // SHOPPING CART: Skip amount validation for flexible cart payments
+        Log::info('Skipping amount validation for shopping cart payment', [
+            'request_amount' => $request->amount,
+            'pendaftar_base_amount' => $pendaftar->payment_amount
+        ]);
 
         Log::info('Starting payment creation...');
 
@@ -585,8 +595,8 @@ class PaymentController extends Controller
                         ]
                     ]
                 ],
-                'success_redirect_url' => route('payment.success'),
-                'failure_redirect_url' => route('payment.failed'),
+                'success_redirect_url' => route('user.payments.success'),
+                'failure_redirect_url' => route('user.payments.failed'),
                 'currency' => 'IDR',
                 'webhook_url' => route('payment.webhook'),
 
@@ -801,7 +811,7 @@ class PaymentController extends Controller
         ->first();
 
         if (!$payment) {
-            return redirect()->route('payment.index')
+            return redirect()->route('user.payments.index')
                 ->with('error', 'Data pembayaran tidak ditemukan.');
         }
 
@@ -833,7 +843,7 @@ class PaymentController extends Controller
         $pendaftar = $payment->pendaftar;
         $jenjangName = $this->getJenjangName($pendaftar->jenjang);
 
-        return view('payment.success', compact('payment', 'pendaftar', 'jenjangName'));
+        return view('user.payment.success', compact('payment', 'pendaftar', 'jenjangName'));
     }
 
     public function failed()
@@ -858,7 +868,7 @@ class PaymentController extends Controller
 
         $jenjangName = $this->getJenjangName($pendaftar->jenjang);
 
-        return view('payment.failed', compact('payment', 'pendaftar', 'jenjangName'));
+        return view('user.payment.failed', compact('payment', 'pendaftar', 'jenjangName'));
     }
 
     public function transactions()
@@ -872,7 +882,7 @@ class PaymentController extends Controller
         ->orderBy('created_at', 'desc')
         ->paginate(10);
 
-        return view('transactions.user.index', compact('payments'));
+        return view('user.transactions.index', compact('payments'));
     }
 
     public function transactionDetail($id)
@@ -887,7 +897,7 @@ class PaymentController extends Controller
 
         $jenjangName = $this->getJenjangName($payment->pendaftar->jenjang);
 
-        return view('transactions.user.show', compact('payment', 'jenjangName'));
+        return view('user.transactions.show', compact('payment', 'jenjangName'));
     }
 
     /**
@@ -1136,7 +1146,7 @@ class PaymentController extends Controller
             'total_revenue' => Payment::where('status', self::STATUS_PAID)->sum('amount')
         ];
 
-        return view('transactions.admin.index', compact('payments', 'stats'));
+        return view('admin.transactions.index', compact('payments', 'stats'));
     }
 
     public function adminTransactionDetail($id)
@@ -1148,7 +1158,7 @@ class PaymentController extends Controller
         $payment = Payment::with(['pendaftar.user'])->findOrFail($id);
         $jenjangName = $this->getJenjangName($payment->pendaftar->jenjang);
 
-        return view('transactions.admin.show', compact('payment', 'jenjangName'));
+        return view('admin.transactions.show', compact('payment', 'jenjangName'));
     }
 
     /**

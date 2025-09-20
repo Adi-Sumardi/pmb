@@ -6,7 +6,7 @@
                 <i class="bi bi-receipt-cutoff me-2"></i>Detail Transaksi
             </h2>
             <div class="d-flex gap-2">
-                <a href="{{ route('transactions.index') }}" class="btn btn-outline-secondary btn-sm">
+                <a href="{{ route('user.transactions.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-arrow-left me-1"></i>Kembali
                 </a>
                 <button onclick="window.print()" class="btn btn-outline-primary btn-sm">
@@ -106,6 +106,105 @@
                             </table>
                         </div>
                     </div>
+
+                    <!-- Cart Items Detail (if available) -->
+                    @if($payment->items)
+                        @php
+                            $items = json_decode($payment->items, true);
+                        @endphp
+                        @if($items && is_array($items) && count($items) > 0)
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-3">
+                                    <i class="bi bi-cart3 me-2"></i>Detail Tagihan
+                                </h6>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-borderless mb-0">
+                                                <thead>
+                                                    <tr class="border-bottom">
+                                                        <th class="text-muted fw-normal">Item</th>
+                                                        <th class="text-muted fw-normal text-end">Jumlah</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @php
+                                                        $subtotal = 0;
+                                                    @endphp
+                                                    @foreach($items as $item)
+                                                        @php
+                                                            $subtotal += $item['amount'] ?? 0;
+                                                        @endphp
+                                                        <tr>
+                                                            <td>
+                                                                <div class="fw-semibold">{{ $item['name'] ?? 'Item' }}</div>
+                                                                @if(isset($item['description']))
+                                                                    <div class="text-muted small">{{ $item['description'] }}</div>
+                                                                @endif
+                                                            </td>
+                                                            <td class="text-end fw-semibold">
+                                                                Rp {{ number_format($item['amount'] ?? 0, 0, ',', '.') }}
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+
+                                                    <!-- Calculation Summary -->
+                                                    <tr class="border-top">
+                                                        <td class="text-muted">Subtotal:</td>
+                                                        <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                                    </tr>
+
+                                                    @if($payment->promo_code)
+                                                        <tr>
+                                                            <td class="text-success">
+                                                                <i class="bi bi-tag me-1"></i>Promo Code: {{ $payment->promo_code }}
+                                                            </td>
+                                                            <td class="text-end text-success">
+                                                                @php
+                                                                    $discount = $subtotal + 2500 - $payment->amount;
+                                                                @endphp
+                                                                @if($discount > 0)
+                                                                    -Rp {{ number_format($discount, 0, ',', '.') }}
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @endif
+
+                                                    @if($payment->discount_id)
+                                                        <tr>
+                                                            <td class="text-primary">
+                                                                <i class="bi bi-percent me-1"></i>Discount Applied: {{ $payment->discount_id }}
+                                                            </td>
+                                                            <td class="text-end text-primary">
+                                                                @php
+                                                                    $discount = $subtotal + 2500 - $payment->amount;
+                                                                @endphp
+                                                                @if($discount > 0)
+                                                                    -Rp {{ number_format($discount, 0, ',', '.') }}
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @endif
+
+                                                    <tr>
+                                                        <td class="text-muted">Biaya Admin:</td>
+                                                        <td class="text-end">Rp 2.500</td>
+                                                    </tr>
+
+                                                    <tr class="border-top">
+                                                        <td class="fw-bold fs-5">Total:</td>
+                                                        <td class="text-end fw-bold text-success fs-5">
+                                                            Rp {{ number_format($payment->amount, 0, ',', '.') }}
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endif
 
                     @if($payment->status === 'PENDING' && $payment->invoice_url)
                         <!-- Payment Action -->

@@ -27,7 +27,7 @@
                                 <nav aria-label="breadcrumb">
                                     <ol class="breadcrumb mb-0">
                                         <li class="breadcrumb-item"><a href="{{ route('user.dashboard') }}" class="text-white text-opacity-75">Dashboard</a></li>
-                                        <li class="breadcrumb-item"><a href="{{ route('user.data') }}" class="text-white text-opacity-75">Kelengkapan Data</a></li>
+                                        <li class="breadcrumb-item"><a href="{{ route('user.data.index') }}" class="text-white text-opacity-75">Kelengkapan Data</a></li>
                                         <li class="breadcrumb-item active text-white">Dokumen</li>
                                     </ol>
                                 </nav>
@@ -276,7 +276,7 @@
         <!-- Action Buttons -->
         <div class="row mt-4">
             <div class="col-12 text-center">
-                <a href="{{ route('user.data') }}" class="btn btn-outline-secondary btn-lg px-4" style="transition: all 0.3s">
+                <a href="{{ route('user.data.index') }}" class="btn btn-outline-secondary btn-lg px-4" style="transition: all 0.3s">
                     <i class="bi bi-arrow-left me-2"></i>Kembali ke Menu Utama
                 </a>
             </div>

@@ -3,10 +3,10 @@
     <x-slot name="header">
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                <i class="bi bi-receipt-cutoff me-2"></i>{{ __('Riwayat Transaksi Pembayaran') }}
+                <i class="bi bi-receipt-cutoff me-2"></i>Riwayat Transaksi Pembayaran
             </h2>
             @if($payments->count() > 0)
-            <a href="{{ route('payment.index') }}" class="btn btn-sm btn-primary">
+            <a href="{{ route('user.payments.index') }}" class="btn btn-sm btn-primary">
                 <i class="bi bi-plus-circle me-1"></i> Pembayaran Baru
             </a>
             @endif
@@ -199,7 +199,7 @@
                                                     </td>
                                                     <td class="text-end pe-4">
                                                         <div class="btn-group" role="group">
-                                                            <a href="{{ route('transactions.show', $payment->id) }}"
+                                                            <a href="{{ route('user.transactions.show', $payment->id) }}"
                                                                class="btn btn-sm btn-outline-primary rounded-pill px-3 me-2">
                                                                 <i class="bi bi-eye me-1"></i> Detail
                                                             </a>
@@ -242,7 +242,7 @@
                                 <p class="text-muted mb-4 col-md-6 mx-auto">
                                     Anda belum melakukan transaksi pembayaran. Mulai lakukan pembayaran untuk melanjutkan proses pendaftaran.
                                 </p>
-                                <a href="{{ route('payment.index') }}" class="btn btn-primary rounded-pill px-4 py-2">
+                                <a href="{{ route('user.payments.index') }}" class="btn btn-primary rounded-pill px-4 py-2">
                                     <i class="bi bi-credit-card me-2"></i>Lakukan Pembayaran
                                 </a>
                             </div>

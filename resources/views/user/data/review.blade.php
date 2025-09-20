@@ -492,7 +492,7 @@
                 <!-- Tombol Aksi Bawah - Tidak akan dicetak/diunduh -->
                 <div class="card mt-4 no-print">
                     <div class="card-body d-flex justify-content-between">
-                        <a href="{{ route('user.data') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('user.data.index') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-arrow-left me-1"></i> Kembali
                         </a>
 

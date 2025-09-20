@@ -1,18 +1,35 @@
 <?php
 
-use App\Http\Controllers\AdminTransactionController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PendaftarController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\StudentDetailController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\DataController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-// Health Check Routes (no authentication required)
+/*
+|--------------------------------------------------------------------------
+| Public Routes (No Authentication Required)
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/', function () {
+    return view('welcome');
+})->name('home');
+
+// Public registration route
+Route::post('/pendaftaran', [PendaftarController::class, 'store'])->name('pendaftaran.store');
+
+// Public webhook route (no auth required, no CSRF, but with enhanced security)
+Route::post('/webhook/xendit', [PaymentController::class, 'webhook'])
+    ->name('payment.webhook')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->middleware(['secure.webhook']);
+
+// Health Check Routes
 Route::prefix('health')->name('health.')->group(function () {
     Route::get('/', [HealthCheckController::class, 'basic'])->name('basic');
     Route::get('/comprehensive', [HealthCheckController::class, 'comprehensive'])->name('comprehensive');
@@ -23,16 +40,11 @@ Route::prefix('health')->name('health.')->group(function () {
     Route::post('/restart', [HealthCheckController::class, 'markRestart'])->name('restart');
 });
 
-// System Status Dashboard (admin only)
-Route::get('/system-status', function () {
-    return view('dashboard.system-status');
-})->middleware(['auth', 'admin'])->name('system.status');
-
-Route::get('/', function () {
-    return view('welcome');
-});
-
-// Main dashboard route - redirect based on role
+/*
+|--------------------------------------------------------------------------
+| Main Dashboard Route - Role-based Redirect
+|--------------------------------------------------------------------------
+*/
 Route::get('/dashboard', function () {
     if (!Auth::check()) {
         return redirect()->route('login');
@@ -51,89 +63,96 @@ Route::get('/dashboard', function () {
     }
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// User Routes
+/*
+|--------------------------------------------------------------------------
+| User Routes (Students/Parents)
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware(['auth', 'user.role'])->prefix('user')->name('user.')->group(function () {
+
+    // Dashboard
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [UserDashboardController::class, 'getDashboardData'])->name('dashboard.data');
 
-    // Data completion routes
-    Route::get('/data', [DataController::class, 'index'])->name('data');
-    Route::get('/data/student', [DataController::class, 'student'])->name('data.student');
-    Route::post('/data/student', [DataController::class, 'storeStudent'])->name('data.student.store');
+    // Data Completion Routes
+    Route::prefix('data')->name('data.')->group(function () {
+        Route::get('/', [DataController::class, 'index'])->name('index');
 
-    Route::get('/data/parent', [DataController::class, 'parent'])->name('data.parent');
-    Route::post('/data/parent', [DataController::class, 'storeParent'])->name('data.parent.store');
+        // Student Data
+        Route::get('/student', [DataController::class, 'student'])->name('student');
+        Route::post('/student', [DataController::class, 'storeStudent'])->name('student.store');
 
-    Route::get('/data/academic', [DataController::class, 'academic'])->name('data.academic');
-    Route::post('/data/academic', [DataController::class, 'storeAcademic'])->name('data.academic.store');
+        // Parent Data
+        Route::get('/parent', [DataController::class, 'parent'])->name('parent');
+        Route::post('/parent', [DataController::class, 'storeParent'])->name('parent.store');
 
-    Route::get('/data/health', [DataController::class, 'health'])->name('data.health');
-    Route::post('/data/health', [DataController::class, 'storeHealth'])->name('data.health.store');
+        // Academic Data
+        Route::get('/academic', [DataController::class, 'academic'])->name('academic');
+        Route::post('/academic', [DataController::class, 'storeAcademic'])->name('academic.store');
 
-    Route::get('/data/documents', [DataController::class, 'documents'])->name('data.documents');
-    Route::post('/data/documents', [DataController::class, 'storeDocuments'])->name('data.documents.store');
-    Route::delete('/data/documents/{id}', [DataController::class, 'destroyDocument'])->name('data.documents.destroy');
+        // Health Data
+        Route::get('/health', [DataController::class, 'health'])->name('health');
+        Route::post('/health', [DataController::class, 'storeHealth'])->name('health.store');
 
-    Route::get('/data/achievements', [DataController::class, 'achievements'])->name('data.achievements');
-    Route::post('/data/achievements', [DataController::class, 'storeAchievements'])->name('data.achievements.store');
-    Route::delete('/data/achievements/{id}', [DataController::class, 'destroyAchievement'])->name('data.achievements.destroy');
+        // Documents
+        Route::get('/documents', [DataController::class, 'documents'])->name('documents');
+        Route::post('/documents', [DataController::class, 'storeDocuments'])->name('documents.store');
+        Route::delete('/documents/{id}', [DataController::class, 'destroyDocument'])->name('documents.destroy');
 
-    Route::get('/data/review', [DataController::class, 'review'])->name('data.review');
-    Route::post('/data/submit', [DataController::class, 'submit'])->name('data.submit');
+        // Achievements
+        Route::get('/achievements', [DataController::class, 'achievements'])->name('achievements');
+        Route::post('/achievements', [DataController::class, 'storeAchievements'])->name('achievements.store');
+        Route::delete('/achievements/{id}', [DataController::class, 'destroyAchievement'])->name('achievements.destroy');
+
+        // Review & Submit
+        Route::get('/review', [DataController::class, 'review'])->name('review');
+        Route::post('/submit', [DataController::class, 'submit'])->name('submit');
+    });
+
+    // User Payment Routes
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::get('/', [PaymentController::class, 'index'])->name('index');
+        Route::post('/create-invoice', [PaymentController::class, 'createInvoice'])->name('create-invoice');
+        Route::get('/success', [PaymentController::class, 'success'])->name('success');
+        Route::get('/failed', [PaymentController::class, 'failed'])->name('failed');
+        Route::post('/cleanup-expired', [PaymentController::class, 'cleanupAllExpiredPayments'])->name('cleanup-expired');
+    });
+
+    // User Transaction Routes
+    Route::prefix('transactions')->name('transactions.')->group(function () {
+        Route::get('/', [PaymentController::class, 'transactions'])->name('index');
+        Route::get('/{id}', [PaymentController::class, 'transactionDetail'])->name('show');
+    });
+
 });
 
-// Profile routes (accessible by both admin and user)
+/*
+|--------------------------------------------------------------------------
+| Shared Routes (Both Admin & User)
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware('auth')->group(function () {
+    // Profile management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
 
-// Secure File Routes
-Route::middleware('auth')->group(function () {
+    // Secure File Routes
     Route::get('/file/download/{path}', [FileController::class, 'download'])->name('file.download');
     Route::get('/file/info/{path}', [FileController::class, 'info'])->name('file.info');
 });
 
-// Pendaftar routes
-Route::post('/pendaftaran', [PendaftarController::class, 'store'])->name('pendaftaran.store');
+/*
+|--------------------------------------------------------------------------
+| Include Auth Routes
+|--------------------------------------------------------------------------
+*/
 
-Route::middleware('auth')->group(function () {
-    Route::get('/pendaftar', [PendaftarController::class, 'index'])->name('pendaftar');
+require __DIR__.'/auth.php';
 
-    // Place specific routes before wildcard routes - IMPORTANT!
-    Route::post('/pendaftar/bulk-verify', [PendaftarController::class, 'bulkVerify'])->name('pendaftar.bulk-verify');
-    Route::delete('/pendaftar/bulk-delete', [PendaftarController::class, 'bulkDelete'])->name('pendaftar.bulk-delete');
-    Route::patch('/pendaftar/bulk-update-status', [PendaftarController::class, 'bulkUpdateStatus'])->name('pendaftar.bulk-update-status');
-
-    // Then the wildcard routes
-    Route::get('/pendaftar/{id}/validasi', [PendaftarController::class, 'validasi'])->name('pendaftar.validasi');
-    Route::patch('/pendaftar/{id}', [PendaftarController::class, 'update'])->name('pendaftar.update');
-    Route::delete('/pendaftar', [PendaftarController::class, 'destroy'])->name('pendaftar.destroy');
-});
-
-// Payment Routes (User & Admin) - REMOVE ALL DEMO ROUTES
-Route::middleware('auth')->group(function () {
-    // Main payment routes
-    Route::get('/payments', [PaymentController::class, 'index'])->name('payment.index');
-    Route::post('/payments/create-invoice', [PaymentController::class, 'createInvoice'])->name('payment.create-invoice');
-
-    // Success & Failed routes - REQUIRED ROUTES
-    Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
-    Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
-
-    // Transaction routes
-    Route::get('/transactions', [PaymentController::class, 'transactions'])->name('transactions.index');
-    Route::get('/transactions/{id}', [PaymentController::class, 'transactionDetail'])->name('transactions.show');
-
-    // Payment utilities
-    Route::post('/payment/cleanup-expired', [PaymentController::class, 'cleanupAllExpiredPayments'])->name('payment.cleanup');
-    Route::get('/payment/debug', [PaymentController::class, 'debugPaymentMode'])->name('payment.debug');
-
-    Route::get('/admin/transactions/export', [AdminTransactionController::class, 'export'])->name('admin.transactions.export');
-    Route::get('/admin/transactions/export/pdf', [AdminTransactionController::class, 'exportPdf'])->name('admin.transactions.export.pdf');
-    Route::get('/admin/transactions/print', [AdminTransactionController::class, 'printView'])->name('admin.transactions.print');
-});
+require __DIR__.'/auth.php';
 
 // Public webhook route (no auth required, no CSRF, but with enhanced security)
 Route::post('/webhook/xendit', [PaymentController::class, 'webhook'])

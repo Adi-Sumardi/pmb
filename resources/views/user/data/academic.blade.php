@@ -292,7 +292,7 @@
 
                             <!-- Form Actions -->
                             <div class="d-flex justify-content-between mt-4">
-                                <a href="{{ route('user.data') }}" class="btn btn-outline-secondary btn-lg px-4" style="transition: all 0.3s">
+                                <a href="{{ route('user.data.index') }}" class="btn btn-outline-secondary btn-lg px-4" style="transition: all 0.3s">
                                     <i class="bi bi-arrow-left me-2"></i>Kembali
                                 </a>
                                 <button type="submit" class="btn btn-primary btn-lg px-5" style="transition: all 0.3s">

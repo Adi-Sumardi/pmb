@@ -482,7 +482,7 @@
                                     </td>
                                     <td class="px-3 text-center">
                                         <div class="btn-group" role="group">
-                                            <a href="{{ route('pendaftar.validasi', $item->id) }}"
+                                            <a href="{{ route('admin.pendaftar.validasi', $item->id) }}"
                                                class="btn btn-outline-info btn-sm"
                                                data-bs-toggle="tooltip"
                                                title="Lihat Detail">
@@ -630,7 +630,7 @@
 
     <!-- Hidden meta tags for JavaScript -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="update-route" content="{{ route('pendaftar.update', ':id') }}">
+    <meta name="update-route" content="{{ route('admin.pendaftar.update', ':id') }}">
 
     <!-- Main JavaScript -->
     <script>
@@ -1347,7 +1347,7 @@
         // Create form for bulk verification
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '{{ route("pendaftar.bulk-verify") }}'; // Buat route ini di Laravel
+        form.action = '{{ route("admin.pendaftar.bulk-verify") }}';
         form.style.display = 'none';
 
         // Add CSRF token
@@ -1385,7 +1385,7 @@
         // Create form for bulk delete
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '{{ route("pendaftar.bulk-delete") }}'; // Buat route ini di Laravel
+        form.action = '{{ route("admin.pendaftar.bulk-delete") }}';
         form.style.display = 'none';
 
         // Add CSRF token
@@ -1430,7 +1430,7 @@
         // Create form for bulk status update
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '{{ route("pendaftar.bulk-update-status") }}';
+        form.action = '{{ route("admin.pendaftar.bulk-update-status") }}';
         form.style.display = 'none';
 
         // Add CSRF token

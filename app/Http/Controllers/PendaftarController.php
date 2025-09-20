@@ -137,13 +137,13 @@ class PendaftarController extends Controller
                 ELSE 3
             END
         ")->orderBy('created_at', 'desc')->get();
-        return view('pendaftar.index', compact('dt_pendaftars'));
+        return view('admin.pendaftar.index', compact('dt_pendaftars'));
     }
 
     public function validasi($id)
     {
         $pendaftar = Pendaftar::findOrFail($id);
-        return view('pendaftar.validasi', compact('pendaftar'));
+        return view('admin.pendaftar.validasi', compact('pendaftar'));
     }
 
     public function update($id)
@@ -221,7 +221,7 @@ class PendaftarController extends Controller
             $tahunAjaran = '2026/2027'; // Bisa dibuat dinamis atau dari config
 
             // Generate PDF
-            $pdf = Pdf::loadView('pendaftar.validasi_pdf', compact('peserta', 'tahunAjaran'))
+            $pdf = Pdf::loadView('admin.pendaftar.validasi_pdf', compact('peserta', 'tahunAjaran'))
                      ->setPaper('a4', 'portrait');
 
             $fileName = 'bukti_pendaftaran_' . $pendaftar->no_pendaftaran . '.pdf';
@@ -273,14 +273,14 @@ class PendaftarController extends Controller
                 return (string) $r;
             }, $responses);
 
-            return redirect()->route('pendaftar')
+            return redirect()->route('admin.pendaftar.index')
                 ->with('success', 'Pendaftaran berhasil diverifikasi, akun user telah dibuat dengan email: ' . $email . ', dan bukti PDF (termasuk akun) telah dikirim. ' . implode(', ', $respStrings));
 
         } catch (\Exception $e) {
             Log::error('Error saat memverifikasi pendaftaran: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
 
-            return redirect()->route('pendaftar')
+            return redirect()->route('admin.pendaftar.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }

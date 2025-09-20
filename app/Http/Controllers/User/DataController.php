@@ -39,7 +39,7 @@ class DataController extends Controller
         // Check payment status
         $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'paid')->first();
         if (!$payment) {
-            return redirect()->route('payment.index')->with('error', 'Silakan lakukan pembayaran terlebih dahulu.');
+            return redirect()->route('user.payments.index')->with('error', 'Silakan lakukan pembayaran terlebih dahulu.');
         }
 
         // Get completion status for each section
@@ -99,7 +99,7 @@ class DataController extends Controller
             $pendaftar->save();
         }
 
-        return redirect()->route('user.data')->with('success', 'Data siswa berhasil disimpan. Silahkan lengkapi data orang tua.');
+        return redirect()->route('user.data.index')->with('success', 'Data siswa berhasil disimpan. Silahkan lengkapi data orang tua.');
     }
 
     public function parent()
@@ -137,7 +137,7 @@ class DataController extends Controller
             $request->all()
         );
 
-        return redirect()->route('user.data')->with('success', 'Data orang tua berhasil disimpan.');
+        return redirect()->route('user.data.index')->with('success', 'Data orang tua berhasil disimpan.');
     }
 
     public function academic()
@@ -182,7 +182,7 @@ class DataController extends Controller
             $request->all()
         );
 
-        return redirect()->route('user.data')->with('success', 'Data riwayat akademik berhasil disimpan.');
+        return redirect()->route('user.data.index')->with('success', 'Data riwayat akademik berhasil disimpan.');
     }
 
     public function health()
@@ -211,7 +211,7 @@ class DataController extends Controller
             $request->all()
         );
 
-        return redirect()->route('user.data')->with('success', 'Data kesehatan berhasil disimpan.');
+        return redirect()->route('user.data.index')->with('success', 'Data kesehatan berhasil disimpan.');
     }
 
     public function documents()
@@ -261,16 +261,16 @@ class DataController extends Controller
 
             return redirect()->route('user.data.documents')
                 ->with('success', 'Dokumen berhasil diupload dengan aman.');
-                
+
         } catch (\Exception $e) {
             // Cleanup uploaded file if database insert fails
             $this->uploadService->deleteFile($uploadResult['path']);
-            
+
             Log::error('Document save failed', [
                 'pendaftar_id' => $pendaftar->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return redirect()->back()
                 ->with('error', 'Terjadi kesalahan saat menyimpan dokumen.')
                 ->withInput();

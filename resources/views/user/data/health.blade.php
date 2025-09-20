@@ -8,7 +8,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('user.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('user.data') }}">Data Pendaftaran</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('user.data.index') }}">Data Pendaftaran</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Data Kesehatan</li>
                 </ol>
             </nav>

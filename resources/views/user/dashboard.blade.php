@@ -81,7 +81,7 @@
                                             <i class="bi bi-person-gear me-2"></i>Edit Profile
                                         </a>
                                         @if($pendaftar)
-                                            <a href="{{ route('payment.index') }}" class="btn btn-outline-light btn-lg px-4">
+                                            <a href="{{ route('user.payments.index') }}" class="btn btn-outline-light btn-lg px-4">
                                                 <i class="bi bi-credit-card me-2"></i>Pembayaran
                                             </a>
                                         @endif
@@ -262,7 +262,7 @@
                 <div class="card border-0 shadow-sm h-100 stat-card bg-gradient-success text-white" data-aos="fade-up" data-aos-delay="400">
                     <div class="card-body p-4 d-flex align-items-center justify-content-center">
                         @if($isPaid && $pendaftar)
-                            <a href="{{ route('user.data') }}" class="btn btn-light btn-lg w-100 d-flex align-items-center justify-content-center text-decoration-none">
+                            <a href="{{ route('user.data.index') }}" class="btn btn-light btn-lg w-100 d-flex align-items-center justify-content-center text-decoration-none">
                                 <i class="bi bi-plus-circle me-2 fs-4"></i>
                                 <div>
                                     <div class="fw-bold">Lengkapi Data</div>
@@ -270,7 +270,7 @@
                                 </div>
                             </a>
                         @elseif(!$pendaftar)
-                            <a href="{{ route('user.data') }}" class="btn btn-light btn-lg w-100 d-flex align-items-center justify-content-center text-decoration-none">
+                            <a href="{{ route('user.data.index') }}" class="btn btn-light btn-lg w-100 d-flex align-items-center justify-content-center text-decoration-none">
                                 <i class="bi bi-person-plus me-2 fs-4"></i>
                                 <div>
                                     <div class="fw-bold">Isi Data</div>
@@ -507,7 +507,7 @@
 
                             <!-- Action Button -->
                             <div class="text-center mt-4">
-                                <a href="{{ route('user.data') }}" class="btn btn-primary btn-lg px-5">
+                                <a href="{{ route('user.data.index') }}" class="btn btn-primary btn-lg px-5">
                                     <i class="bi bi-pencil-square me-2"></i>
                                     @if($dataCompletion >= 100)
                                         Review Data Lengkap
@@ -585,7 +585,7 @@
 
                             <!-- Payment Status -->
                             @if($pendaftar)
-                                <a href="{{ route('payment.index') }}" class="btn btn-outline-{{ $isPaid ? 'success' : 'warning' }} btn-lg d-flex align-items-center justify-content-start">
+                                <a href="{{ route('user.payments.index') }}" class="btn btn-outline-{{ $isPaid ? 'success' : 'warning' }} btn-lg d-flex align-items-center justify-content-start">
                                     <i class="bi bi-credit-card me-3 fs-4"></i>
                                     <div class="text-start">
                                         <div class="fw-semibold">{{ $isPaid ? 'Riwayat' : 'Status' }} Pembayaran</div>
@@ -600,7 +600,7 @@
                             <!-- Data Completion -->
                             <div id="dataCompletionButton">
                                 @if($isPaid && $pendaftar)
-                                    <a href="{{ route('user.data') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start">
+                                    <a href="{{ route('user.data.index') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start">
                                         <i class="bi bi-clipboard-data me-3 fs-4"></i>
                                         <div class="text-start">
                                             <div class="fw-semibold">Kelengkapan Data</div>
@@ -609,7 +609,7 @@
                                         <span class="badge bg-info ms-auto">{{ $dataCompletion }}%</span>
                                     </a>
                                 @elseif(!$pendaftar)
-                                    <a href="{{ route('user.data') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start">
+                                    <a href="{{ route('user.data.index') }}" class="btn btn-outline-info btn-lg d-flex align-items-center justify-content-start">
                                         <i class="bi bi-clipboard-data me-3 fs-4"></i>
                                         <div class="text-start">
                                             <div class="fw-semibold">Isi Data Pendaftar</div>
@@ -730,7 +730,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <a href="{{ route('payment.index') }}" class="btn btn-primary">
+                    <a href="{{ route('user.payments.index') }}" class="btn btn-primary">
                         <i class="bi bi-credit-card me-1"></i>Bayar Sekarang
                     </a>
                 </div>
