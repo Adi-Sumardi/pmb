@@ -30,6 +30,10 @@
                                     class="px-4 py-2 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-all duration-200">
                             <i class="bi bi-graph-up-arrow me-2"></i>Progres
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.data-siswa.index')" :active="request()->routeIs('admin.data-siswa.*')"
+                                    class="px-4 py-2 rounded-lg hover:bg-teal-50 hover:text-teal-700 transition-all duration-200">
+                            <i class="bi bi-people me-2"></i>Data Siswa
+                        </x-nav-link>
                         <x-nav-link :href="route('admin.transactions.index')" :active="request()->routeIs('admin.transactions.*')"
                                     class="px-4 py-2 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-all duration-200">
                             <i class="bi bi-file-earmark-text me-2"></i>Transaksi
@@ -135,6 +139,10 @@
                 <x-responsive-nav-link :href="route('admin.progres-pendaftaran.index')" :active="request()->routeIs('admin.progres-pendaftaran.*')"
                                        class="px-4 py-3 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 transition-all duration-200">
                     <i class="bi bi-graph-up-arrow me-3"></i>Progres
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.data-siswa.index')" :active="request()->routeIs('admin.data-siswa.*')"
+                                       class="px-4 py-3 rounded-lg hover:bg-teal-50 hover:text-teal-700 transition-all duration-200">
+                    <i class="bi bi-people me-3"></i>Data Siswa
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.transactions.index')" :active="request()->routeIs('admin.transactions.*')"
                                        class="px-4 py-3 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-all duration-200">

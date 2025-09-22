@@ -59,12 +59,12 @@ class ProgresPendaftaranController extends Controller
 
         // Overall statistics (filtered by unit and academic year if selected)
         $statsQuery = Pendaftar::query();
-        
+
         // Apply academic year filter to stats
         if ($academicYear && $academicYear !== '') {
             $statsQuery->where('academic_year', $academicYear);
         }
-        
+
         if ($unit !== 'all') {
             $statsQuery->where('unit', $unit);
         }
@@ -83,11 +83,11 @@ class ProgresPendaftaranController extends Controller
         $unitStatsQuery = Pendaftar::select('unit as school_unit', DB::raw('COUNT(*) as count'))
             ->groupBy('unit')
             ->orderBy('count', 'desc');
-            
+
         if ($academicYear && $academicYear !== '') {
             $unitStatsQuery->where('academic_year', $academicYear);
         }
-        
+
         $unitStats = $unitStatsQuery->get();
 
         // Handle AJAX requests

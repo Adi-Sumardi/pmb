@@ -1,5 +1,5 @@
 @forelse($studentsData as $student)
-<tr class="align-middle student-row" 
+<tr class="align-middle student-row"
     data-academic-year="{{ $student->academic_year ?? '2026/2027' }}"
     data-nama="{{ strtolower($student->nama_murid) }}"
     data-no-pendaftaran="{{ strtolower($student->no_pendaftaran) }}"

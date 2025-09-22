@@ -427,7 +427,7 @@
 
         function performAcademicYearFilter(academicYear) {
             const currentUrl = new URL(window.location.href);
-            
+
             if (academicYear) {
                 currentUrl.searchParams.set('academic_year', academicYear);
             } else {

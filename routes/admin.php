@@ -73,6 +73,18 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     /*
     |----------------------------------------------------------------------
+    | Data Siswa Management (Accepted Students)
+    |----------------------------------------------------------------------
+    */
+    Route::prefix('data-siswa')->name('data-siswa.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\DataSiswaController::class, 'index'])->name('index');
+        Route::patch('/{pendaftar}/update-status', [\App\Http\Controllers\Admin\DataSiswaController::class, 'updateStatus'])->name('update-status');
+        Route::get('/{pendaftar}/detail', [\App\Http\Controllers\Admin\DataSiswaController::class, 'show'])->name('detail');
+        Route::patch('/bulk-update-status', [\App\Http\Controllers\Admin\DataSiswaController::class, 'bulkUpdateStatus'])->name('bulk-update-status');
+    });
+
+    /*
+    |----------------------------------------------------------------------
     | Admin Payment & Transaction Management
     |----------------------------------------------------------------------
     */
