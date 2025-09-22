@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Pendaftar;
 use App\Models\Payment;
+use App\Models\StudentBill;
+use App\Models\BillPayment;
 use App\Models\StudentDetail;
 use App\Models\ParentDetail;
 use App\Models\AcademicHistory;
@@ -36,10 +38,26 @@ class DataController extends Controller
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
-        // Check payment status
-        $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'paid')->first();
-        if (!$payment) {
-            return redirect()->route('user.payments.index')->with('error', 'Silakan lakukan pembayaran terlebih dahulu.');
+        if (!$pendaftar) {
+            return redirect()->route('user.dashboard')->with('error', 'Data pendaftar tidak ditemukan.');
+        }
+
+        // Check payment status using StudentBill system
+        $formulirBill = StudentBill::where('pendaftar_id', $pendaftar->id)
+            ->where('bill_type', 'registration_fee')
+            ->first();
+
+        $isPaid = false;
+        if ($formulirBill && $formulirBill->payment_status === 'paid') {
+            $isPaid = true;
+        } else {
+            // Fallback check for old payment system
+            $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'paid')->first();
+            $isPaid = $payment ? true : false;
+        }
+
+        if (!$isPaid) {
+            return redirect()->route('user.payments.index')->with('error', 'Silakan lakukan pembayaran formulir terlebih dahulu.');
         }
 
         // Get completion status for each section

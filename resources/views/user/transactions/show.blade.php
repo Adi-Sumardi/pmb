@@ -107,6 +107,122 @@
                         </div>
                     </div>
 
+                    <!-- Transaction Types Breakdown -->
+                    @if(isset($payment->transaction_types) && count($payment->transaction_types) > 0)
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">
+                                <i class="bi bi-tags me-2"></i>Jenis Transaksi
+                            </h6>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach($payment->transaction_types as $type)
+                                            <span class="badge bg-{{ $type['color'] }} bg-opacity-10 text-{{ $type['color'] }} px-3 py-2 rounded-pill fw-semibold">
+                                                <i class="bi bi-{{ $type['icon'] }} me-1"></i>{{ $type['label'] }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Transaction Items Detail -->
+                    @if(isset($payment->metadata['cart_items']) && count($payment->metadata['cart_items']) > 0)
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">
+                                <i class="bi bi-list-ul me-2"></i>Detail Pembayaran per Item
+                            </h6>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-borderless mb-0">
+                                            <thead>
+                                                <tr class="border-bottom">
+                                                    <th class="text-muted fw-normal">Item</th>
+                                                    <th class="text-muted fw-normal">Jenis</th>
+                                                    <th class="text-muted fw-normal text-end">Jumlah</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @php
+                                                    $subtotal = 0;
+                                                @endphp
+                                                @foreach($payment->metadata['cart_items'] as $item)
+                                                    @php
+                                                        $subtotal += $item['amount'] ?? 0;
+                                                        $bill = \App\Models\StudentBill::find($item['bill_id'] ?? 0);
+                                                        $billTypeInfo = null;
+                                                        if ($bill) {
+                                                            // Simple mapping without reflection
+                                                            $typeMap = [
+                                                                'registration_fee' => ['label' => 'Formulir Pendaftaran', 'color' => 'primary', 'icon' => 'file-earmark-text'],
+                                                                'uang_pangkal' => ['label' => 'Uang Pangkal', 'color' => 'success', 'icon' => 'piggy-bank'],
+                                                                'spp' => ['label' => $bill->month ? 'SPP ' . date('F', mktime(0, 0, 0, $bill->month, 1)) : 'SPP', 'color' => 'info', 'icon' => 'calendar-month'],
+                                                                'uniform' => ['label' => 'Seragam', 'color' => 'warning', 'icon' => 'person-square'],
+                                                                'books' => ['label' => 'Buku', 'color' => 'secondary', 'icon' => 'book'],
+                                                                'supplies' => ['label' => 'Alat Tulis', 'color' => 'dark', 'icon' => 'pencil'],
+                                                                'activity' => ['label' => 'Kegiatan', 'color' => 'danger', 'icon' => 'activity'],
+                                                                'other' => ['label' => 'Lainnya', 'color' => 'secondary', 'icon' => 'three-dots']
+                                                            ];
+                                                            $billTypeInfo = $typeMap[$bill->bill_type] ?? $typeMap['other'];
+                                                        }
+                                                    @endphp
+                                                    <tr>
+                                                        <td>
+                                                            <div class="fw-semibold">{{ $item['name'] ?? 'Item' }}</div>
+                                                            @if($bill && $bill->description)
+                                                                <div class="text-muted small">{{ $bill->description }}</div>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if($billTypeInfo)
+                                                                <span class="badge bg-{{ $billTypeInfo['color'] }} bg-opacity-10 text-{{ $billTypeInfo['color'] }} px-2 py-1 rounded-pill small">
+                                                                    <i class="bi bi-{{ $billTypeInfo['icon'] }} me-1"></i>{{ $billTypeInfo['label'] }}
+                                                                </span>
+                                                            @else
+                                                                <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1 rounded-pill small">
+                                                                    <i class="bi bi-credit-card me-1"></i>Pembayaran
+                                                                </span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-end fw-semibold">
+                                                            Rp {{ number_format($item['amount'] ?? 0, 0, ',', '.') }}
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                                <tr class="border-top">
+                                                    <td colspan="2" class="text-end text-muted">Subtotal:</td>
+                                                    <td class="text-end fw-bold">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                                </tr>
+                                                @if(isset($payment->metadata['applied_discount']))
+                                                    <tr>
+                                                        <td colspan="2" class="text-end text-muted">
+                                                            Diskon ({{ $payment->metadata['applied_discount']['code'] ?? '' }}):
+                                                        </td>
+                                                        <td class="text-end text-success">
+                                                            -Rp {{ number_format($payment->metadata['applied_discount']['discount_amount'] ?? 0, 0, ',', '.') }}
+                                                        </td>
+                                                    </tr>
+                                                @endif
+                                                @if(isset($payment->metadata['transaction_fee']))
+                                                    <tr>
+                                                        <td colspan="2" class="text-end text-muted">Biaya Transaksi:</td>
+                                                        <td class="text-end">Rp {{ number_format($payment->metadata['transaction_fee'] ?? 0, 0, ',', '.') }}</td>
+                                                    </tr>
+                                                @endif
+                                                <tr class="border-top">
+                                                    <td colspan="2" class="text-end fw-bold">Total:</td>
+                                                    <td class="text-end fw-bold text-success fs-5">Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Cart Items Detail (if available) -->
                     @if($payment->items)
                         @php

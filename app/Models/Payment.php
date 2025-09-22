@@ -30,10 +30,12 @@ class Payment extends Model
         'expired_at',
         'failed_at',
         'xendit_response',
+        'metadata',
     ];
 
     protected $casts = [
         'xendit_response' => 'array',
+        'metadata' => 'array',
         'expires_at' => 'datetime',
         'paid_at' => 'datetime',
         'expired_at' => 'datetime',

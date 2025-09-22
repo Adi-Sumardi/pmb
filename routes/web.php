@@ -114,6 +114,7 @@ Route::middleware(['auth', 'user.role'])->prefix('user')->name('user.')->group(f
     Route::prefix('payments')->name('payments.')->group(function () {
         Route::get('/', [PaymentController::class, 'index'])->name('index');
         Route::post('/create-invoice', [PaymentController::class, 'createInvoice'])->name('create-invoice');
+        Route::post('/validate-discount', [PaymentController::class, 'validateDiscount'])->name('validate-discount');
         Route::get('/success', [PaymentController::class, 'success'])->name('success');
         Route::get('/failed', [PaymentController::class, 'failed'])->name('failed');
         Route::post('/cleanup-expired', [PaymentController::class, 'cleanupAllExpiredPayments'])->name('cleanup-expired');

@@ -27,8 +27,8 @@
                             </div>
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="card-title text-muted mb-1">Total Tagihan</h6>
-                                <h3 class="mb-0 text-primary fw-bold">Rp {{ number_format(1250000, 0, ',', '.') }}</h3>
-                                <small class="text-muted">Semua tagihan aktif</small>
+                                <h3 class="mb-0 text-primary fw-bold">Rp {{ number_format($totalUnpaidAmount, 0, ',', '.') }}</h3>
+                                <small class="text-muted">Belum dibayar</small>
                             </div>
                         </div>
                     </div>
@@ -45,7 +45,7 @@
                             </div>
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="card-title text-muted mb-1">Jumlah Tagihan</h6>
-                                <h3 class="mb-0 text-warning fw-bold">4</h3>
+                                <h3 class="mb-0 text-warning fw-bold">{{ $totalBillsCount }}</h3>
                                 <small class="text-muted">Item belum dibayar</small>
                             </div>
                         </div>
@@ -72,6 +72,32 @@
             </div>
         </div>
 
+        <!-- Student Status Information -->
+        @if(!$isActiveStudent)
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert alert-info border-0 shadow-sm" data-aos="fade-up" data-aos-delay="350">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-info-circle-fill text-info fs-4"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="alert-heading mb-1">Informasi Status Siswa</h6>
+                                <p class="mb-2">
+                                    Status siswa Anda saat ini: <strong>{{ ucfirst($studentStatus) }}</strong>
+                                </p>
+                                <p class="mb-0 small">
+                                    <i class="bi bi-lightbulb me-1"></i>
+                                    Tagihan SPP bulanan, seragam, dan buku akan muncul setelah status siswa diaktivasi oleh admin.
+                                    Saat ini hanya tagihan formulir dan uang pangkal yang tersedia.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="row">
             <!-- Bills List -->
             <div class="col-lg-8">
@@ -81,135 +107,91 @@
                             <h5 class="fw-bold text-dark mb-0">
                                 <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
                                 Daftar Tagihan
+                                @if(!$isActiveStudent)
+                                    <small class="text-muted fw-normal">
+                                        (Tagihan {{ $studentStatus === 'inactive' ? 'pendaftaran' : 'terbatas' }})
+                                    </small>
+                                @endif
                             </h5>
                             <div class="text-muted small">
-                                <span id="selected-info">0 dari 4 item dipilih</span>
+                                <span id="selected-info">0 dari {{ $totalBillsCount }} item dipilih</span>
                             </div>
                         </div>
                     </div>
                     <div class="card-body pt-0">
-                        <!-- Bill Item 1 -->
-                        <div class="bill-item border rounded-3 p-3 mb-3" data-bill-id="1" data-amount="425000">
-                            <div class="row align-items-center">
-                                <div class="col-1">
-                                    <div class="form-check">
-                                        <input class="form-check-input bill-checkbox" type="checkbox" value="1" id="bill1">
-                                    </div>
+                        @if($activeBills->isEmpty())
+                            <div class="text-center py-5">
+                                <div class="mb-3">
+                                    <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
                                 </div>
-                                <div class="col-8">
-                                    <h6 class="fw-semibold mb-1">Biaya Pendaftaran {{ strtoupper($pendaftar->jenjang) }}</h6>
-                                    <p class="text-muted small mb-1">Biaya formulir pendaftaran peserta didik baru</p>
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge bg-warning text-dark me-2">
-                                            <i class="bi bi-clock me-1"></i>Belum Dibayar
-                                        </span>
-                                        <small class="text-muted">Jatuh tempo: {{ now()->addDays(7)->format('d M Y') }}</small>
-                                    </div>
-                                </div>
-                                <div class="col-3 text-end">
-                                    <h5 class="fw-bold text-primary mb-1">Rp {{ number_format(425000, 0, ',', '.') }}</h5>
-                                    <button class="btn btn-outline-primary btn-sm view-detail" data-bill-id="1">
-                                        <i class="bi bi-eye me-1"></i>Detail
-                                    </button>
-                                </div>
+                                <h5 class="text-muted">Tidak Ada Tagihan</h5>
+                                @if(!$isActiveStudent)
+                                    <p class="text-muted">
+                                        Belum ada tagihan pendaftaran yang perlu dibayar.
+                                        Tagihan SPP dan biaya operasional lainnya akan muncul setelah status siswa diaktivasi.
+                                    </p>
+                                @else
+                                    <p class="text-muted">Semua tagihan sudah dibayar atau belum ada tagihan yang dibuat.</p>
+                                @endif
                             </div>
-                        </div>
-
-                        <!-- Bill Item 2 -->
-                        <div class="bill-item border rounded-3 p-3 mb-3" data-bill-id="2" data-amount="350000">
-                            <div class="row align-items-center">
-                                <div class="col-1">
-                                    <div class="form-check">
-                                        <input class="form-check-input bill-checkbox" type="checkbox" value="2" id="bill2">
+                        @else
+                            @foreach($activeBills as $index => $bill)
+                                <div class="bill-item border rounded-3 p-3 mb-3" data-bill-id="{{ $bill->id }}" data-amount="{{ $bill->remaining_amount }}">
+                                    <div class="row align-items-center">
+                                        <div class="col-1">
+                                            <div class="form-check">
+                                                <input class="form-check-input bill-checkbox" type="checkbox" value="{{ $bill->id }}" id="bill{{ $bill->id }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-8">
+                                            <h6 class="fw-semibold mb-1">{{ $bill->description }}</h6>
+                                            <p class="text-muted small mb-1">
+                                                @if($bill->bill_type === 'registration_fee')
+                                                    Biaya formulir pendaftaran peserta didik baru
+                                                @elseif($bill->bill_type === 'uang_pangkal')
+                                                    Uang pangkal untuk konfirmasi penerimaan
+                                                @elseif($bill->bill_type === 'spp')
+                                                    Sumbangan Pembinaan Pendidikan
+                                                @else
+                                                    {{ ucwords(str_replace('_', ' ', $bill->bill_type)) }}
+                                                @endif
+                                            </p>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-warning text-dark me-2">
+                                                    <i class="bi bi-clock me-1"></i>Belum Dibayar
+                                                </span>
+                                                @if($bill->due_date)
+                                                    <small class="text-muted">Jatuh tempo: {{ \Carbon\Carbon::parse($bill->due_date)->format('d M Y') }}</small>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="col-3 text-end">
+                                            <h5 class="fw-bold text-primary mb-1">Rp {{ number_format($bill->remaining_amount, 0, ',', '.') }}</h5>
+                                            <button class="btn btn-outline-primary btn-sm view-detail" data-bill-id="{{ $bill->id }}">
+                                                <i class="bi bi-eye me-1"></i>Detail
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-8">
-                                    <h6 class="fw-semibold mb-1">SPP Bulan Pertama</h6>
-                                    <p class="text-muted small mb-1">Sumbangan Pembinaan Pendidikan bulan pertama</p>
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge bg-warning text-dark me-2">
-                                            <i class="bi bi-clock me-1"></i>Belum Dibayar
-                                        </span>
-                                        <small class="text-muted">Jatuh tempo: {{ now()->addDays(14)->format('d M Y') }}</small>
-                                    </div>
-                                </div>
-                                <div class="col-3 text-end">
-                                    <h5 class="fw-bold text-primary mb-1">Rp {{ number_format(350000, 0, ',', '.') }}</h5>
-                                    <button class="btn btn-outline-primary btn-sm view-detail" data-bill-id="2">
-                                        <i class="bi bi-eye me-1"></i>Detail
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bill Item 3 -->
-                        <div class="bill-item border rounded-3 p-3 mb-3" data-bill-id="3" data-amount="225000">
-                            <div class="row align-items-center">
-                                <div class="col-1">
-                                    <div class="form-check">
-                                        <input class="form-check-input bill-checkbox" type="checkbox" value="3" id="bill3">
-                                    </div>
-                                </div>
-                                <div class="col-8">
-                                    <h6 class="fw-semibold mb-1">Uang Pangkal</h6>
-                                    <p class="text-muted small mb-1">Biaya pengembangan sarana dan prasarana</p>
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge bg-warning text-dark me-2">
-                                            <i class="bi bi-clock me-1"></i>Belum Dibayar
-                                        </span>
-                                        <small class="text-muted">Jatuh tempo: {{ now()->addDays(21)->format('d M Y') }}</small>
-                                    </div>
-                                </div>
-                                <div class="col-3 text-end">
-                                    <h5 class="fw-bold text-primary mb-1">Rp {{ number_format(225000, 0, ',', '.') }}</h5>
-                                    <button class="btn btn-outline-primary btn-sm view-detail" data-bill-id="3">
-                                        <i class="bi bi-eye me-1"></i>Detail
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bill Item 4 -->
-                        <div class="bill-item border rounded-3 p-3 mb-3" data-bill-id="4" data-amount="250000">
-                            <div class="row align-items-center">
-                                <div class="col-1">
-                                    <div class="form-check">
-                                        <input class="form-check-input bill-checkbox" type="checkbox" value="4" id="bill4">
-                                    </div>
-                                </div>
-                                <div class="col-8">
-                                    <h6 class="fw-semibold mb-1">Biaya Seragam & Buku</h6>
-                                    <p class="text-muted small mb-1">Paket seragam sekolah dan buku pembelajaran</p>
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge bg-warning text-dark me-2">
-                                            <i class="bi bi-clock me-1"></i>Belum Dibayar
-                                        </span>
-                                        <small class="text-muted">Jatuh tempo: {{ now()->addDays(30)->format('d M Y') }}</small>
-                                    </div>
-                                </div>
-                                <div class="col-3 text-end">
-                                    <h5 class="fw-bold text-primary mb-1">Rp {{ number_format(250000, 0, ',', '.') }}</h5>
-                                    <button class="btn btn-outline-primary btn-sm view-detail" data-bill-id="4">
-                                        <i class="bi bi-eye me-1"></i>Detail
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                            @endforeach
+                        @endif
 
                         <!-- Select All -->
-                        <div class="border-top pt-3 mt-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="selectAll">
-                                    <label class="form-check-label fw-semibold" for="selectAll">
-                                        Pilih Semua Tagihan
-                                    </label>
-                                </div>
-                                <div class="text-muted small">
-                                    Total jika semua dipilih: <span class="fw-bold text-primary">Rp {{ number_format(1250000, 0, ',', '.') }}</span>
+                        @if(!$activeBills->isEmpty())
+                            <div class="border-top pt-3 mt-4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                        <label class="form-check-label fw-semibold" for="selectAll">
+                                            Pilih Semua Tagihan
+                                        </label>
+                                    </div>
+                                    <div class="text-muted small">
+                                        Total jika semua dipilih: <span class="fw-bold text-primary">Rp {{ number_format($totalUnpaidAmount, 0, ',', '.') }}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -232,9 +214,9 @@
                             <div class="small">
                                 <div class="mb-1"><strong>Nama:</strong> {{ $pendaftar->nama_murid }}</div>
                                 <div class="mb-1"><strong>No. Daftar:</strong>
-                                    <span class="badge bg-primary">{{ $pendaftar->no_pendaftaran }}</span>
+                                    <span class="badge bg-primary">{{ $pendaftar->no_pendaftaran ?? 'Belum Ada' }}</span>
                                 </div>
-                                <div><strong>Jenjang:</strong> {{ strtoupper($pendaftar->jenjang) }}</div>
+                                <div><strong>Unit:</strong> {{ $pendaftar->unit ?? 'Belum Ditentukan' }}</div>
                             </div>
                         </div>
 
@@ -301,9 +283,9 @@
                                 <span class="text-success">Diskon:</span>
                                 <span class="fw-semibold text-success" id="discountAmount">- Rp 0</span>
                             </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Biaya Admin:</span>
-                                <span class="fw-semibold">Rp 2.500</span>
+                            <div class="d-flex justify-content-between mb-2" id="feeRow" style="display: none;">
+                                <span>Biaya Transaksi:</span>
+                                <span class="fw-semibold" id="transactionFee">Rp 0</span>
                             </div>
                             <hr>
                             <div class="d-flex justify-content-between mb-3">
@@ -405,221 +387,201 @@
         let appliedDiscount = null;
         let appliedPromoCode = null;
 
-        // Promo codes data (active only)
+        // Dynamic discount data from backend
         const promoCodes = {
-            'STUDENT2024': {
-                code: 'STUDENT2024',
-                name: 'Diskon Siswa Baru 2024',
-                description: 'Diskon khusus untuk pendaftaran siswa baru',
-                type: 'percentage',
-                value: 15,
-                minAmount: 500000,
-                maxDiscount: 150000,
+            @foreach($availableDiscounts as $discount)
+            '{{ $discount->code }}': {
+                id: {{ $discount->id }},
+                code: {!! json_encode($discount->code) !!},
+                name: {!! json_encode($discount->name) !!},
+                description: {!! json_encode($discount->description) !!},
+                type: {!! json_encode($discount->type) !!},
+                value: {{ $discount->value }},
+                minAmount: {{ $discount->minimum_amount ?? 0 }},
+                maxDiscount: {{ $discount->type === 'fixed' ? $discount->value : ($discount->value * 1000000 / 100) }}, // Max discount estimation
                 isActive: true,
-                validUntil: '2024-12-31',
-                usageLimit: 100,
-                usedCount: 25
-            },
-            'EARLYBIRD': {
-                code: 'EARLYBIRD',
-                name: 'Early Bird Special',
-                description: 'Diskon untuk pendaftar awal',
-                type: 'fixed',
-                value: 100000,
-                minAmount: 800000,
-                maxDiscount: 100000,
-                isActive: true,
-                validUntil: '2024-10-31',
-                usageLimit: 50,
-                usedCount: 12
-            },
-            'SIBLING20': {
-                code: 'SIBLING20',
-                name: 'Diskon Saudara Kandung',
-                description: 'Diskon untuk anak kedua dan seterusnya',
-                type: 'percentage',
-                value: 20,
-                minAmount: 400000,
-                maxDiscount: 200000,
-                isActive: true,
-                validUntil: '2024-12-31',
-                usageLimit: 200,
-                usedCount: 45
-            },
-            'EXPIRED': {
-                code: 'EXPIRED',
-                name: 'Kode Expired',
-                description: 'Kode promo yang sudah tidak aktif',
-                type: 'percentage',
-                value: 25,
-                minAmount: 300000,
-                maxDiscount: 250000,
-                isActive: false,
-                validUntil: '2024-08-31',
-                usageLimit: 100,
-                usedCount: 100
-            }
+                validUntil: {!! json_encode($discount->end_date ? $discount->end_date->format('Y-m-d') : '') !!},
+                target: {!! json_encode($discount->target) !!},
+                schoolLevel: {!! json_encode($discount->school_level) !!}
+            }@if(!$loop->last),@endif
+            @endforeach
         };
 
-        // Available discounts (active only)
-        const availableDiscounts = [
-            {
-                id: 'newcomer',
-                name: 'Diskon Siswa Baru',
-                description: 'Berlaku untuk semua biaya pendaftaran',
-                type: 'percentage',
-                value: 10,
-                minAmount: 400000,
-                maxDiscount: 100000,
-                isActive: true,
-                applicableFor: ['registration'],
-                icon: 'bi-person-plus'
-            },
-            {
-                id: 'fullpackage',
-                name: 'Paket Lengkap',
-                description: 'Diskon jika memilih semua tagihan',
-                type: 'fixed',
-                value: 75000,
-                minAmount: 1200000,
-                maxDiscount: 75000,
-                isActive: true,
-                applicableFor: ['all'],
-                icon: 'bi-box-seam'
-            },
-            {
-                id: 'loyalty',
-                name: 'Member Setia',
-                description: 'Diskon untuk keluarga yang sudah terdaftar',
-                type: 'percentage',
-                value: 12,
-                minAmount: 600000,
-                maxDiscount: 120000,
-                isActive: true,
-                applicableFor: ['spp', 'uniform'],
-                icon: 'bi-heart'
-            },
-            {
-                id: 'inactive',
-                name: 'Diskon Tidak Aktif',
-                description: 'Diskon yang sudah tidak berlaku',
-                type: 'percentage',
-                value: 30,
-                minAmount: 200000,
-                maxDiscount: 300000,
-                isActive: false,
-                applicableFor: ['all'],
-                icon: 'bi-x-circle'
-            }
-        ];
+        // Dynamic payment fees from backend
+        const paymentFees = @json($paymentFees);
 
-        // Bill data
+        // Convert promoCodes object to availableDiscounts array for compatibility
+        const availableDiscounts = Object.values(promoCodes).map(discount => ({
+            ...discount,
+            isActive: true,
+            icon: 'bi-tag'
+        }));
+
+        // Bill data from controller
         const bills = {
-            1: {
-                id: 1,
-                name: 'Biaya Pendaftaran {{ strtoupper($pendaftar->jenjang ?? "SD") }}',
-                description: 'Biaya formulir pendaftaran peserta didik baru',
-                amount: 425000,
-                dueDate: '{{ now()->addDays(7)->format("d M Y") }}',
-                details: 'Biaya ini merupakan biaya wajib untuk proses pendaftaran peserta didik baru jenjang {{ strtoupper($pendaftar->jenjang ?? "SD") }} tahun ajaran {{ date("Y") }}/{{ date("Y") + 1 }}.'
-            },
-            2: {
-                id: 2,
-                name: 'SPP Bulan Pertama',
-                description: 'Sumbangan Pembinaan Pendidikan bulan pertama',
-                amount: 350000,
-                dueDate: '{{ now()->addDays(14)->format("d M Y") }}',
-                details: 'SPP bulan pertama untuk kegiatan belajar mengajar dan operasional sekolah.'
-            },
-            3: {
-                id: 3,
-                name: 'Uang Pangkal',
-                description: 'Biaya pengembangan sarana dan prasarana',
-                amount: 225000,
-                dueDate: '{{ now()->addDays(21)->format("d M Y") }}',
-                details: 'Biaya pengembangan dan pemeliharaan sarana prasarana sekolah untuk menunjang kegiatan pembelajaran.'
-            },
-            4: {
-                id: 4,
-                name: 'Biaya Seragam & Buku',
-                description: 'Paket seragam sekolah dan buku pembelajaran',
-                amount: 250000,
-                dueDate: '{{ now()->addDays(30)->format("d M Y") }}',
-                details: 'Paket lengkap seragam sekolah dan buku-buku pembelajaran sesuai kurikulum yang berlaku.'
-            }
+            @foreach($activeBills as $bill)
+            {{ $bill->id }}: {
+                id: {{ $bill->id }},
+                name: {!! json_encode($bill->description) !!},
+                description: {!! json_encode($bill->notes ?: ($bill->bill_type === "registration_fee" ? "Biaya formulir pendaftaran peserta didik baru" : ($bill->bill_type === "uang_pangkal" ? "Uang pangkal untuk konfirmasi penerimaan" : ($bill->bill_type === "spp" ? "Sumbangan Pembinaan Pendidikan" : ucwords(str_replace("_", " ", $bill->bill_type)))))) !!},
+                amount: {{ $bill->remaining_amount }},
+                dueDate: {!! json_encode($bill->due_date ? \Carbon\Carbon::parse($bill->due_date)->format("d M Y") : "Tidak ditetapkan") !!},
+                details: {!! json_encode($bill->notes ?: ($bill->bill_type === "registration_fee" ? "Biaya ini merupakan biaya wajib untuk proses pendaftaran peserta didik baru tahun ajaran " . $bill->academic_year : ($bill->bill_type === "uang_pangkal" ? "Biaya pengembangan dan pemeliharaan sarana prasarana sekolah untuk menunjang kegiatan pembelajaran" : ($bill->bill_type === "spp" ? "Sumbangan Pembinaan Pendidikan untuk " . ($bill->month ? \Carbon\Carbon::createFromFormat('m', $bill->month)->format('F') : 'bulan ini') . " tahun ajaran " . $bill->academic_year : "Detail pembayaran untuk " . $bill->description)))) !!},
+                bill_type: {!! json_encode($bill->bill_type) !!},
+                academic_year: {!! json_encode($bill->academic_year) !!},
+                semester: {!! json_encode($bill->semester) !!},
+                month: {!! json_encode($bill->month) !!},
+                payment_status: {!! json_encode($bill->payment_status) !!}
+            }@if(!$loop->last),@endif
+            @endforeach
         };
 
         // Add to cart with confirmation
-        // Promo code functions
+        // Promo code functions with API validation
         function applyPromoCode() {
-            const promoInput = document.getElementById('promoCodeInput');
+            const promoInput = document.getElementById('promoCode'); // Fixed ID
             const promoMessage = document.getElementById('promoMessage');
+            const applyButton = document.getElementById('applyPromo');
             const code = promoInput.value.trim().toUpperCase();
 
             if (!code) {
                 showPromoMessage('Masukkan kode promo terlebih dahulu', 'warning');
+                promoInput.focus();
                 return;
             }
 
             if (cart.length === 0) {
-                showPromoMessage('Keranjang masih kosong', 'warning');
+                showPromoMessage('Keranjang masih kosong. Pilih tagihan terlebih dahulu.', 'warning');
                 return;
             }
 
-            const promoCode = promoCodes[code];
-            if (!promoCode) {
-                showPromoMessage('Kode promo tidak valid', 'danger');
+            // Check if promo already applied
+            if (appliedPromoCode) {
+                showPromoMessage('Kode promo sudah digunakan. Hapus terlebih dahulu untuk menggunakan kode lain.', 'warning');
                 return;
             }
 
-            if (!promoCode.isActive) {
-                showPromoMessage('Kode promo sudah tidak berlaku', 'danger');
-                return;
-            }
+            // Disable button and show loading
+            applyButton.disabled = true;
+            applyButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Memvalidasi...';
+            showPromoMessage('Memvalidasi kode voucher...', 'info');
 
-            if (promoCode.usedCount >= promoCode.usageLimit) {
-                showPromoMessage('Kode promo sudah mencapai batas penggunaan', 'danger');
-                return;
-            }
-
-            const currentDate = new Date();
-            const validUntil = new Date(promoCode.validUntil);
-            if (currentDate > validUntil) {
-                showPromoMessage('Kode promo sudah expired', 'danger');
-                return;
-            }
-
+            // Get current cart total
             const subtotal = calculateSubtotal();
-            if (subtotal < promoCode.minAmount) {
-                showPromoMessage(`Minimum transaksi Rp ${promoCode.minAmount.toLocaleString('id-ID')} untuk menggunakan kode ini`, 'warning');
-                return;
-            }
 
-            // Apply promo code
-            appliedPromoCode = promoCode;
-            appliedDiscount = null; // Clear manual discount
-            showPromoMessage(`Kode promo "${promoCode.name}" berhasil diterapkan!`, 'success');
-            promoInput.value = '';
+            // Validate voucher via API
+            fetch('{{ route("user.payments.validate-discount") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    code: code,
+                    amount: subtotal
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Apply promo code
+                    appliedPromoCode = data.discount;
+                    appliedDiscount = null; // Clear manual discount
 
-            updateCartUI();
+                    // Show success message with discount details
+                    const discountText = data.discount.type === 'percentage'
+                        ? `${data.discount.value}%`
+                        : `Rp ${new Intl.NumberFormat('id-ID').format(data.discount.value)}`;
+
+                    showPromoMessage(
+                        `✅ Kode "${data.discount.code}" berhasil diterapkan! Anda mendapat diskon ${discountText}`,
+                        'success'
+                    );
+
+                    // Clear input and show applied discount
+                    promoInput.value = '';
+                    updateCartUI();
+
+                    // Show success toast
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Kode Promo Berhasil!',
+                        text: `Diskon ${discountText} telah diterapkan`,
+                        timer: 3000,
+                        showConfirmButton: false,
+                        position: 'top-end',
+                        toast: true
+                    });
+
+                } else {
+                    showPromoMessage(`❌ ${data.message}`, 'danger');
+                    promoInput.focus();
+                }
+            })
+            .catch(error => {
+                console.error('Error validating discount:', error);
+                showPromoMessage('❌ Terjadi kesalahan saat memvalidasi voucher. Silakan coba lagi.', 'danger');
+            })
+            .finally(() => {
+                // Re-enable button
+                applyButton.disabled = false;
+                applyButton.innerHTML = '<i class="bi bi-check2"></i> Gunakan';
+            });
         }
 
         function removePromoCode() {
-            appliedPromoCode = null;
-            showPromoMessage('Kode promo dihapus', 'info');
-            updateCartUI();
+            if (appliedPromoCode) {
+                const removedCode = appliedPromoCode.code;
+                appliedPromoCode = null;
+                showPromoMessage(`Kode promo "${removedCode}" telah dihapus`, 'info');
+                updateCartUI();
+
+                // Show removal toast
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Kode Promo Dihapus',
+                    text: `Kode "${removedCode}" telah dihapus dari keranjang`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    position: 'top-end',
+                    toast: true
+                });
+            }
         }
 
         function showPromoMessage(message, type) {
             const promoMessage = document.getElementById('promoMessage');
+
+            // Icon mapping for different types
+            const icons = {
+                'success': 'bi-check-circle-fill',
+                'danger': 'bi-x-circle-fill',
+                'warning': 'bi-exclamation-triangle-fill',
+                'info': 'bi-info-circle-fill'
+            };
+
+            const icon = icons[type] || icons['info'];
+
             promoMessage.innerHTML = `
-                <div class="alert alert-${type} alert-sm mb-2 p-2" role="alert">
-                    <small>${message}</small>
+                <div class="alert alert-${type} alert-sm mb-2 p-2 d-flex align-items-center" role="alert" style="animation: fadeIn 0.3s ease-in;">
+                    <i class="${icon} me-2"></i>
+                    <small class="flex-grow-1">${message}</small>
+                    ${type !== 'success' ? '<button type="button" class="btn-close btn-close-sm ms-2" aria-label="Close" onclick="this.closest(\'.alert\').remove()"></button>' : ''}
                 </div>
             `;
-            setTimeout(() => {
-                promoMessage.innerHTML = '';
-            }, 4000);
+
+            // Auto-hide for non-error messages
+            if (type !== 'danger') {
+                setTimeout(() => {
+                    const alertElement = promoMessage.querySelector('.alert');
+                    if (alertElement) {
+                        alertElement.style.animation = 'fadeOut 0.3s ease-out forwards';
+                        setTimeout(() => {
+                            promoMessage.innerHTML = '';
+                        }, 300);
+                    }
+                }, type === 'success' ? 6000 : 4000); // Success messages stay longer
+            }
         }
 
         function loadAvailableDiscounts() {
@@ -646,7 +608,7 @@
 
                 return `
                     <div class="discount-item p-2 border rounded mb-2 cursor-pointer"
-                         onclick="applyDiscount('${discount.id}')"
+                         onclick="applyDiscount('${discount.code}')"
                          style="cursor: pointer; transition: all 0.2s;"
                          onmouseover="this.style.backgroundColor='#f8f9fa'"
                          onmouseout="this.style.backgroundColor='transparent'">
@@ -664,8 +626,10 @@
                     </div>
                 `;
             }).join('');
-        }        function applyDiscount(discountId) {
-            const discount = availableDiscounts.find(d => d.id === discountId);
+        }
+
+        function applyDiscount(discountCode) {
+            const discount = availableDiscounts.find(d => d.code === discountCode);
             if (!discount || !discount.isActive) {
                 Swal.fire({
                     icon: 'error',
@@ -734,6 +698,11 @@
 
             if (appliedPromoCode) {
                 const promo = appliedPromoCode;
+                // Use discount_amount from API response if available
+                if (promo.discount_amount !== undefined) {
+                    return promo.discount_amount;
+                }
+                // Fallback to client-side calculation
                 if (promo.type === 'percentage') {
                     const discountAmount = (subtotal * promo.value) / 100;
                     return Math.min(discountAmount, promo.maxDiscount || discountAmount);
@@ -943,7 +912,7 @@
 
             // Update counters
             if (cartCount) cartCount.textContent = cart.length;
-            if (selectedInfo) selectedInfo.textContent = `${cart.length} dari 4 item dipilih`;
+            if (selectedInfo) selectedInfo.textContent = `${cart.length} dari {{ $totalBillsCount }} item dipilih`;
 
             if (cart.length === 0) {
                 // Show empty state
@@ -994,15 +963,23 @@
                     });
                 });
 
-                // Update summary
+                // Update summary with dynamic fees
                 const subtotal = calculateSubtotal();
                 const discount = calculateDiscount();
-                const adminFee = 2500;
-                const total = subtotal - discount + adminFee;
+
+                // Calculate transaction fee based on subtotal
+                let transactionFee = 0;
+                if (paymentFees && subtotal > 0) {
+                    transactionFee = paymentFees.min_fee;
+                }
+
+                const total = subtotal - discount + transactionFee;
 
                 const subtotalElement = document.getElementById('subtotal');
                 const discountElement = document.getElementById('discountAmount');
                 const discountRow = document.getElementById('discountRow');
+                const feeElement = document.getElementById('transactionFee');
+                const feeRow = document.getElementById('feeRow');
                 const totalElement = document.getElementById('total-amount');
 
                 if (subtotalElement) {
@@ -1015,6 +992,14 @@
                         discountRow.classList.add('discount-row');
                     } else {
                         discountRow.style.display = 'none';
+                    }
+                }
+                if (feeElement && feeRow) {
+                    if (transactionFee > 0) {
+                        feeElement.textContent = `Rp ${transactionFee.toLocaleString('id-ID')}`;
+                        feeRow.style.display = 'flex';
+                    } else {
+                        feeRow.style.display = 'none';
                     }
                 }
                 if (totalElement) {
@@ -1138,8 +1123,14 @@
 
             const subtotal = calculateSubtotal();
             const discount = calculateDiscount();
-            const adminFee = 2500;
-            const totalAmount = subtotal - discount + adminFee;
+
+            // Calculate transaction fee based on subtotal (same as cart)
+            let transactionFee = 0;
+            if (paymentFees && subtotal > 0) {
+                transactionFee = paymentFees.min_fee;
+            }
+
+            const totalAmount = subtotal - discount + transactionFee;
 
             // Validate minimum amount (Rp 100,000)
             if (totalAmount < 100000) {
@@ -1174,7 +1165,8 @@
 
             // Show confirmation dialog
             const discountText = discount > 0 ? `\nDiskon: -Rp ${discount.toLocaleString('id-ID')}` : '';
-            const confirmationText = `Konfirmasi pembayaran:\n\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}${discountText}\nBiaya Admin: Rp ${adminFee.toLocaleString('id-ID')}\nTotal: Rp ${totalAmount.toLocaleString('id-ID')}\n\nAnda akan diarahkan ke halaman pembayaran Xendit.`;
+            const feeText = transactionFee > 0 ? `\nBiaya Transaksi: Rp ${transactionFee.toLocaleString('id-ID')}` : '';
+            const confirmationText = `Konfirmasi pembayaran:\n\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}${discountText}${feeText}\nTotal: Rp ${totalAmount.toLocaleString('id-ID')}\n\nAnda akan diarahkan ke halaman pembayaran Xendit.`;
 
             Swal.fire({
                 title: 'Konfirmasi Pembayaran',
@@ -1263,33 +1255,74 @@
             // Submit form
             console.log('Submitting form...');
             form.submit();
-        }        // Show bill detail
+        }
+
+        // Show bill detail
         function showBillDetail(billId) {
             const bill = bills[billId];
             if (!bill) return;
 
             currentBillDetail = bill;
 
+            // Get bill type info for styling
+            const billTypeInfo = getBillTypeInfo(bill.bill_type);
+            const statusInfo = getStatusInfo(bill.payment_status);
+
             const content = `
                 <div class="row">
                     <div class="col-md-8">
-                        <h5 class="fw-bold">${bill.name}</h5>
-                        <p class="text-muted">${bill.description}</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <h5 class="fw-bold mb-0 me-2">${bill.name}</h5>
+                            <span class="badge bg-${billTypeInfo.badge}">${billTypeInfo.label}</span>
+                        </div>
+                        <p class="text-muted mb-3">${bill.description}</p>
+
                         <div class="bg-light rounded p-3 mb-3">
                             <h6 class="fw-semibold mb-2">Detail Tagihan:</h6>
-                            <p class="mb-0">${bill.details}</p>
+                            <p class="mb-2">${bill.details}</p>
+                            <div class="row text-muted small">
+                                <div class="col-md-6">
+                                    ${bill.academic_year ? `<div><strong>Tahun Ajaran:</strong> ${bill.academic_year}</div>` : ''}
+                                    ${bill.semester ? `<div><strong>Semester:</strong> ${bill.semester.charAt(0).toUpperCase() + bill.semester.slice(1)}</div>` : ''}
+                                </div>
+                                <div class="col-md-6">
+                                    ${bill.month ? `<div><strong>Bulan:</strong> ${getMonthName(bill.month)}</div>` : ''}
+                                    ${bill.bill_type ? `<div><strong>Kategori:</strong> ${getBillTypeInfo(bill.bill_type).label}</div>` : ''}
+                                </div>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-warning text-dark me-2">
-                                <i class="bi bi-clock me-1"></i>Belum Dibayar
+
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <span class="badge bg-${statusInfo.badge} ${statusInfo.textClass} me-2">
+                                <i class="bi bi-${statusInfo.icon} me-1"></i>${statusInfo.label}
                             </span>
                             <small class="text-muted">Jatuh tempo: ${bill.dueDate}</small>
                         </div>
                     </div>
-                    <div class="col-md-4 text-end">
-                        <div class="bg-primary bg-opacity-10 rounded p-3">
+                    <div class="col-md-4">
+                        <div class="bg-primary bg-opacity-10 rounded p-3 mb-3">
                             <h6 class="text-muted mb-1">Total Tagihan</h6>
                             <h3 class="fw-bold text-primary mb-0">Rp ${bill.amount.toLocaleString('id-ID')}</h3>
+                        </div>
+
+                        <div class="bg-info bg-opacity-10 rounded p-2">
+                            <h6 class="text-muted mb-1 small">Info Pembayaran</h6>
+                            <div class="small">
+                                <div class="d-flex justify-content-between">
+                                    <span>Jenis:</span>
+                                    <span class="fw-semibold">${billTypeInfo.label}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Status:</span>
+                                    <span class="fw-semibold">${statusInfo.label}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Tahun:</span>
+                                    <span class="fw-semibold">${bill.academic_year || '-'}</span>
+                                </div>
+                                ${bill.month ? `<div class="d-flex justify-content-between"><span>Bulan:</span><span class="fw-semibold">${getMonthName(bill.month)}</span></div>` : ''}
+                                ${bill.semester ? `<div class="d-flex justify-content-between"><span>Semester:</span><span class="fw-semibold">${bill.semester.charAt(0).toUpperCase() + bill.semester.slice(1)}</span></div>` : ''}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1321,6 +1354,44 @@
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('billDetailModal'));
             modal.show();
+        }
+
+        // Helper function to get bill type information
+        function getBillTypeInfo(billType) {
+            const info = {
+                'registration_fee': { label: 'Formulir', badge: 'info' },
+                'spp': { label: 'SPP', badge: 'primary' },
+                'uang_pangkal': { label: 'Uang Pangkal', badge: 'success' },
+                'uniform': { label: 'Seragam', badge: 'warning' },
+                'books': { label: 'Buku', badge: 'secondary' },
+                'supplies': { label: 'Alat Tulis', badge: 'dark' },
+                'activity': { label: 'Kegiatan', badge: 'danger' },
+                'other': { label: 'Lainnya', badge: 'light' }
+            };
+            return info[billType] || info['other'];
+        }
+
+        // Helper function to get status information
+        function getStatusInfo(status) {
+            const info = {
+                'pending': { label: 'Belum Dibayar', badge: 'warning', icon: 'clock', textClass: 'text-dark' },
+                'partial': { label: 'Dibayar Sebagian', badge: 'info', icon: 'hourglass-split', textClass: 'text-white' },
+                'paid': { label: 'Lunas', badge: 'success', icon: 'check-circle', textClass: 'text-white' },
+                'overdue': { label: 'Terlambat', badge: 'danger', icon: 'exclamation-triangle', textClass: 'text-white' },
+                'cancelled': { label: 'Dibatalkan', badge: 'secondary', icon: 'x-circle', textClass: 'text-white' },
+                'waived': { label: 'Dibebaskan', badge: 'light', icon: 'check', textClass: 'text-dark' }
+            };
+            return info[status] || info['pending'];
+        }
+
+        // Helper function to get month name
+        function getMonthName(monthNumber) {
+            if (!monthNumber) return '-';
+            const months = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            return months[monthNumber - 1] || '-';
         }
 
         // Initialize when DOM is ready
@@ -1436,7 +1507,7 @@
             loadAvailableDiscounts();
 
             // Setup promo code input
-            const promoCodeInput = document.getElementById('promoCodeInput');
+            const promoCodeInput = document.getElementById('promoCode'); // Fixed ID
             if (promoCodeInput) {
                 promoCodeInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
@@ -1445,6 +1516,23 @@
                     }
                 });
             }
+
+            // Setup apply promo button
+            const applyPromoBtn = document.getElementById('applyPromo');
+            if (applyPromoBtn) {
+                applyPromoBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    applyPromoCode();
+                });
+            }
+
+            // Setup remove discount button
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.id === 'removeDiscount') {
+                    e.preventDefault();
+                    removePromoCode();
+                }
+            });
 
             // Setup view detail buttons with improved mobile handling
             document.querySelectorAll('.view-detail').forEach(button => {
@@ -1650,6 +1738,29 @@
         }, 100);
     </script>
     <style>
+        /* Promo message animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
         .bill-item {
             transition: all 0.3s ease;
             cursor: pointer;

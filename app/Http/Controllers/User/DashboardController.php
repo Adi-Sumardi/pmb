@@ -17,6 +17,8 @@ use App\Models\SubjectGrade;
 use App\Models\ExtracurricularGrade;
 use App\Models\CharacterAssessment;
 use App\Models\Achievement;
+use App\Models\StudentBill;
+use App\Models\BillPayment;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -28,12 +30,30 @@ class DashboardController extends Controller
         // Get pendaftar data
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
-        // Get payment status - check via pendaftar_id instead of user_id
+        // Get payment status - check formulir payment via new billing system
         $payment = null;
         $isPaid = false;
+        $formulirBill = null;
         if ($pendaftar) {
-            $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'paid')->first();
-            $isPaid = $payment ? true : false;
+            // Check formulir payment through new billing system
+            $formulirBill = StudentBill::where('pendaftar_id', $pendaftar->id)
+                ->where('bill_type', 'registration_fee')
+                ->first();
+
+            if ($formulirBill) {
+                $isPaid = $formulirBill->payment_status === 'paid';
+                if ($isPaid) {
+                    $latestPayment = BillPayment::where('student_bill_id', $formulirBill->id)
+                        ->where('status', 'paid')
+                        ->latest()
+                        ->first();
+                    $payment = $latestPayment;
+                }
+            } else {
+                // Fallback to old payment system for existing data
+                $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'paid')->first();
+                $isPaid = $payment ? true : false;
+            }
         }
 
         $paymentDate = $payment ? Carbon::parse($payment->updated_at)->format('d M Y, H:i') : null;
@@ -102,8 +122,94 @@ class DashboardController extends Controller
         // Calculate overall completion percentage
         $dataCompletion = $totalSections > 0 ? round(($completedSections / $totalSections) * 100) : 0;
 
-        // Determine registration status
-        $registrationStatus = $pendaftar ? $pendaftar->overall_status : 'draft';
+        // Determine registration status using new flow system
+        $registrationStatus = 'draft';
+        $currentStage = 'registration';
+        $nextSteps = [];
+
+        if ($pendaftar) {
+            // Determine current stage based on new flow fields
+            if (!$isPaid) {
+                $registrationStatus = 'pending_payment';
+                $currentStage = 'formulir_payment';
+                $nextSteps = ['Bayar formulir pendaftaran'];
+            } elseif ($pendaftar->data_completion_status === 'incomplete') {
+                $registrationStatus = 'data_entry';
+                $currentStage = 'data_entry';
+                $nextSteps = ['Lengkapi semua data pendaftaran', 'Upload dokumen yang diperlukan'];
+            } elseif ($pendaftar->data_completion_status === 'complete' && $pendaftar->admin_verification_status === 'pending') {
+                $registrationStatus = 'pending_verification';
+                $currentStage = 'admin_verification';
+                $nextSteps = ['Menunggu verifikasi admin'];
+            } elseif ($pendaftar->admin_verification_status === 'approved' && $pendaftar->test_status === 'not_scheduled') {
+                $registrationStatus = 'verification_approved';
+                $currentStage = 'test_scheduling';
+                $nextSteps = ['Menunggu jadwal tes'];
+            } elseif ($pendaftar->test_status === 'scheduled') {
+                $registrationStatus = 'test_scheduled';
+                $currentStage = 'test_phase';
+                $nextSteps = ['Ikuti tes pada jadwal yang ditentukan'];
+            } elseif ($pendaftar->test_status === 'completed' && $pendaftar->acceptance_status === 'pending') {
+                $registrationStatus = 'test_completed';
+                $currentStage = 'evaluation';
+                $nextSteps = ['Menunggu hasil evaluasi'];
+            } elseif ($pendaftar->acceptance_status === 'accepted' && $pendaftar->uang_pangkal_status !== 'paid') {
+                $registrationStatus = 'accepted';
+                $currentStage = 'uang_pangkal_payment';
+                $nextSteps = ['Bayar uang pangkal untuk konfirmasi penerimaan'];
+            } elseif ($pendaftar->uang_pangkal_status === 'paid') {
+                $registrationStatus = 'enrolled';
+                $currentStage = 'regular_billing';
+                $nextSteps = ['Pantau tagihan SPP dan biaya lainnya'];
+            } elseif ($pendaftar->acceptance_status === 'rejected') {
+                $registrationStatus = 'rejected';
+                $currentStage = 'completed';
+                $nextSteps = [];
+            } else {
+                // Fallback to old system
+                $registrationStatus = $pendaftar->overall_status ?? 'draft';
+            }
+        }
+
+        // Get billing information
+        $activeBills = [];
+        $paidBills = [];
+        $totalUnpaidAmount = 0;
+        $studentStatus = 'inactive';
+        $isActiveStudent = false;
+
+        if ($pendaftar) {
+            $studentStatus = $pendaftar->student_status ?? 'inactive';
+            $isActiveStudent = $studentStatus === 'active';
+
+            // Get all bills for this student
+            $allBills = StudentBill::where('pendaftar_id', $pendaftar->id)->get();
+
+            foreach ($allBills as $bill) {
+                // Filter bills based on student status
+                $shouldShowBill = true;
+
+                // Only show SPP, uniform, book bills etc. for active students
+                if (in_array($bill->bill_type, ['spp', 'uniform', 'book', 'activity', 'other_fee'])) {
+                    $shouldShowBill = $isActiveStudent;
+                }
+
+                // Always show registration_fee and uang_pangkal regardless of student status
+                if (in_array($bill->bill_type, ['registration_fee', 'uang_pangkal'])) {
+                    $shouldShowBill = true;
+                }
+
+                if ($shouldShowBill) {
+                    // Fix: gunakan payment_status instead of non-existent is_paid accessor
+                    if ($bill->payment_status === 'paid') {
+                        $paidBills[] = $bill;
+                    } else {
+                        $activeBills[] = $bill;
+                        $totalUnpaidAmount += $bill->remaining_amount;
+                    }
+                }
+            }
+        }
 
         return view('user.dashboard', compact(
             'user',
@@ -115,6 +221,12 @@ class DashboardController extends Controller
             'completedSections',
             'totalSections',
             'registrationStatus',
+            'currentStage',
+            'nextSteps',
+            'activeBills',
+            'paidBills',
+            'totalUnpaidAmount',
+            'formulirBill',
             'studentDetailComplete',
             'parentDetailComplete',
             'academicHistoryComplete',
@@ -124,7 +236,9 @@ class DashboardController extends Controller
             'subjectGradesComplete',
             'extracurricularGradesComplete',
             'characterAssessmentComplete',
-            'achievementsComplete'
+            'achievementsComplete',
+            'studentStatus',
+            'isActiveStudent'
         ));
     }
 
@@ -136,12 +250,30 @@ class DashboardController extends Controller
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
-        // Check payment via pendaftar_id
+        // Check payment via new billing system
         $payment = null;
         $isPaid = false;
+        $formulirBill = null;
         if ($pendaftar) {
-            $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'paid')->first();
-            $isPaid = $payment ? true : false;
+            // Check formulir payment through new billing system
+            $formulirBill = StudentBill::where('pendaftar_id', $pendaftar->id)
+                ->where('bill_type', 'registration_fee')
+                ->first();
+
+            if ($formulirBill) {
+                $isPaid = $formulirBill->payment_status === 'paid';
+                if ($isPaid) {
+                    $latestPayment = BillPayment::where('student_bill_id', $formulirBill->id)
+                        ->where('status', 'paid')
+                        ->latest()
+                        ->first();
+                    $payment = $latestPayment;
+                }
+            } else {
+                // Fallback to old payment system
+                $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'paid')->first();
+                $isPaid = $payment ? true : false;
+            }
         }
 
         // Recalculate completion
@@ -182,14 +314,110 @@ class DashboardController extends Controller
         }
 
         $dataCompletion = $totalSections > 0 ? round(($completedSections / $totalSections) * 100) : 0;
-        $registrationStatus = $pendaftar ? $pendaftar->overall_status : 'draft';
+
+        // Determine current stage using new flow system
+        $registrationStatus = 'draft';
+        $currentStage = 'registration';
+        $nextSteps = [];
+
+        if ($pendaftar) {
+            // Determine current stage based on new flow fields
+            if (!$isPaid) {
+                $registrationStatus = 'pending_payment';
+                $currentStage = 'formulir_payment';
+                $nextSteps = ['Bayar formulir pendaftaran'];
+            } elseif ($pendaftar->data_completion_status === 'incomplete') {
+                $registrationStatus = 'data_entry';
+                $currentStage = 'data_entry';
+                $nextSteps = ['Lengkapi data pendaftaran'];
+            } elseif ($pendaftar->data_completion_status === 'complete' && $pendaftar->admin_verification_status === 'pending') {
+                $registrationStatus = 'pending_verification';
+                $currentStage = 'admin_verification';
+                $nextSteps = ['Menunggu verifikasi admin'];
+            } elseif ($pendaftar->admin_verification_status === 'approved' && $pendaftar->test_status === 'not_scheduled') {
+                $registrationStatus = 'verification_approved';
+                $currentStage = 'test_scheduling';
+                $nextSteps = ['Menunggu jadwal tes'];
+            } elseif ($pendaftar->test_status === 'scheduled') {
+                $registrationStatus = 'test_scheduled';
+                $currentStage = 'test_phase';
+                $nextSteps = ['Ikuti tes sesuai jadwal'];
+            } elseif ($pendaftar->test_status === 'completed' && $pendaftar->acceptance_status === 'pending') {
+                $registrationStatus = 'test_completed';
+                $currentStage = 'evaluation';
+                $nextSteps = ['Menunggu hasil evaluasi'];
+            } elseif ($pendaftar->acceptance_status === 'accepted' && $pendaftar->uang_pangkal_status !== 'paid') {
+                $registrationStatus = 'accepted';
+                $currentStage = 'uang_pangkal_payment';
+                $nextSteps = ['Bayar uang pangkal'];
+            } elseif ($pendaftar->uang_pangkal_status === 'paid') {
+                $registrationStatus = 'enrolled';
+                $currentStage = 'regular_billing';
+                $nextSteps = ['Pantau tagihan rutin'];
+            } elseif ($pendaftar->acceptance_status === 'rejected') {
+                $registrationStatus = 'rejected';
+                $currentStage = 'completed';
+                $nextSteps = [];
+            } else {
+                // Fallback to old system
+                $registrationStatus = $pendaftar->overall_status ?? 'draft';
+            }
+        }
+
+        // Get billing information
+        $activeBills = [];
+        $totalUnpaidAmount = 0;
+        $studentStatus = 'inactive';
+        $isActiveStudent = false;
+
+        if ($pendaftar) {
+            $studentStatus = $pendaftar->student_status ?? 'inactive';
+            $isActiveStudent = $studentStatus === 'active';
+
+            $allBills = StudentBill::where('pendaftar_id', $pendaftar->id)
+                ->where('payment_status', '!=', 'paid')
+                ->get();
+
+            foreach ($allBills as $bill) {
+                // Filter bills based on student status
+                $shouldShowBill = true;
+
+                // Only show SPP, uniform, book bills etc. for active students
+                if (in_array($bill->bill_type, ['spp', 'uniform', 'book', 'activity', 'other_fee'])) {
+                    $shouldShowBill = $isActiveStudent;
+                }
+
+                // Always show registration_fee and uang_pangkal regardless of student status
+                if (in_array($bill->bill_type, ['registration_fee', 'uang_pangkal'])) {
+                    $shouldShowBill = true;
+                }
+
+                if ($shouldShowBill) {
+                    $activeBills[] = [
+                        'id' => $bill->id,
+                        'type' => $bill->bill_type,
+                        'amount' => $bill->amount,
+                        'remaining' => $bill->remaining_amount,
+                        'due_date' => $bill->due_date ? Carbon::parse($bill->due_date)->format('Y-m-d') : null,
+                        'description' => $bill->description
+                    ];
+                    $totalUnpaidAmount += $bill->remaining_amount;
+                }
+            }
+        }
 
         return response()->json([
             'isPaid' => $isPaid,
             'dataCompletion' => $dataCompletion,
             'completedSections' => $completedSections,
             'totalSections' => $totalSections,
-            'registrationStatus' => $registrationStatus
+            'registrationStatus' => $registrationStatus,
+            'currentStage' => $currentStage,
+            'nextSteps' => $nextSteps,
+            'activeBills' => $activeBills,
+            'totalUnpaidAmount' => $totalUnpaidAmount,
+            'studentStatus' => $studentStatus,
+            'isActiveStudent' => $isActiveStudent
         ]);
     }
 

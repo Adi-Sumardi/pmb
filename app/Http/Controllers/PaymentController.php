@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Payment;
 use App\Models\Pendaftar;
+use App\Models\StudentBill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -35,6 +36,145 @@ class PaymentController extends Controller
         if (!$this->xenditApiKey) {
             Log::error('Xendit API Key not configured');
         }
+    }
+
+    /**
+     * Calculate Xendit transaction fees to be charged to user
+     */
+    private function calculateXenditFees(float $amount): array
+    {
+        $fees = [];
+
+        // Bank Transfer / Virtual Account fees
+        $bankTransferFee = 4000; // Fixed fee per transaction
+
+        // Credit Card fees (2.9% + Rp 2.000)
+        $creditCardFee = ($amount * 0.029) + 2000;
+
+        // E-Wallet fees (varies by provider)
+        $eWalletFee = $amount * 0.02; // 2% for most e-wallets
+
+        // Convenience Store fees
+        $convenienceStoreFee = 5000; // Fixed fee
+
+        // QRIS fees
+        $qrisFee = $amount * 0.007; // 0.7%
+
+        return [
+            'bank_transfer' => $bankTransferFee,
+            'credit_card' => $creditCardFee,
+            'ewallet' => $eWalletFee,
+            'convenience_store' => $convenienceStoreFee,
+            'qris' => $qrisFee,
+            'default_fee' => $bankTransferFee // Default to cheapest option
+        ];
+    }
+
+    /**
+     * Get the best fee option for user display
+     */
+    private function getBestFeeOption(float $amount): array
+    {
+        $fees = $this->calculateXenditFees($amount);
+
+        // Find the lowest fee option
+        $minFee = min($fees['bank_transfer'], $fees['qris']);
+        $recommendedMethod = $fees['bank_transfer'] <= $fees['qris'] ? 'Bank Transfer' : 'QRIS';
+
+        return [
+            'min_fee' => $minFee,
+            'recommended_method' => $recommendedMethod,
+            'all_fees' => $fees
+        ];
+    }
+
+    /**
+     * Validate and apply discount/voucher
+     */
+    public function validateDiscount(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string',
+            'amount' => 'required|numeric|min:0'
+        ]);
+
+        $discount = \App\Models\Discount::active()
+            ->valid()
+            ->where('code', $request->code)
+            ->first();
+
+        if (!$discount) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode voucher tidak valid atau sudah kedaluwarsa'
+            ]);
+        }
+
+        if (!$discount->isApplicable($request->amount)) {
+            $minAmount = (float) $discount->minimum_amount;
+            return response()->json([
+                'success' => false,
+                'message' => "Minimum pembelian untuk voucher ini adalah Rp " . number_format($minAmount, 0, ',', '.')
+            ]);
+        }
+
+        $discountAmount = $discount->calculateDiscount($request->amount);
+
+        return response()->json([
+            'success' => true,
+            'discount' => [
+                'id' => $discount->id,
+                'name' => $discount->name,
+                'code' => $discount->code,
+                'type' => $discount->type,
+                'value' => $discount->value,
+                'discount_amount' => $discountAmount,
+                'description' => $discount->description
+            ],
+            'message' => 'Voucher berhasil diterapkan!'
+        ]);
+    }
+
+    /**
+     * Internal discount validation that returns array (not JsonResponse)
+     */
+    private function validateDiscountInternal(string $code, float $amount): array
+    {
+        $discount = \App\Models\Discount::active()
+            ->valid()
+            ->where('code', $code)
+            ->first();
+
+        if (!$discount) {
+            return [
+                'success' => false,
+                'message' => 'Kode voucher tidak valid atau sudah kedaluwarsa'
+            ];
+        }
+
+        if (!$discount->isApplicable($amount)) {
+            $minAmount = (float) $discount->minimum_amount;
+            return [
+                'success' => false,
+                'message' => "Minimum pembelian untuk voucher ini adalah Rp " . number_format($minAmount, 0, ',', '.')
+            ];
+        }
+
+        $discountAmount = $discount->calculateDiscount($amount);
+
+        return [
+            'success' => true,
+            'discount' => [
+                'id' => $discount->id,
+                'name' => $discount->name,
+                'code' => $discount->code,
+                'type' => $discount->type,
+                'value' => $discount->value,
+                'discount_amount' => $discountAmount,
+                'description' => $discount->description
+            ],
+            'message' => 'Voucher berhasil diterapkan!'
+        ];
     }
 
     /**
@@ -197,16 +337,328 @@ class PaymentController extends Controller
     /**
      * Generate unique external ID
      */
-    private function generateExternalId(Pendaftar $pendaftar): string
+    private function generateExternalId(Pendaftar $pendaftar, array $cartItems = []): string
     {
+        $prefix = $this->generatePaymentPrefix($cartItems);
+
+        // Generate short student name (first 3 chars of first name)
+        $studentName = $this->getShortStudentName($pendaftar->nama_murid);
+
+        // Generate short unit code
+        $unitCode = $this->getShortUnitCode($pendaftar->unit);
+
         return sprintf(
-            'PPDB-PMB%02d%02d%04d-%d-%s',
+            '%s-%s%s-%02d%02d%04d-%d-%s',
+            $prefix,
+            $studentName,
+            $unitCode,
             now()->month,
             now()->day,
             $pendaftar->id,
             time(),
-            Str::random(6)
+            Str::random(3)
         );
+    }
+
+    /**
+     * Generate student name for external ID (full name, cleaned)
+     */
+    private function getShortStudentName(string $fullName): string
+    {
+        // Remove special characters and spaces, keep only alphanumeric
+        $cleanName = preg_replace('/[^a-zA-Z0-9]/', '', $fullName);
+
+        // Convert to uppercase and limit length to avoid too long external IDs
+        $cleanName = strtoupper($cleanName);
+
+        // Limit to 15 characters to keep external ID manageable
+        return substr($cleanName, 0, 15) ?: 'STUDENT';
+    }
+
+    /**
+     * Generate short unit code for external ID
+     */
+    private function getShortUnitCode(string $unit): string
+    {
+        // Mapping common units to short codes
+        $unitMappings = [
+            'TK Islam Al Azhar 13 - Rawamangun' => 'TK13',
+            'SD Islam Al Azhar 13 - Rawamangun' => 'SD13',
+            'SMP Islam Al Azhar 13 - Rawamangun' => 'SMP13',
+            'SMA Islam Al Azhar 13 - Rawamangun' => 'SMA13',
+            'TK Islam Al Azhar' => 'TK',
+            'SD Islam Al Azhar' => 'SD',
+            'SMP Islam Al Azhar' => 'SMP',
+            'SMA Islam Al Azhar' => 'SMA'
+        ];
+
+        // Check if exact mapping exists
+        if (isset($unitMappings[$unit])) {
+            return $unitMappings[$unit];
+        }
+
+        // Generate code from unit name
+        $cleanUnit = preg_replace('/[^a-zA-Z0-9\s]/', '', $unit);
+        $words = explode(' ', trim($cleanUnit));
+
+        // Try to extract meaningful abbreviation
+        if (count($words) >= 2) {
+            $code = '';
+            foreach ($words as $word) {
+                if (in_array(strtolower($word), ['tk', 'sd', 'smp', 'sma', 'ma', 'mi'])) {
+                    $code .= strtoupper($word);
+                } elseif (preg_match('/\d+/', $word)) {
+                    $code .= $word;
+                } elseif (strlen($word) > 2 && empty($code)) {
+                    $code .= strtoupper(substr($word, 0, 2));
+                }
+
+                if (strlen($code) >= 4) break;
+            }
+
+            return $code ?: 'UNIT';
+        }
+
+        // Fallback: take first 4 characters
+        return strtoupper(substr($cleanUnit, 0, 4)) ?: 'UNIT';
+    }    /**
+     * Generate payment prefix based on cart items
+     */
+    private function generatePaymentPrefix(array $cartItems): string
+    {
+        if (empty($cartItems)) {
+            return 'PPDB-PMB';
+        }
+
+        // Count bill types in cart
+        $billTypes = [];
+        foreach ($cartItems as $item) {
+            if (isset($item['bill_id'])) {
+                $bill = StudentBill::find($item['bill_id']);
+                if ($bill) {
+                    $billTypes[] = $bill->bill_type;
+                }
+            } else {
+                // Fallback: detect from item name
+                $itemName = strtolower($item['name'] ?? '');
+                if (strpos($itemName, 'spp') !== false) {
+                    $billTypes[] = 'spp';
+                } elseif (strpos($itemName, 'formulir') !== false || strpos($itemName, 'pendaftaran') !== false) {
+                    $billTypes[] = 'registration_fee';
+                } elseif (strpos($itemName, 'uang pangkal') !== false) {
+                    $billTypes[] = 'uang_pangkal';
+                } elseif (strpos($itemName, 'seragam') !== false) {
+                    $billTypes[] = 'uniform';
+                } elseif (strpos($itemName, 'buku') !== false) {
+                    $billTypes[] = 'books';
+                } else {
+                    $billTypes[] = 'other';
+                }
+            }
+        }
+
+        $uniqueTypes = array_unique($billTypes);
+
+        // Single payment type
+        if (count($uniqueTypes) === 1) {
+            switch ($uniqueTypes[0]) {
+                case 'registration_fee':
+                    return 'FORMULIR';
+                case 'spp':
+                    return 'SPP';
+                case 'uang_pangkal':
+                    return 'UP';
+                case 'uniform':
+                    return 'SERAGAM';
+                case 'books':
+                    return 'BUKU';
+                case 'supplies':
+                    return 'ALAT';
+                case 'activity':
+                    return 'KEGIATAN';
+                default:
+                    return 'LAINNYA';
+            }
+        }
+
+        // Multiple payment types - create combined prefix
+        if (count($uniqueTypes) > 1) {
+            $prefixes = [];
+            foreach ($uniqueTypes as $type) {
+                switch ($type) {
+                    case 'registration_fee':
+                        $prefixes[] = 'F';
+                        break;
+                    case 'spp':
+                        $prefixes[] = 'S';
+                        break;
+                    case 'uang_pangkal':
+                        $prefixes[] = 'U';
+                        break;
+                    case 'uniform':
+                        $prefixes[] = 'R';
+                        break;
+                    case 'books':
+                        $prefixes[] = 'B';
+                        break;
+                    case 'supplies':
+                        $prefixes[] = 'A';
+                        break;
+                    case 'activity':
+                        $prefixes[] = 'K';
+                        break;
+                    default:
+                        $prefixes[] = 'L';
+                }
+            }
+            return 'MIX-' . implode('', $prefixes);
+        }
+
+        return 'PPDB-PMB';
+    }
+
+    /**
+     * Generate payment type description for display
+     */
+    private function generatePaymentTypeDescription(array $cartItems): string
+    {
+        if (empty($cartItems)) {
+            return 'Pembayaran PPDB';
+        }
+
+        // Count bill types in cart
+        $billTypes = [];
+        foreach ($cartItems as $item) {
+            if (isset($item['bill_id']) && $item['bill_id']) {
+                $bill = StudentBill::find($item['bill_id']);
+                if ($bill) {
+                    $billTypes[] = $bill->bill_type;
+                }
+            } else {
+                // Fallback: detect from item name
+                $itemName = strtolower($item['name'] ?? '');
+                if (strpos($itemName, 'spp') !== false) {
+                    $billTypes[] = 'spp';
+                } elseif (strpos($itemName, 'formulir') !== false || strpos($itemName, 'pendaftaran') !== false) {
+                    $billTypes[] = 'registration_fee';
+                } elseif (strpos($itemName, 'uang pangkal') !== false) {
+                    $billTypes[] = 'uang_pangkal';
+                } elseif (strpos($itemName, 'seragam') !== false) {
+                    $billTypes[] = 'uniform';
+                } elseif (strpos($itemName, 'buku') !== false) {
+                    $billTypes[] = 'books';
+                } else {
+                    $billTypes[] = 'other';
+                }
+            }
+        }
+
+        $uniqueTypes = array_unique($billTypes);
+
+        // Single payment type
+        if (count($uniqueTypes) === 1) {
+            switch ($uniqueTypes[0]) {
+                case 'registration_fee':
+                    return 'Pembayaran Formulir PPDB';
+                case 'spp':
+                    return 'Pembayaran SPP';
+                case 'uang_pangkal':
+                    return 'Pembayaran Uang Pangkal';
+                case 'uniform':
+                    return 'Pembayaran Seragam';
+                case 'books':
+                    return 'Pembayaran Buku';
+                case 'supplies':
+                    return 'Pembayaran Alat Tulis';
+                case 'activity':
+                    return 'Pembayaran Kegiatan';
+                default:
+                    return 'Pembayaran PPDB';
+            }
+        }
+
+        // Multiple payment types
+        if (count($uniqueTypes) > 1) {
+            $typeNames = [];
+            foreach ($uniqueTypes as $type) {
+                switch ($type) {
+                    case 'registration_fee':
+                        $typeNames[] = 'Formulir';
+                        break;
+                    case 'spp':
+                        $typeNames[] = 'SPP';
+                        break;
+                    case 'uang_pangkal':
+                        $typeNames[] = 'Uang Pangkal';
+                        break;
+                    case 'uniform':
+                        $typeNames[] = 'Seragam';
+                        break;
+                    case 'books':
+                        $typeNames[] = 'Buku';
+                        break;
+                    case 'supplies':
+                        $typeNames[] = 'Alat Tulis';
+                        break;
+                    case 'activity':
+                        $typeNames[] = 'Kegiatan';
+                        break;
+                    default:
+                        $typeNames[] = 'Lainnya';
+                }
+            }
+
+            if (count($typeNames) === 2) {
+                return sprintf('Pembayaran %s & %s', $typeNames[0], $typeNames[1]);
+            } else {
+                return sprintf('Pembayaran %s & %d lainnya', $typeNames[0], count($typeNames) - 1);
+            }
+        }
+
+        return 'Pembayaran PPDB';
+    }
+
+    /**
+     * Get cart items from payment metadata
+     */
+    private function getCartItemsFromMetadata(Payment $payment): array
+    {
+        // Try to get cart items from payment metadata
+        if (!empty($payment->metadata['cart_items'])) {
+            return $payment->metadata['cart_items'];
+        }
+
+        // Fallback: get bills from related student bills if no cart data
+        $bills = StudentBill::where('pendaftar_id', $payment->pendaftar_id)
+            ->where('total_amount', '>', 0)
+            ->orderBy('bill_type')
+            ->get();
+
+        $cartItems = [];
+        foreach ($bills as $bill) {
+            $cartItems[] = [
+                'bill_id' => $bill->id,
+                'name' => $this->getBillTypeInfo($bill->bill_type)['label'],
+                'description' => $bill->description ?? $this->getBillTypeInfo($bill->bill_type)['description'],
+                'amount' => (int) $bill->total_amount,
+                'quantity' => 1,
+                'bill_type' => $bill->bill_type
+            ];
+        }
+
+        // If no bills found, create a fallback item based on payment amount
+        if (empty($cartItems)) {
+            $cartItems[] = [
+                'bill_id' => null,
+                'name' => 'Pembayaran PPDB',
+                'description' => 'Pembayaran administrasi pendaftaran',
+                'amount' => $payment->amount,
+                'quantity' => 1,
+                'bill_type' => 'registration_fee'
+            ];
+        }
+
+        return $cartItems;
     }
 
     /**
@@ -258,7 +710,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * ✅ HANDLE PAYMENT SUCCESS - UPDATE STATUS & PENDAFTAR
+     * ✅ HANDLE PAYMENT SUCCESS - UPDATE STATUS & STUDENT BILLS
      */
     private function handlePaymentSuccess(Payment $payment, array $webhookData = []): void
     {
@@ -266,7 +718,8 @@ class PaymentController extends Controller
             'payment_id' => $payment->id,
             'external_id' => $payment->external_id,
             'current_status' => $payment->status,
-            'pendaftar_id' => $payment->pendaftar_id
+            'pendaftar_id' => $payment->pendaftar_id,
+            'has_metadata' => isset($payment->metadata)
         ]);
 
         DB::transaction(function() use ($payment, $webhookData) {
@@ -279,12 +732,13 @@ class PaymentController extends Controller
 
             $payment->update($updateData);
 
-            // Update pendaftar - mark as paid and update statuses
-            $payment->pendaftar->update([
-                'sudah_bayar_formulir' => true,
-                'overall_status' => 'Sudah Bayar',
-                'current_status' => 'Sudah Bayar'
-            ]);
+            // Handle cart-based payments with StudentBill updates
+            if (isset($payment->metadata['cart_items']) && !empty($payment->metadata['cart_items'])) {
+                $this->updateStudentBillsFromCart($payment);
+            } else {
+                // Fallback for legacy single payment
+                $this->updateLegacyPayment($payment);
+            }
 
             Log::info('✅ Payment success processed successfully', [
                 'payment_id' => $payment->id,
@@ -292,10 +746,149 @@ class PaymentController extends Controller
                 'student_name' => $payment->pendaftar->nama_murid,
                 'amount' => $payment->amount,
                 'paid_at' => $payment->paid_at,
-                'pendaftar_sudah_bayar' => true,
-                'overall_status' => 'Sudah Bayar'
+                'has_cart_items' => isset($payment->metadata['cart_items']),
+                'cart_items_count' => count($payment->metadata['cart_items'] ?? [])
             ]);
         });
+    }
+
+    /**
+     * Update StudentBill records based on cart payment
+     */
+    private function updateStudentBillsFromCart(Payment $payment): void
+    {
+        Log::info('Updating StudentBills from cart payment', [
+            'payment_id' => $payment->id,
+            'cart_items' => $payment->metadata['cart_items'] ?? []
+        ]);
+
+        $cartItems = $payment->metadata['cart_items'] ?? [];
+        $updatedBills = [];
+
+        foreach ($cartItems as $item) {
+            if (isset($item['bill_id'])) {
+                $studentBill = \App\Models\StudentBill::find($item['bill_id']);
+
+                if ($studentBill && $studentBill->payment_status === 'pending') {
+                    // Update the student bill status
+                    $studentBill->update([
+                        'payment_status' => 'paid',
+                        'paid_amount' => $studentBill->remaining_amount,
+                        'remaining_amount' => 0,
+                        'paid_at' => now()
+                    ]);
+
+                    // Create a bill payment record to track the relationship
+                    \App\Models\BillPayment::create([
+                        'student_bill_id' => $studentBill->id,
+                        'pendaftar_id' => $payment->pendaftar_id,
+                        'payment_number' => 'PAY-' . date('Y') . '-' . str_pad($payment->id, 6, '0', STR_PAD_LEFT),
+                        'external_transaction_id' => $payment->external_id,
+                        'invoice_id' => $payment->invoice_id,
+                        'amount' => $studentBill->paid_amount,
+                        'payment_method' => 'virtual_account', // Default for Xendit payments
+                        'payment_channel' => $payment->xendit_response['bank_code'] ?? 'XENDIT',
+                        'status' => 'completed',
+                        'payment_date' => $payment->paid_at,
+                        'confirmed_at' => now(),
+                        'verified_by' => null, // Auto-verified for successful payments
+                        'verified_at' => now()
+                    ]);
+
+                    $updatedBills[] = [
+                        'bill_id' => $studentBill->id,
+                        'name' => $studentBill->name,
+                        'amount' => $studentBill->paid_amount
+                    ];
+                }
+            }
+        }
+
+        // Update pendaftar status if all bills are paid
+        $this->updatePendaftarStatusFromBills($payment->pendaftar);
+
+        Log::info('StudentBills updated from cart payment', [
+            'payment_id' => $payment->id,
+            'updated_bills' => $updatedBills,
+            'total_bills_updated' => count($updatedBills)
+        ]);
+    }
+
+    /**
+     * Update legacy single payment (backward compatibility)
+     */
+    private function updateLegacyPayment(Payment $payment): void
+    {
+        Log::info('Processing legacy payment', ['payment_id' => $payment->id]);
+
+        // Update pendaftar for legacy payments
+        $payment->pendaftar->update([
+            'sudah_bayar_formulir' => true,
+            'overall_status' => 'Sudah Bayar',
+            'current_status' => 'Sudah Bayar'
+        ]);
+    }
+
+    /**
+     * Update pendaftar status based on StudentBill status
+     */
+    private function updatePendaftarStatusFromBills(\App\Models\Pendaftar $pendaftar): void
+    {
+        $unpaidBills = \App\Models\StudentBill::where('pendaftar_id', $pendaftar->id)
+            ->where('payment_status', 'pending')
+            ->where('remaining_amount', '>', 0)
+            ->count();
+
+        $paidBills = \App\Models\StudentBill::where('pendaftar_id', $pendaftar->id)
+            ->where('payment_status', 'paid')
+            ->count();
+
+        // Check if registration fee (formulir) is paid
+        $registrationFeePaid = \App\Models\StudentBill::where('pendaftar_id', $pendaftar->id)
+            ->where('bill_type', 'registration_fee')
+            ->where('payment_status', 'paid')
+            ->exists();
+
+        if ($unpaidBills === 0 && $paidBills > 0) {
+            // All bills are paid - using valid enum value
+            $pendaftar->update([
+                'sudah_bayar_formulir' => true,
+                'overall_status' => 'Sudah Bayar',
+                'current_status' => 'Fully Paid',
+                'data_completion_status' => $registrationFeePaid ? 'incomplete' : $pendaftar->data_completion_status
+            ]);
+
+            Log::info('Pendaftar marked as fully paid', [
+                'pendaftar_id' => $pendaftar->id,
+                'paid_bills' => $paidBills
+            ]);
+        } elseif ($paidBills > 0) {
+            // Partial payment - using valid enum value
+            $pendaftar->update([
+                'overall_status' => 'Sudah Bayar',
+                'current_status' => 'Partial Payment',
+                'data_completion_status' => $registrationFeePaid ? 'incomplete' : $pendaftar->data_completion_status
+            ]);
+
+            Log::info('Pendaftar marked as partially paid', [
+                'pendaftar_id' => $pendaftar->id,
+                'paid_bills' => $paidBills,
+                'unpaid_bills' => $unpaidBills
+            ]);
+        }
+
+        // Specifically handle registration fee payment - activate data entry stage
+        if ($registrationFeePaid && $pendaftar->data_completion_status !== 'complete') {
+            $pendaftar->update([
+                'sudah_bayar_formulir' => true,
+                'data_completion_status' => 'incomplete'
+            ]);
+
+            Log::info('Registration fee paid - activating data entry stage', [
+                'pendaftar_id' => $pendaftar->id,
+                'data_completion_status' => 'incomplete'
+            ]);
+        }
     }
 
     /**
@@ -433,21 +1026,74 @@ class PaymentController extends Controller
     {
         $user = Auth::user();
 
-        $pendaftar = Pendaftar::where('user_id', $user->id)
-            ->with(['payments' => function($query) {
-                $query->orderBy('created_at', 'desc');
-            }])
-            ->first();
+        $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
         if (!$pendaftar) {
             return redirect()->route('user.dashboard')
                 ->with('error', 'Data pendaftaran tidak ditemukan.');
         }
 
-        // Cleanup expired payments
-        $this->cleanupExpiredPayments($pendaftar->id);
+        // Get active bills (unpaid) using new StudentBill system with intelligent filtering
+        $query = \App\Models\StudentBill::where('pendaftar_id', $pendaftar->id)
+            ->where('payment_status', 'pending')
+            ->where('remaining_amount', '>', 0);
 
-        return view('user.payment.index', compact('pendaftar'));
+        // Apply intelligent bill filtering based on student status
+        $studentStatus = $pendaftar->student_status ?? 'inactive';
+        $isActiveStudent = $studentStatus === 'active';
+
+        // If student is not active, only show formulir and uang_pangkal bills
+        if (!$isActiveStudent) {
+            $query->whereIn('bill_type', ['formulir', 'uang_pangkal']);
+        }
+        // If student is active, show all bill types including SPP, seragam, buku
+
+        $activeBills = $query->orderBy('due_date', 'asc')->get();
+
+        // Get paid bills for history (apply same filtering logic)
+        $paidQuery = \App\Models\StudentBill::where('pendaftar_id', $pendaftar->id)
+            ->where('payment_status', 'paid');
+
+        if (!$isActiveStudent) {
+            $paidQuery->whereIn('bill_type', ['formulir', 'uang_pangkal']);
+        }
+
+        $paidBills = $paidQuery->orderBy('paid_at', 'desc')->get();
+
+        // Calculate summary data
+        $totalUnpaidAmount = $activeBills->sum('remaining_amount');
+        $totalPaidAmount = $paidBills->sum('total_amount');
+        $totalBillsCount = $activeBills->count();
+
+        // Calculate Xendit fees for potential payment
+        $paymentFees = $totalUnpaidAmount > 0 ? $this->getBestFeeOption($totalUnpaidAmount) : null;
+
+        // Get available discounts/vouchers from admin system
+        $availableDiscounts = \App\Models\Discount::active()
+            ->valid()
+            ->where(function($query) use ($totalUnpaidAmount) {
+                $query->whereNull('minimum_amount')
+                      ->orWhere('minimum_amount', '<=', $totalUnpaidAmount);
+            })
+            ->orderBy('value', 'desc')
+            ->get();
+
+        // For backward compatibility, still get old payments if any
+        $oldPayments = $pendaftar->payments()->orderBy('created_at', 'desc')->get();
+
+        return view('user.payment.index', compact(
+            'pendaftar',
+            'activeBills',
+            'paidBills',
+            'totalUnpaidAmount',
+            'totalPaidAmount',
+            'totalBillsCount',
+            'paymentFees',
+            'availableDiscounts',
+            'oldPayments',
+            'studentStatus',
+            'isActiveStudent'
+        ));
     }
 
     public function adminIndex()
@@ -462,7 +1108,6 @@ class PaymentController extends Controller
 
     public function createInvoice(Request $request)
     {
-        // TAMBAHKAN DEBUG INI
         Log::info('=== PAYMENT CREATE INVOICE CALLED ===', [
             'request_data' => $request->all(),
             'route_name' => request()->route()->getName(),
@@ -473,7 +1118,7 @@ class PaymentController extends Controller
 
         $request->validate([
             'pendaftar_id' => 'required|exists:pendaftars,id',
-            'amount' => 'required|numeric|min:100000|max:10000000',
+            'amount' => 'required|numeric|min:10000|max:50000000', // Increased range for cart payments
             'items' => 'nullable|string',
             'promo_code' => 'nullable|string|max:50',
             'discount_id' => 'nullable|string|max:50'
@@ -484,45 +1129,77 @@ class PaymentController extends Controller
             ->where('id', $request->pendaftar_id)
             ->first();
 
-        Log::info('Pendaftar found', [
-            'pendaftar_id' => $pendaftar->id ?? 'NOT_FOUND',
-            'sudah_bayar' => $pendaftar->sudah_bayar_formulir ?? 'N/A'
-        ]);
-
-        // Log cart data
-        Log::info('Cart data received', [
-            'items' => $request->items,
-            'promo_code' => $request->promo_code,
-            'discount_id' => $request->discount_id,
-            'amount' => $request->amount
-        ]);
-
         if (!$pendaftar) {
             Log::error('Pendaftar not found');
             return back()->with('error', 'Data pendaftaran tidak ditemukan.');
         }
 
-        if ($pendaftar->sudah_bayar_formulir) {
-            Log::info('Payment already completed');
-            return back()->with('info', 'Pembayaran sudah lunas.');
-        }
-
-        // SHOPPING CART: Skip amount validation for flexible cart payments
-        Log::info('Skipping amount validation for shopping cart payment', [
-            'request_amount' => $request->amount,
-            'pendaftar_base_amount' => $pendaftar->payment_amount
+        Log::info('Processing cart payment with discount support', [
+            'pendaftar_id' => $pendaftar->id,
+            'cart_amount' => $request->amount,
+            'items' => $request->items,
+            'promo_code' => $request->promo_code,
+            'discount_id' => $request->discount_id
         ]);
 
-        Log::info('Starting payment creation...');
+        // Parse cart items
+        $cartItems = [];
+        if ($request->items) {
+            try {
+                $cartItems = json_decode($request->items, true);
+                if (!is_array($cartItems)) {
+                    throw new \Exception('Invalid cart items format');
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to parse cart items', ['error' => $e->getMessage()]);
+                return back()->with('error', 'Format data keranjang tidak valid.');
+            }
+        }
 
-        // ALWAYS use Xendit - never demo
-        return DB::transaction(function() use ($pendaftar) {
-            Log::info('Inside transaction for payment creation');
+        // Validate discount if provided
+        $appliedDiscount = null;
+        $discountAmount = 0;
+
+        if ($request->promo_code || $request->discount_id) {
+            $discountValidation = $this->validateDiscountInternal($request->promo_code ?? $request->discount_id, $request->amount);
+
+            if (!$discountValidation['success']) {
+                Log::error('Discount validation failed', $discountValidation);
+                return back()->with('error', $discountValidation['message']);
+            }
+
+            $appliedDiscount = $discountValidation['discount'];
+            $discountAmount = $appliedDiscount['discount_amount'];            Log::info('Discount applied', [
+                'discount_code' => $appliedDiscount['code'],
+                'discount_amount' => $discountAmount,
+                'original_amount' => $request->amount,
+                'final_amount' => $request->amount
+            ]);
+        }
+
+        // Calculate transaction fees
+        $paymentAmount = (float) $request->amount;
+        $bestFeeOption = $this->getBestFeeOption($paymentAmount);
+        $transactionFee = $bestFeeOption['min_fee'];
+        $finalAmount = $paymentAmount + $transactionFee;
+
+        Log::info('Payment calculation completed', [
+            'subtotal' => $paymentAmount,
+            'discount_amount' => $discountAmount,
+            'transaction_fee' => $transactionFee,
+            'final_amount' => $finalAmount,
+            'recommended_method' => $bestFeeOption['recommended_method']
+        ]);
+
+        // Create payment record in database first
+        $externalId = $this->generateExternalId($pendaftar, $cartItems);
+
+        return DB::transaction(function() use ($pendaftar, $paymentAmount, $finalAmount, $cartItems, $appliedDiscount, $discountAmount, $transactionFee, $externalId, $bestFeeOption) {
 
             // Cleanup expired payments first
             $this->cleanupExpiredPayments($pendaftar->id);
 
-            // Check for existing active payment (within 1 hour)
+            // Check for existing active payment
             $activePendingPayment = Payment::where('pendaftar_id', $pendaftar->id)
                 ->where('status', self::STATUS_PENDING)
                 ->where('created_at', '>', now()->subHour())
@@ -531,18 +1208,23 @@ class PaymentController extends Controller
             if ($activePendingPayment) {
                 Log::info('Found active pending payment', [
                     'payment_id' => $activePendingPayment->id,
-                    'external_id' => $activePendingPayment->external_id,
                     'invoice_url' => $activePendingPayment->invoice_url
                 ]);
-
-                // Direct redirect to Xendit URL
                 return redirect()->away($activePendingPayment->invoice_url);
             }
 
-            Log::info('No active payment found, creating new Xendit invoice');
-
-            // Create new Xendit invoice
-            return $this->createXenditInvoice($pendaftar);
+            // Create new Xendit invoice with cart data
+            return $this->createXenditInvoiceWithCart(
+                $pendaftar,
+                $paymentAmount,
+                $finalAmount,
+                $cartItems,
+                $appliedDiscount,
+                $discountAmount,
+                $transactionFee,
+                $externalId,
+                $bestFeeOption
+            );
         });
     }
 
@@ -560,7 +1242,17 @@ class PaymentController extends Controller
             }
 
             $user = Auth::user();
-            $externalId = $this->generateExternalId($pendaftar);
+
+            // Create cart items for formulir payment
+            $formulirCartItems = [
+                [
+                    'bill_id' => null,
+                    'name' => 'Biaya Formulir Pendaftaran',
+                    'amount' => $pendaftar->payment_amount
+                ]
+            ];
+
+            $externalId = $this->generateExternalId($pendaftar, $formulirCartItems);
             $jenjangName = $this->getJenjangName($pendaftar->jenjang);
 
             Log::info('Xendit invoice data prepared', [
@@ -797,6 +1489,227 @@ class PaymentController extends Controller
         }
     }
 
+    private function createXenditInvoiceWithCart(
+        Pendaftar $pendaftar,
+        float $paymentAmount,
+        float $finalAmount,
+        array $cartItems,
+        ?array $appliedDiscount,
+        float $discountAmount,
+        float $transactionFee,
+        string $externalId,
+        array $bestFeeOption
+    ) {
+        Log::info('=== CREATE XENDIT INVOICE WITH CART START ===', [
+            'pendaftar_id' => $pendaftar->id,
+            'payment_amount' => $paymentAmount,
+            'final_amount' => $finalAmount,
+            'cart_items_count' => count($cartItems),
+            'discount_applied' => $appliedDiscount !== null,
+            'discount_amount' => $discountAmount,
+            'transaction_fee' => $transactionFee,
+            'recommended_method' => $bestFeeOption['recommended_method']
+        ]);
+
+        try {
+            if (!$this->isValidApiKey()) {
+                Log::error('Invalid Xendit API Key');
+                throw new \Exception('Xendit API Key tidak valid atau tidak dikonfigurasi');
+            }
+
+            $user = Auth::user();
+            $jenjangName = $this->getJenjangName($pendaftar->jenjang);
+
+            // Generate payment type description from cart items
+            $paymentTypeDesc = $this->generatePaymentTypeDescription($cartItems);
+
+            // Build description with payment type, cart items and discount info
+            $description = sprintf(
+                '%s - %s - %s - %s',
+                $paymentTypeDesc,
+                $jenjangName,
+                $pendaftar->unit,
+                $pendaftar->nama_murid
+            );
+
+            if ($appliedDiscount) {
+                $description .= sprintf(' (Diskon: %s)', $appliedDiscount['code']);
+            }
+
+            // Build items array for invoice
+            $invoiceItems = [];
+
+            // Add cart items
+            foreach ($cartItems as $item) {
+                $invoiceItems[] = [
+                    'name' => $item['name'] ?? 'Item Pembayaran',
+                    'quantity' => 1,
+                    'price' => (int) $item['amount'],
+                    'category' => 'Education'
+                ];
+            }
+
+            // Add discount as negative item if applied
+            if ($appliedDiscount && $discountAmount > 0) {
+                $invoiceItems[] = [
+                    'name' => sprintf('Diskon %s', $appliedDiscount['code']),
+                    'quantity' => 1,
+                    'price' => -(int) $discountAmount,
+                    'category' => 'Discount'
+                ];
+            }
+
+            // Add transaction fee
+            $invoiceItems[] = [
+                'name' => sprintf('Biaya Transaksi (%s)', $bestFeeOption['recommended_method']),
+                'quantity' => 1,
+                'price' => (int) $transactionFee,
+                'category' => 'Fee'
+            ];
+
+            $invoiceData = [
+                'external_id' => $externalId,
+                'amount' => (int) $finalAmount,
+                'description' => $description,
+                'invoice_duration' => self::INVOICE_DURATION,
+                'customer' => [
+                    'given_names' => $pendaftar->nama_murid,
+                    'email' => $user->email,
+                    'mobile_number' => $this->formatPhoneNumber($pendaftar->telp_ayah ?? '08123456789'),
+                    'addresses' => [
+                        [
+                            'city' => 'Jakarta',
+                            'country' => 'Indonesia',
+                            'postal_code' => '12345',
+                            'state' => 'DKI Jakarta',
+                            'street_line1' => $pendaftar->alamat ?? 'Jakarta'
+                        ]
+                    ]
+                ],
+                'success_redirect_url' => route('user.payments.success'),
+                'failure_redirect_url' => route('user.payments.failed'),
+                'currency' => 'IDR',
+                'webhook_url' => route('payment.webhook'),
+                'should_exclude_credit_card' => false,
+                'should_send_email' => true,
+                'should_authenticate_credit_card' => true,
+                'locale' => 'id',
+
+                // Payment methods configuration
+                'available_banks' => [
+                    ['bank_code' => 'BCA', 'collection_type' => 'POOL', 'transfer_amount' => (int) $finalAmount],
+                    ['bank_code' => 'BNI', 'collection_type' => 'POOL', 'transfer_amount' => (int) $finalAmount],
+                    ['bank_code' => 'BRI', 'collection_type' => 'POOL', 'transfer_amount' => (int) $finalAmount],
+                    ['bank_code' => 'MANDIRI', 'collection_type' => 'POOL', 'transfer_amount' => (int) $finalAmount],
+                    ['bank_code' => 'PERMATA', 'collection_type' => 'POOL', 'transfer_amount' => (int) $finalAmount],
+                    ['bank_code' => 'CIMB', 'collection_type' => 'POOL', 'transfer_amount' => (int) $finalAmount]
+                ],
+                'available_ewallets' => [
+                    ['ewallet_type' => 'OVO'],
+                    ['ewallet_type' => 'DANA'],
+                    ['ewallet_type' => 'LINKAJA'],
+                    ['ewallet_type' => 'SHOPEEPAY']
+                ],
+                'available_retail_outlets' => [
+                    ['retail_outlet_name' => 'ALFAMART'],
+                    ['retail_outlet_name' => 'INDOMARET']
+                ],
+                'available_direct_debits' => [],
+
+                // Detailed items breakdown
+                'items' => $invoiceItems,
+
+                // Customer notifications
+                'customer_notification_preference' => [
+                    'invoice_created' => ['email', 'sms'],
+                    'invoice_reminder' => ['email', 'sms'],
+                    'invoice_paid' => ['email', 'sms']
+                ],
+
+                // Fees configuration
+                'fees' => [
+                    [
+                        'type' => 'xendit_fee',
+                        'value' => 0 // Fee included in amount
+                    ]
+                ]
+            ];
+
+            Log::info('Sending cart payment request to Xendit', [
+                'external_id' => $externalId,
+                'final_amount' => $finalAmount,
+                'items_count' => count($invoiceItems),
+                'discount_applied' => $appliedDiscount !== null
+            ]);
+
+            $response = Http::withBasicAuth($this->xenditApiKey, '')
+                ->timeout(30)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'PPDB-YAPI/1.0'
+                ])
+                ->post($this->getXenditBaseUrl() . '/v2/invoices', $invoiceData);
+
+            if (!$response->successful()) {
+                $errorResponse = $response->json();
+                Log::error('Xendit API Error for cart payment', [
+                    'status' => $response->status(),
+                    'response' => $errorResponse,
+                    'sent_data' => $invoiceData
+                ]);
+                throw new \Exception(
+                    'Xendit API Error: ' . ($errorResponse['message'] ?? 'Unknown error') . ' (Status: ' . $response->status() . ')'
+                );
+            }
+
+            $responseData = $response->json();
+
+            if (!isset($responseData['invoice_url'])) {
+                Log::error('Missing invoice_url in response', $responseData);
+                throw new \Exception('Response Xendit tidak lengkap - missing invoice_url');
+            }
+
+            // Create payment record with cart data
+            $payment = Payment::create([
+                'pendaftar_id' => $pendaftar->id,
+                'external_id' => $externalId,
+                'invoice_id' => $responseData['id'],
+                'invoice_url' => $responseData['invoice_url'],
+                'amount' => $finalAmount,
+                'status' => self::STATUS_PENDING,
+                'xendit_response' => $responseData,
+                'expires_at' => now()->addHour(),
+                // Store cart metadata
+                'metadata' => [
+                    'cart_items' => $cartItems,
+                    'applied_discount' => $appliedDiscount,
+                    'discount_amount' => $discountAmount,
+                    'transaction_fee' => $transactionFee,
+                    'subtotal' => $paymentAmount,
+                    'final_amount' => $finalAmount
+                ]
+            ]);
+
+            Log::info('Cart payment record created successfully', [
+                'payment_id' => $payment->id,
+                'invoice_url' => $responseData['invoice_url'],
+                'final_amount' => $finalAmount,
+                'has_discount' => $appliedDiscount !== null
+            ]);
+
+            return redirect()->away($responseData['invoice_url']);
+
+        } catch (\Exception $e) {
+            Log::error('=== CREATE XENDIT CART INVOICE ERROR ===', [
+                'message' => $e->getMessage(),
+                'pendaftar_id' => $pendaftar->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
     public function success()
     {
         $user = Auth::user();
@@ -843,7 +1756,19 @@ class PaymentController extends Controller
         $pendaftar = $payment->pendaftar;
         $jenjangName = $this->getJenjangName($pendaftar->jenjang);
 
-        return view('user.payment.success', compact('payment', 'pendaftar', 'jenjangName'));
+        // Get transaction types and cart items for dynamic display
+        $transactionTypes = $this->getTransactionTypes($payment);
+        $cartItems = $this->getCartItemsFromMetadata($payment);
+        $paymentTypeDescription = $this->generatePaymentTypeDescription($cartItems);
+
+        return view('user.payment.success', compact(
+            'payment',
+            'pendaftar',
+            'jenjangName',
+            'transactionTypes',
+            'paymentTypeDescription',
+            'cartItems'
+        ));
     }
 
     public function failed()
@@ -868,12 +1793,36 @@ class PaymentController extends Controller
 
         $jenjangName = $this->getJenjangName($pendaftar->jenjang);
 
-        return view('user.payment.failed', compact('payment', 'pendaftar', 'jenjangName'));
+        // Get additional data if payment exists
+        $transactionTypes = [];
+        $cartItems = [];
+        $paymentTypeDescription = 'Pembayaran PPDB';
+
+        if ($payment) {
+            $transactionTypes = $this->getTransactionTypes($payment);
+            $cartItems = $this->getCartItemsFromMetadata($payment);
+            $paymentTypeDescription = $this->generatePaymentTypeDescription($cartItems);
+        }
+
+        return view('user.payment.failed', compact(
+            'payment',
+            'pendaftar',
+            'jenjangName',
+            'transactionTypes',
+            'cartItems',
+            'paymentTypeDescription'
+        ));
     }
 
     public function transactions()
     {
         $user = Auth::user();
+
+        $pendaftar = Pendaftar::where('user_id', $user->id)->first();
+
+        // Get student status information for context
+        $studentStatus = $pendaftar ? ($pendaftar->student_status ?? 'inactive') : 'inactive';
+        $isActiveStudent = $studentStatus === 'active';
 
         $payments = Payment::whereHas('pendaftar', function($query) use ($user) {
             $query->where('user_id', $user->id);
@@ -882,7 +1831,28 @@ class PaymentController extends Controller
         ->orderBy('created_at', 'desc')
         ->paginate(10);
 
-        return view('user.transactions.index', compact('payments'));
+        // Collect all bill IDs from metadata to reduce queries
+        $billIds = [];
+        foreach ($payments as $payment) {
+            if ($payment->metadata && isset($payment->metadata['cart_items'])) {
+                foreach ($payment->metadata['cart_items'] as $item) {
+                    if (isset($item['bill_id'])) {
+                        $billIds[] = $item['bill_id'];
+                    }
+                }
+            }
+        }
+
+        // Preload all bills at once for better performance
+        $bills = StudentBill::whereIn('id', array_unique($billIds))->get()->keyBy('id');
+
+        // Add transaction type data to each payment with preloaded bills
+        foreach ($payments as $payment) {
+            $payment->transaction_types = $this->getTransactionTypesWithBills($payment, $bills);
+            $payment->primary_type = $this->getPrimaryTransactionType($payment);
+        }
+
+        return view('user.transactions.index', compact('payments', 'studentStatus', 'isActiveStudent', 'pendaftar'));
     }
 
     public function transactionDetail($id)
@@ -894,6 +1864,10 @@ class PaymentController extends Controller
         })
         ->with(['pendaftar'])
         ->findOrFail($id);
+
+        // Add transaction type data
+        $payment->transaction_types = $this->getTransactionTypes($payment);
+        $payment->primary_type = $this->getPrimaryTransactionType($payment);
 
         $jenjangName = $this->getJenjangName($payment->pendaftar->jenjang);
 
@@ -1397,5 +2371,208 @@ class PaymentController extends Controller
                 'sent_data' => $testInvoiceData
             ], 500);
         }
+    }
+
+    /**
+     * Get transaction types from payment metadata and related bills
+     */
+    private function getTransactionTypes($payment)
+    {
+        $types = [];
+
+        // Try to get from metadata first (for new payments)
+        if ($payment->metadata && isset($payment->metadata['cart_items'])) {
+            foreach ($payment->metadata['cart_items'] as $item) {
+                if (isset($item['bill_id'])) {
+                    $bill = StudentBill::find($item['bill_id']);
+                    if ($bill) {
+                        $typeInfo = $this->getBillTypeInfo($bill->bill_type, $bill);
+                        // Check if type already exists to avoid duplicates
+                        $exists = false;
+                        foreach ($types as $existingType) {
+                            if ($existingType['type'] === $typeInfo['type'] && $existingType['label'] === $typeInfo['label']) {
+                                $exists = true;
+                                break;
+                            }
+                        }
+                        if (!$exists) {
+                            $types[] = $typeInfo;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback: try to infer from payment amount and existing bills (for old payments)
+        if (empty($types) && $payment->pendaftar) {
+            $possibleBills = StudentBill::where('pendaftar_id', $payment->pendaftar->id)
+                ->where('total_amount', '<=', $payment->amount * 1.1) // Allow 10% tolerance for fees
+                ->where('total_amount', '>=', $payment->amount * 0.9)
+                ->where('payment_status', 'paid')
+                ->get();
+
+            foreach ($possibleBills as $bill) {
+                $typeInfo = $this->getBillTypeInfo($bill->bill_type, $bill);
+                $exists = false;
+                foreach ($types as $existingType) {
+                    if ($existingType['type'] === $typeInfo['type']) {
+                        $exists = true;
+                        break;
+                    }
+                }
+                if (!$exists) {
+                    $types[] = $typeInfo;
+                }
+            }
+        }
+
+        return $types;
+    }
+
+    /**
+     * Get primary transaction type for display
+     */
+    private function getPrimaryTransactionType($payment)
+    {
+        $types = $this->getTransactionTypes($payment);
+
+        if (empty($types)) {
+            return [
+                'type' => 'other',
+                'label' => 'Pembayaran',
+                'color' => 'secondary',
+                'icon' => 'credit-card'
+            ];
+        }
+
+        // Priority order: registration_fee > uang_pangkal > spp > others
+        $priority = ['registration_fee', 'uang_pangkal', 'spp', 'uniform', 'books', 'supplies', 'activity', 'other'];
+
+        foreach ($priority as $priorityType) {
+            foreach ($types as $type) {
+                if ($type['type'] === $priorityType) {
+                    return $type;
+                }
+            }
+        }
+
+        return $types[0];
+    }
+
+    /**
+     * Get bill type information with styling
+     */
+    private function getBillTypeInfo($billType, $bill = null)
+    {
+        $typeMap = [
+            'registration_fee' => [
+                'type' => 'registration_fee',
+                'label' => 'Formulir Pendaftaran',
+                'color' => 'primary',
+                'icon' => 'file-earmark-text'
+            ],
+            'uang_pangkal' => [
+                'type' => 'uang_pangkal',
+                'label' => 'Uang Pangkal',
+                'color' => 'success',
+                'icon' => 'piggy-bank'
+            ],
+            'spp' => [
+                'type' => 'spp',
+                'label' => $this->getSppLabel($bill),
+                'color' => 'info',
+                'icon' => 'calendar-month'
+            ],
+            'uniform' => [
+                'type' => 'uniform',
+                'label' => 'Seragam',
+                'color' => 'warning',
+                'icon' => 'person-square'
+            ],
+            'books' => [
+                'type' => 'books',
+                'label' => 'Buku',
+                'color' => 'secondary',
+                'icon' => 'book'
+            ],
+            'supplies' => [
+                'type' => 'supplies',
+                'label' => 'Alat Tulis',
+                'color' => 'dark',
+                'icon' => 'pencil'
+            ],
+            'activity' => [
+                'type' => 'activity',
+                'label' => 'Kegiatan',
+                'color' => 'danger',
+                'icon' => 'activity'
+            ],
+            'other' => [
+                'type' => 'other',
+                'label' => 'Lainnya',
+                'color' => 'secondary',
+                'icon' => 'three-dots'
+            ]
+        ];
+
+        return $typeMap[$billType] ?? $typeMap['other'];
+    }
+
+    /**
+     * Get SPP label with month information
+     */
+    /**
+     * Get SPP label with month information
+     */
+    private function getSppLabel($bill)
+    {
+        if (!$bill || !$bill->month) {
+            return 'SPP';
+        }
+
+        $months = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        $monthName = $months[$bill->month] ?? '';
+        return $monthName ? "SPP $monthName" : 'SPP';
+    }
+
+    /**
+     * Get transaction types with preloaded bills for performance
+     */
+    private function getTransactionTypesWithBills($payment, $bills)
+    {
+        $types = [];
+
+        // Try to get from metadata first (for new payments)
+        if ($payment->metadata && isset($payment->metadata['cart_items'])) {
+            foreach ($payment->metadata['cart_items'] as $item) {
+                if (isset($item['bill_id']) && isset($bills[$item['bill_id']])) {
+                    $bill = $bills[$item['bill_id']];
+                    $typeInfo = $this->getBillTypeInfo($bill->bill_type, $bill);
+                    // Check if type already exists to avoid duplicates
+                    $exists = false;
+                    foreach ($types as $existingType) {
+                        if ($existingType['type'] === $typeInfo['type'] && $existingType['label'] === $typeInfo['label']) {
+                            $exists = true;
+                            break;
+                        }
+                    }
+                    if (!$exists) {
+                        $types[] = $typeInfo;
+                    }
+                }
+            }
+        }
+
+        // Fallback for payments without metadata
+        if (empty($types)) {
+            $types = $this->getTransactionTypes($payment);
+        }
+
+        return $types;
     }
 }

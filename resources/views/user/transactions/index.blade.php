@@ -86,6 +86,7 @@
                                                     <th class="py-3">Nama Murid</th>
                                                     <th class="py-3">Unit</th>
                                                     <th class="py-3">Amount</th>
+                                                    <th class="py-3">Jenis Transaksi</th>
                                                     <th class="py-3">Metode Pembayaran</th>
                                                     <th class="py-3">Status</th>
                                                     <th class="py-3">Tanggal</th>
@@ -114,6 +115,21 @@
                                                     </td>
                                                     <td>
                                                         <div class="fw-bold text-success">Rp {{ number_format($payment->amount, 0, ',', '.') }}</div>
+                                                    </td>
+                                                    <!-- Transaction type column -->
+                                                    <td>
+                                                        @if(isset($payment->primary_type))
+                                                            <span class="badge bg-{{ $payment->primary_type['color'] }} bg-opacity-10 text-{{ $payment->primary_type['color'] }} px-3 py-2 rounded-pill fw-semibold">
+                                                                <i class="bi bi-{{ $payment->primary_type['icon'] }} me-1"></i>{{ $payment->primary_type['label'] }}
+                                                            </span>
+                                                            @if(count($payment->transaction_types) > 1)
+                                                                <small class="d-block text-muted mt-1">+{{ count($payment->transaction_types) - 1 }} lainnya</small>
+                                                            @endif
+                                                        @else
+                                                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill fw-semibold">
+                                                                <i class="bi bi-credit-card me-1"></i>Pembayaran
+                                                            </span>
+                                                        @endif
                                                     </td>
                                                     <!-- Payment method column -->
                                                     <td>
