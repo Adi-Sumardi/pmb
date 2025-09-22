@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Pendaftar;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -83,7 +84,7 @@ class DataSiswaController extends Controller
         $transferredStudents = $statsQuery->where('student_status', 'transferred')->count();
 
         // Unit statistics for accepted students
-        $unitStatsQuery = Pendaftar::select('unit as school_unit', DB::raw('COUNT(*) as count'))
+        $unitStatsQuery = Pendaftar::select(['unit as school_unit', DB::raw('COUNT(*) as count')])
             ->where('overall_status', 'Lulus')
             ->groupBy('unit')
             ->orderBy('count', 'desc');
@@ -180,7 +181,7 @@ class DataSiswaController extends Controller
                 'old_status' => $oldStatus,
                 'new_status' => $newStatus,
                 'notes' => $request->student_status_notes,
-                'updated_by' => auth()->user()->name
+                'updated_by' => Auth::user()?->name ?? 'Unknown'
             ]);
 
             return response()->json([
@@ -247,7 +248,7 @@ class DataSiswaController extends Controller
                 'student_count' => count($studentIds),
                 'new_status' => $newStatus,
                 'notes' => $notes,
-                'updated_by' => auth()->user()->name
+                'updated_by' => Auth::user()?->name ?? 'Unknown'
             ]);
 
             return response()->json([

@@ -5,6 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $no_pendaftaran
+ * @property string $nama_murid
+ * @property string $nisn
+ * @property string $unit
+ * @property string $jenjang
+ * @property string $overall_status
+ * @property string $student_status
+ * @property \Carbon\Carbon $student_activated_at
+ * @property string $student_status_notes
+ * @property string $academic_year
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ *
+ * @property-read \App\Models\User $user
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\Payment> $payments
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\StudentBill> $studentBills
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\BillPayment> $billPayments
+ */
 class Pendaftar extends Model
 {
     use HasFactory;
@@ -110,6 +131,11 @@ class Pendaftar extends Model
         return $query->whereIn('student_status', ['active', 'graduated']);
     }
 
+    /**
+     * Get the user that owns the pendaftar.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, Pendaftar>
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
