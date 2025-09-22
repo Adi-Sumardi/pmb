@@ -7,6 +7,7 @@ use App\Models\Pendaftar;
 use App\Models\User;
 use App\Models\StudentBill;
 use App\Models\BillPayment;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -38,8 +39,10 @@ class DashboardController extends Controller
             'total_bills' => StudentBill::count(),
             'paid_bills' => StudentBill::where('remaining_amount', '<=', 0)->count(),
             'unpaid_bills' => StudentBill::where('remaining_amount', '>', 0)->count(),
-            'total_revenue' => BillPayment::where('status', 'confirmed')->sum('amount'),
-            'pending_payments' => BillPayment::where('status', 'pending')->count(),
+            'total_revenue' => BillPayment::where('status', 'completed')->sum('amount') +
+                              \App\Models\Payment::where('status', 'PAID')->sum('amount'),
+            'pending_payments' => BillPayment::where('status', 'pending')->count() +
+                                 \App\Models\Payment::where('status', 'PENDING')->count(),
         ];
 
         // Get recent pendaftar
@@ -103,11 +106,17 @@ class DashboardController extends Controller
 
         // Bill analytics
         $billAnalytics = [
-            'monthly_revenue' => BillPayment::where('status', 'confirmed')
+            'monthly_revenue' => BillPayment::where('status', 'completed')
                 ->whereMonth('confirmed_at', now()->month)
+                ->sum('amount') +
+                Payment::where('status', 'PAID')
+                ->whereMonth('paid_at', now()->month)
                 ->sum('amount'),
-            'weekly_revenue' => BillPayment::where('status', 'confirmed')
+            'weekly_revenue' => BillPayment::where('status', 'completed')
                 ->where('confirmed_at', '>=', now()->subDays(7))
+                ->sum('amount') +
+                Payment::where('status', 'PAID')
+                ->where('paid_at', '>=', now()->subDays(7))
                 ->sum('amount'),
             'overdue_bills' => StudentBill::where('remaining_amount', '>', 0)
                 ->where('due_date', '<', now())

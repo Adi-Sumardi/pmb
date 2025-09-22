@@ -132,17 +132,72 @@ class DataSiswaController extends Controller
     }
 
     /**
-     * Show student detail
+     * Show student detail with comprehensive data
      */
     public function show($id)
     {
-        $student = Pendaftar::with('user')->findOrFail($id);
+        $student = Pendaftar::with([
+            'user',
+            'payments' => function($query) {
+                $query->latest()->take(10); // Get latest 10 payments
+            }
+        ])->findOrFail($id);
 
         if ($student->overall_status !== 'Lulus') {
             abort(404, 'Student not found or not accepted yet.');
         }
 
-        return view('admin.data-siswa.detail', compact('student'));
+        // Load related data for comprehensive view
+        $studentDetail = null;
+        $academicHistory = collect();
+        $achievements = collect();
+        $documents = collect();
+        $healthRecord = null;
+        $parentDetail = null;
+
+        if ($student->id) {
+            // Get Student Detail
+            $studentDetail = \App\Models\StudentDetail::where('pendaftar_id', $student->id)->first();
+
+            // Get Academic History
+            $academicHistory = \App\Models\AcademicHistory::where('pendaftar_id', $student->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Get Achievements
+            $achievements = \App\Models\Achievement::where('pendaftar_id', $student->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Get Documents
+            $documents = \App\Models\Document::where('pendaftar_id', $student->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Get Health Record
+            $healthRecord = \App\Models\HealthRecord::where('pendaftar_id', $student->id)->first();
+
+            // Get Parent Detail
+            $parentDetail = \App\Models\ParentDetail::where('pendaftar_id', $student->id)->first();
+        }
+
+        // Get payment statistics
+        $payments = $student->payments()->orderBy('created_at', 'desc')->get();
+        $totalPaid = $student->payments()->where('status', 'completed')->sum('amount');
+        $pendingPayments = $student->payments()->where('status', 'pending')->count();
+
+        return view('admin.data-siswa.detail', compact(
+            'student',
+            'studentDetail',
+            'academicHistory',
+            'achievements',
+            'documents',
+            'healthRecord',
+            'parentDetail',
+            'payments',
+            'totalPaid',
+            'pendingPayments'
+        ));
     }
 
     /**

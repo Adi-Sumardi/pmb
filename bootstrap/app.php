@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\CloudflareMiddleware::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class,
             \App\Http\Middleware\SessionTimeoutMiddleware::class,
+            \App\Http\Middleware\ComprehensiveSecurityMiddleware::class,
         ]);
 
         $middleware->api(append: [
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\ApiRateLimitMiddleware::class,
             \App\Http\Middleware\ApiSecurityMiddleware::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class,
+            \App\Http\Middleware\ComprehensiveSecurityMiddleware::class,
         ]);
 
         // Register middleware aliases
@@ -47,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'security.headers' => \App\Http\Middleware\SecurityHeadersMiddleware::class,
             'cloudflare' => \App\Http\Middleware\CloudflareMiddleware::class,
             'secure.webhook' => \App\Http\Middleware\SecureWebhookMiddleware::class,
+            'comprehensive.security' => \App\Http\Middleware\ComprehensiveSecurityMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

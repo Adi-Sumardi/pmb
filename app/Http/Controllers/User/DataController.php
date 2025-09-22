@@ -4,7 +4,10 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DocumentUploadRequest;
+use App\Http\Requests\SecureStudentDataRequest;
+use App\Http\Requests\SecureParentDataRequest;
 use App\Services\SecureFileUploadService;
+use App\Services\SecurityValidationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -80,29 +83,19 @@ class DataController extends Controller
         return view('user.data.student', compact('pendaftar', 'studentDetail'));
     }
 
-    public function storeStudent(Request $request)
+    public function storeStudent(SecureStudentDataRequest $request)
     {
-        $request->validate([
-            'nama_lengkap' => 'required|string|max:255',
-            'nik' => 'required|string|max:20',
-            'no_kk' => 'required|string|max:20',
-            'tempat_lahir' => 'required|string|max:100',
-            'tanggal_lahir' => 'required|date',
-            'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
-            'agama' => 'required|string|max:20',
-            'kewarganegaraan' => 'required|string|max:10',
-            'alamat_lengkap' => 'required|string',
-            'kelurahan' => 'required|string|max:100',
-            'kecamatan' => 'required|string|max:100',
-            'kota_kabupaten' => 'required|string|max:100',
-            'provinsi' => 'required|string|max:100',
-        ]);
-
+        // Validation and sanitization is handled by SecureStudentDataRequest
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
         if (!$pendaftar) {
             return redirect()->route('dashboard')->with('error', 'Data pendaftar tidak ditemukan.');
+        }
+
+        // Additional security check
+        if (!SecurityValidationService::validateUserPermissions($user, 'store_student_data', $pendaftar)) {
+            abort(403, 'Unauthorized access');
         }
 
         // Find existing record or create new one
@@ -129,30 +122,24 @@ class DataController extends Controller
         return view('user.data.parent', compact('pendaftar', 'parentDetail'));
     }
 
-    public function storeParent(Request $request)
+    public function storeParent(SecureParentDataRequest $request)
     {
-        $request->validate([
-            'nama_ayah' => 'required|string|max:255',
-            'tempat_lahir_ayah' => 'nullable|string|max:255',
-            'tanggal_lahir_ayah' => 'nullable|date',
-            'pendidikan_ayah' => 'nullable|string|max:100',
-            'pekerjaan_ayah' => 'required|string|max:255',
-            'penghasilan_ayah' => 'nullable|string',
-            'nama_ibu' => 'required|string|max:255',
-            'tempat_lahir_ibu' => 'nullable|string|max:255',
-            'tanggal_lahir_ibu' => 'nullable|date',
-            'pendidikan_ibu' => 'nullable|string|max:100',
-            'pekerjaan_ibu' => 'required|string|max:255',
-            'penghasilan_ibu' => 'nullable|string',
-            'nama_wali' => 'nullable|string|max:255',
-        ]);
-
+        // Validation and sanitization is handled by SecureParentDataRequest
         $user = Auth::user();
         $pendaftar = Pendaftar::where('user_id', $user->id)->first();
 
+        if (!$pendaftar) {
+            return redirect()->route('dashboard')->with('error', 'Data pendaftar tidak ditemukan.');
+        }
+
+        // Additional security check
+        if (!SecurityValidationService::validateUserPermissions($user, 'store_parent_data', $pendaftar)) {
+            abort(403, 'Unauthorized access');
+        }
+
         ParentDetail::updateOrCreate(
             ['pendaftar_id' => $pendaftar->id],
-            $request->all()
+            $request->validated() // Use validated data instead of all()
         );
 
         return redirect()->route('user.data.index')->with('success', 'Data orang tua berhasil disimpan.');
