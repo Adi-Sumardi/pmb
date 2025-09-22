@@ -2,8 +2,10 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berhasil Disimpan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Berhasil Disimpan - YAPI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -44,10 +46,48 @@
              style="width: 100px; height: 100px;">
 
         <h2 class="text-success fw-bold">Data Berhasil Disimpan!</h2>
-        <p class="text-muted">Terima kasih sudah mengisi form. Data Anda telah tersimpan dengan aman dan akan segera di verifikasi.</p>
+        <p class="text-muted mb-3">Terima kasih sudah mengisi form. Data Anda telah tersimpan dengan aman dan akan segera diverifikasi.</p>
+
+        {{-- Informasi Verifikasi --}}
+        <div class="alert alert-info border-0 shadow-sm text-start" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 15px;">
+            <div class="d-flex align-items-start mb-2">
+                <i class="bi bi-clock-history fs-5 text-primary me-2"></i>
+                <strong class="text-primary">Jadwal Verifikasi Data</strong>
+            </div>
+            <p class="mb-2 small text-start">
+                <strong>Waktu Verifikasi:</strong> Setiap hari pukul <span class="badge bg-primary">07:00 - 21:00 WIB</span>
+            </p>
+            <p class="mb-2 small text-start">
+                <i class="bi bi-info-circle me-1"></i>
+                Tim verifikasi akan memeriksa kelengkapan dan kevalidan data yang telah Anda submit.
+            </p>
+            <p class="mb-0 small text-muted text-start">
+                <i class="bi bi-telephone me-1"></i>
+                Untuk pertanyaan mengenai status verifikasi, hubungi:
+                <strong>+62 21 1234567</strong>
+            </p>
+        </div>
+
+        {{-- Informasi Selanjutnya --}}
+        <div class="alert alert-warning border-0 shadow-sm mt-3 text-start" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-radius: 15px;">
+            <div class="d-flex align-items-start mb-2">
+                <i class="bi bi-exclamation-triangle fs-5 text-warning me-2"></i>
+                <strong class="text-warning">Informasi Penting</strong>
+            </div>
+            <ul class="mb-0 small text-dark text-start">
+                <li>Pastikan nomor telepon yang didaftarkan aktif untuk notifikasi</li>
+                <li>Siapkan dokumen asli untuk proses verifikasi lanjutan</li>
+                <li>Status verifikasi akan diinformasikan melalui kontak yang terdaftar</li>
+            </ul>
+        </div>
 
         <div class="d-flex justify-content-center gap-3 mt-4">
-            <a href="{{ url()->previous() }}" class="btn btn-outline-primary btn-custom">Isi Form Lagi</a>
+            <a href="{{ url()->previous() }}" class="btn btn-outline-primary btn-custom">
+                <i class="bi bi-arrow-left me-1"></i>Isi Form Lagi
+            </a>
+            <a href="{{ url('/') }}" class="btn btn-primary btn-custom">
+                <i class="bi bi-house me-1"></i>Kembali ke Beranda
+            </a>
         </div>
     </div>
 </div>

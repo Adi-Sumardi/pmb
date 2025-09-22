@@ -3,7 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-touch-fullscreen" content="yes">
     <title>Pendaftaran Murid Baru - YAPI</title>
         <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
@@ -81,6 +86,13 @@
             border: 2px solid #e9ecef;
             padding: 0.75rem 1rem;
             transition: all 0.3s ease;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            font-size: 16px; /* Prevent zoom on iOS */
+            background-color: white;
+            -webkit-user-select: text;
+            -webkit-touch-callout: default;
         }
 
         .form-control:focus, .form-select:focus {
@@ -386,19 +398,27 @@
             animation: pulse 2s infinite;
         }
 
-        @media (max-width: 768px) {
+        /* Enhanced mobile devices optimization */
+        @media screen and (max-width: 768px) {
             .hero-section {
-                margin: 1rem;
+                margin: 0.5rem;
                 border-radius: 15px;
+                padding: 1rem;
             }
 
             .form-card {
-                margin: 1rem;
+                margin: 0.5rem;
                 border-radius: 15px;
             }
 
             .form-header {
-                padding: 1.5rem;
+                padding: 1.5rem 1rem;
+            }
+
+            .logo-container {
+                width: 100px;
+                height: 100px;
+                margin-bottom: 0.5rem;
             }
 
             .cambridge-logo-container {
@@ -450,7 +470,90 @@
                 margin-bottom: 15px;
             }
 
+            /* Enhanced form controls for mobile */
+            .form-control,
+            .form-select {
+                font-size: 16px !important; /* Prevent zoom on iOS */
+                padding: 1rem 0.75rem;
+                min-height: 48px; /* Touch-friendly minimum height */
+                border-width: 1px;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+            }
+
+            /* Enhanced button styling for mobile */
+            .btn-submit {
+                width: 100%;
+                padding: 1.25rem 2rem;
+                font-size: 1.1rem;
+                min-height: 56px; /* Touch-friendly height */
+            }
+
+            .btn-login {
+                padding: 1rem 1.5rem;
+                min-height: 48px;
+                font-size: 0.9rem;
+            }
+
+            /* File input optimization for mobile */
+            .file-input-wrapper {
+                min-height: 80px;
+                border-width: 2px;
+            }
+
+            .file-upload-btn {
+                padding: 1.5rem 1rem;
+                min-height: 80px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .preview-image {
+                max-width: 100%;
+                height: auto;
+            }
+
+            /* Enhanced spacing for mobile */
+            .container {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            .col-12, .col-md-6 {
+                margin-bottom: 1.5rem;
+            }
+
+            /* Touch-friendly form validation messages */
+            .invalid-feedback {
+                font-size: 0.9rem;
+                margin-top: 0.5rem;
+            }
+
+            .is-invalid {
+                border-color: #dc3545 !important;
+                border-width: 2px !important;
+            }
+        }
+
         @media (max-width: 576px) {
+            .hero-section,
+            .form-card {
+                margin: 0.25rem;
+                border-radius: 12px;
+            }
+
+            .form-header {
+                padding: 1rem;
+            }
+
+            .logo-container {
+                width: 80px;
+                height: 80px;
+            }
+
             .cambridge-logo-container {
                 padding: 10px;
                 min-height: 60px;
@@ -491,6 +594,217 @@
 
             .logo-slider-title {
                 font-size: 0.75rem;
+            }
+
+            /* Extra small screens optimizations */
+            .form-control,
+            .form-select {
+                font-size: 16px !important;
+                padding: 1rem 0.5rem;
+            }
+
+            .btn-submit {
+                padding: 1rem 1.5rem;
+                font-size: 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h4 {
+                font-size: 1.1rem;
+            }
+
+            h5 {
+                font-size: 1rem;
+            }
+
+            .container {
+                padding-left: 0.25rem;
+                padding-right: 0.25rem;
+            }
+        }
+
+        /* Enhanced iOS Safari Fixes dengan Android compatibility */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) {
+            .form-control:focus,
+            .form-select:focus {
+                font-size: 16px; /* Prevent zoom */
+                -webkit-user-select: text;
+                outline: none;
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+            }
+
+            input[type="text"],
+            input[type="email"],
+            input[type="tel"],
+            input[type="number"],
+            input[type="date"],
+            select,
+            textarea {
+                font-size: 16px !important; /* Prevent zoom on iOS */
+                -webkit-appearance: none;
+                border-radius: 10px;
+                -webkit-touch-callout: none;
+                -webkit-user-select: text;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+
+            /* Enhanced button styling for iOS */
+            button {
+                -webkit-appearance: none;
+                border-radius: 10px;
+                -webkit-touch-callout: none;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+                cursor: pointer;
+            }
+
+            /* Enhanced file input for iOS */
+            input[type="file"] {
+                -webkit-appearance: none;
+                -webkit-touch-callout: none;
+            }
+
+            /* iOS specific form validation styling */
+            .form-control:invalid,
+            .form-select:invalid {
+                border-color: #dc3545;
+                box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
+            }
+
+            .form-control:valid,
+            .form-select:valid {
+                border-color: #198754;
+            }
+
+            /* Touch-friendly clickable areas */
+            .file-upload-btn,
+            label {
+                -webkit-touch-callout: none;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+                cursor: pointer;
+                min-height: 44px; /* iOS recommended minimum touch target */
+                display: flex;
+                align-items: center;
+            }
+
+            /* iOS textarea resize fix */
+            textarea {
+                resize: vertical;
+                -webkit-appearance: none;
+                min-height: 100px;
+            }
+
+            /* iOS select dropdown styling */
+            select {
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+                background-position: right 0.5rem center;
+                background-repeat: no-repeat;
+                background-size: 1.5em 1.5em;
+                padding-right: 2.5rem;
+            }
+        }
+
+        /* Android specific optimizations */
+        @media screen and (max-width: 768px) and (-webkit-min-device-pixel-ratio: 1) {
+            /* Android Chrome optimizations */
+            input, select, textarea, button {
+                font-size: 16px !important; /* Prevent zoom */
+                -webkit-text-size-adjust: 100%;
+                text-size-adjust: 100%;
+            }
+
+            /* Android touch improvements */
+            .form-control,
+            .form-select,
+            .btn {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+
+            /* Android keyboard optimization */
+            input[type="tel"] {
+                pattern: "[0-9]*";
+                inputmode: "numeric";
+            }
+
+            input[type="email"] {
+                inputmode: "email";
+            }
+        }
+
+        /* Universal mobile fixes */
+        @media screen and (max-width: 768px) {
+            .form-control,
+            .form-select,
+            input,
+            select,
+            textarea {
+                font-size: 16px !important; /* Prevent zoom */
+                -webkit-text-size-adjust: 100%;
+                text-size-adjust: 100%;
+                min-height: 48px; /* Touch-friendly minimum */
+                padding: 0.75rem;
+            }
+
+            /* Enhanced touch targets */
+            .btn,
+            button,
+            .file-upload-btn,
+            label[for] {
+                min-height: 48px;
+                min-width: 48px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+
+            /* Loading state for form submission */
+            .submitting {
+                pointer-events: none;
+                opacity: 0.7;
+            }
+
+            .submitting button {
+                cursor: not-allowed;
+            }
+
+            /* Mobile-friendly validation messages */
+            .invalid-feedback {
+                display: block;
+                width: 100%;
+                margin-top: 0.25rem;
+                font-size: 0.875rem;
+                color: #dc3545;
+                background: rgba(220, 53, 69, 0.1);
+                padding: 0.5rem;
+                border-radius: 0.375rem;
+                border-left: 3px solid #dc3545;
+            }
+
+            .is-invalid {
+                border-color: #dc3545 !important;
+                box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15) !important;
+                animation: shake 0.5s ease-in-out;
+            }
+
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+
+            /* Mobile viewport fix */
+            .container-fluid {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            /* Improve scrolling on mobile */
+            body {
+                -webkit-overflow-scrolling: touch;
+                overflow-scrolling: touch;
             }
         }
     </style>
@@ -959,7 +1273,7 @@
             observer.observe(el);
         });
 
-        // Form logic
+        // Form logic dengan mobile compatibility
         const jenjangSelect = document.getElementById("jenjang");
         const unitSelect = document.getElementById("unit");
         const asalSekolahGroup = document.getElementById("asal_sekolah_group");
@@ -978,14 +1292,19 @@
             sma: ["SMA Islam Al Azhar 33 - Jatimakmur"]
         };
 
-        jenjangSelect.addEventListener("change", function() {
-            const selected = this.value;
+        // Mobile-friendly event handling untuk jenjang select
+        function handleJenjangChange() {
+            const selected = jenjangSelect.value;
 
             // Reset form
             unitSelect.innerHTML = '<option value="">-- Pilih Unit Sekolah --</option>';
             asalSekolahGroup.classList.add("d-none");
             namaSekolahGroup.classList.add("d-none");
             kelasGroup.classList.add("d-none");
+
+            // Clear validation states
+            unitSelect.classList.remove('is-invalid');
+            asalSekolahSelect.classList.remove('is-invalid');
 
             // Populate unit options
             if (options[selected]) {
@@ -1001,14 +1320,37 @@
             if (["tka", "tkb", "sd", "smp", "sma"].includes(selected)) {
                 asalSekolahGroup.classList.remove("d-none");
             }
-        });
+        }
 
-        asalSekolahSelect.addEventListener("change", function() {
-            const selectedAsal = this.value;
+        // Cross-browser event handling
+        if (jenjangSelect) {
+            // Primary event
+            jenjangSelect.addEventListener("change", handleJenjangChange);
+
+            // Fallback events for mobile devices
+            jenjangSelect.addEventListener("touchend", function(e) {
+                setTimeout(handleJenjangChange, 100);
+            });
+
+            // Additional fallback for older mobile browsers
+            jenjangSelect.addEventListener("blur", function(e) {
+                setTimeout(handleJenjangChange, 50);
+            });
+        }
+
+        // Mobile-friendly event handling untuk asal sekolah select
+        function handleAsalSekolahChange() {
+            const selectedAsal = asalSekolahSelect.value;
             const selectedJenjang = jenjangSelect.value;
 
             // Reset kelas group
             kelasGroup.classList.add("d-none");
+
+            // Clear validation states
+            const namaSekolahInput = namaSekolahWrapper.querySelector('select, input');
+            if (namaSekolahInput) {
+                namaSekolahInput.classList.remove('is-invalid');
+            }
 
             // Handle "tidak_ada" case - hide nama sekolah group and set value to null
             if (selectedAsal === "tidak_ada") {
@@ -1058,59 +1400,300 @@
                 input.name = "nama_sekolah";
                 input.className = "form-control";
                 input.placeholder = "Masukkan nama sekolah asal";
+
+                // Mobile optimization
+                input.setAttribute('autocomplete', 'off');
+                input.setAttribute('autocorrect', 'off');
+                input.setAttribute('autocapitalize', 'words');
+
                 namaSekolahWrapper.appendChild(input);
 
                 if (selectedAsal === "pindahan") {
                     kelasGroup.classList.remove("d-none");
                 }
             }
-        });
+        }
 
-        // File upload previews
+        // Cross-browser event handling
+        if (asalSekolahSelect) {
+            // Primary event
+            asalSekolahSelect.addEventListener("change", handleAsalSekolahChange);
+
+            // Fallback events for mobile devices
+            asalSekolahSelect.addEventListener("touchend", function(e) {
+                setTimeout(handleAsalSekolahChange, 100);
+            });
+
+            // Additional fallback for older mobile browsers
+            asalSekolahSelect.addEventListener("blur", function(e) {
+                setTimeout(handleAsalSekolahChange, 50);
+            });
+        }
+
+        // Mobile-friendly file upload previews
         const fotoInput = document.getElementById("foto_murid");
         const previewFoto = document.getElementById("preview_foto");
 
-        fotoInput.addEventListener("change", function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewFoto.src = e.target.result;
-                    previewFoto.style.display = "block";
-                };
-                reader.readAsDataURL(file);
-            } else {
-                previewFoto.src = "";
-                previewFoto.style.display = "none";
-            }
-        });
+        if (fotoInput && previewFoto) {
+            function handlePhotoChange() {
+                const file = fotoInput.files[0];
+                if (file) {
+                    // Validate file size (2MB limit)
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('Ukuran file terlalu besar. Maksimal 2MB.');
+                        fotoInput.value = '';
+                        previewFoto.style.display = "none";
+                        return;
+                    }
 
-        // File input labels update
+                    // Validate file type
+                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                    if (!allowedTypes.includes(file.type)) {
+                        alert('Format file tidak didukung. Gunakan JPG atau PNG.');
+                        fotoInput.value = '';
+                        previewFoto.style.display = "none";
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewFoto.src = e.target.result;
+                        previewFoto.style.display = "block";
+
+                        // Remove any error styling
+                        fotoInput.classList.remove('is-invalid');
+                    };
+                    reader.onerror = function() {
+                        alert('Error membaca file. Silakan coba lagi.');
+                        fotoInput.value = '';
+                        previewFoto.style.display = "none";
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewFoto.src = "";
+                    previewFoto.style.display = "none";
+                }
+            }
+
+            // Cross-browser event handling
+            fotoInput.addEventListener("change", handlePhotoChange);
+
+            // Additional events for mobile devices
+            fotoInput.addEventListener("input", handlePhotoChange);
+        }
+
+        // Mobile-friendly file input labels update
         document.querySelectorAll('input[type="file"]').forEach(input => {
-            input.addEventListener('change', function() {
-                const label = this.nextElementSibling;
-                const fileName = this.files[0]?.name;
-                if (fileName) {
+            function updateFileLabel() {
+                const label = input.nextElementSibling;
+                const fileName = input.files[0]?.name;
+                if (fileName && label) {
                     const icon = label.querySelector('i');
                     const span = label.querySelector('span');
-                    icon.className = 'bi bi-check-circle-fill text-success fs-3 d-block mb-1';
-                    span.textContent = fileName;
+                    if (icon && span) {
+                        icon.className = 'bi bi-check-circle-fill text-success fs-3 d-block mb-1';
+                        span.textContent = fileName;
+                    }
+
+                    // Remove error styling
+                    input.classList.remove('is-invalid');
                 }
-            });
+            }
+
+            // Cross-browser event handling
+            input.addEventListener('change', updateFileLabel);
+            input.addEventListener('input', updateFileLabel);
         });
 
-        // Form validation
-        document.getElementById('registrationForm').addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
-            submitBtn.disabled = true;
-        });
+        // Enhanced mobile-friendly form validation with comprehensive error handling
+        function validateForm() {
+            let isValid = true;
+            const errors = [];
+
+            // Clear all previous validation states
+            document.querySelectorAll('.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+            });
+
+            // Validate required fields
+            const requiredFields = document.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                const value = field.type === 'file' ? field.files.length > 0 : field.value.trim();
+
+                if (!value) {
+                    field.classList.add('is-invalid');
+                    const fieldName = field.getAttribute('name') || field.id || 'Field';
+                    errors.push(`${fieldName} wajib diisi`);
+                    isValid = false;
+                }
+            });
+
+            // Validate phone numbers
+            const phoneFields = document.querySelectorAll('input[name="telp_ayah"], input[name="telp_ibu"]');
+            phoneFields.forEach(field => {
+                const value = field.value.trim();
+                if (value && !/^628[0-9]{8,11}$/.test(value)) {
+                    field.classList.add('is-invalid');
+                    errors.push(`${field.getAttribute('name')} harus format 628xxxxxxxxx`);
+                    isValid = false;
+                }
+            });
+
+            // Validate NISN if filled
+            const nisnField = document.getElementById('nisn');
+            if (nisnField && nisnField.value.trim()) {
+                const nisnValue = nisnField.value.trim();
+                if (nisnValue.length !== 10 || !/^[0-9]{10}$/.test(nisnValue)) {
+                    nisnField.classList.add('is-invalid');
+                    errors.push('NISN harus 10 digit angka');
+                    isValid = false;
+                }
+            }
+
+            // Validate file sizes and types
+            const fileInputs = document.querySelectorAll('input[type="file"]');
+            fileInputs.forEach(input => {
+                if (input.files.length > 0) {
+                    const file = input.files[0];
+
+                    // Check file size (2MB limit)
+                    if (file.size > 2 * 1024 * 1024) {
+                        input.classList.add('is-invalid');
+                        errors.push(`${input.getAttribute('name')}: File terlalu besar (max 2MB)`);
+                        isValid = false;
+                    }
+
+                    // Check file type
+                    const allowedTypes = {
+                        'foto_murid': ['image/jpeg', 'image/jpg', 'image/png'],
+                        'akta_kelahiran': ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'],
+                        'kartu_keluarga': ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
+                    };
+
+                    const fieldName = input.getAttribute('name');
+                    if (allowedTypes[fieldName] && !allowedTypes[fieldName].includes(file.type)) {
+                        input.classList.add('is-invalid');
+                        errors.push(`${fieldName}: Format file tidak didukung`);
+                        isValid = false;
+                    }
+                }
+            });
+
+            // Show errors if any
+            if (!isValid && errors.length > 0) {
+                const errorMessage = 'Mohon perbaiki kesalahan berikut:\n\n' + errors.join('\n');
+                alert(errorMessage);
+
+                // Scroll to first error field
+                const firstError = document.querySelector('.is-invalid');
+                if (firstError) {
+                    firstError.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+
+                    // Focus on the field after scroll (with delay for mobile)
+                    setTimeout(() => {
+                        if (firstError.focus) {
+                            firstError.focus();
+                        }
+                    }, 500);
+                }
+            }
+
+            return isValid;
+        }
+
+        // Enhanced form submission with mobile compatibility
+        const registrationForm = document.getElementById('registrationForm');
+        if (registrationForm) {
+            function handleFormSubmit(e) {
+                e.preventDefault(); // Always prevent default first
+
+                // Validate form
+                if (!validateForm()) {
+                    return false;
+                }
+
+                // Show loading state
+                const submitBtn = registrationForm.querySelector('button[type="submit"]');
+                const originalContent = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
+                submitBtn.disabled = true;
+
+                // Add loading class to form
+                registrationForm.classList.add('submitting');
+
+                // Create FormData for better mobile compatibility
+                const formData = new FormData(registrationForm);
+
+                // Submit via fetch for better error handling
+                fetch(registrationForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Network response was not ok');
+                })
+                .then(data => {
+                    if (data.success || data.redirect) {
+                        // Success - redirect or show success message
+                        window.location.href = data.redirect || '/success';
+                    } else {
+                        throw new Error(data.message || 'Terjadi kesalahan');
+                    }
+                })
+                .catch(error => {
+                    console.error('Submit error:', error);
+
+                    // Reset button state
+                    submitBtn.innerHTML = originalContent;
+                    submitBtn.disabled = false;
+                    registrationForm.classList.remove('submitting');
+
+                    // Show error message
+                    alert('Terjadi kesalahan saat mengirim data. Silakan coba lagi.\n\nError: ' + error.message);
+
+                    // Fallback: try normal form submission
+                    setTimeout(() => {
+                        registrationForm.submit();
+                    }, 1000);
+                });
+
+                return false;
+            }
+
+            // Cross-browser event handling for form submission
+            registrationForm.addEventListener('submit', handleFormSubmit);
+
+            // Additional mobile events
+            const submitButton = registrationForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    setTimeout(() => {
+                        handleFormSubmit(e);
+                    }, 100);
+                });
+            }
+        }
 
         function setupPhoneValidation() {
         const phoneInputs = document.querySelectorAll('input[name="telp_ayah"], input[name="telp_ibu"]');
 
         phoneInputs.forEach(input => {
-            // Only allow numbers
+            // Set input attributes for better mobile experience
+            input.setAttribute('inputmode', 'numeric');
+            input.setAttribute('pattern', '[0-9]*');
+
+            // Only allow numbers with better iOS compatibility
             input.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/[^0-9]/g, '');
 
@@ -1138,36 +1721,51 @@
                 e.target.value = value;
             });
 
-            // Prevent non-numeric input
-            input.addEventListener('keypress', function(e) {
-                if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+            // Use 'beforeinput' for better iOS compatibility instead of 'keypress'
+            input.addEventListener('beforeinput', function(e) {
+                // Allow numeric input, backspace, delete for iOS
+                if (e.inputType === 'insertText' && e.data && !/[0-9]/.test(e.data)) {
                     e.preventDefault();
                 }
             });
 
-            // Validation on blur
-            input.addEventListener('blur', function(e) {
-                const value = e.target.value;
-                // Pattern for Indonesian phone number: 62 + 8xxxxxxxx (10-11 digits after 62)
-                const isValid = /^628[0-9]{8,11}$/.test(value);
-
-                if (value && !isValid) {
-                    e.target.classList.add('is-invalid');
-                    // Show error message
-                    let errorMsg = e.target.parentNode.nextElementSibling;
-                    if (!errorMsg || !errorMsg.classList.contains('invalid-feedback')) {
-                        errorMsg = document.createElement('div');
-                        errorMsg.className = 'invalid-feedback';
-                        e.target.parentNode.parentNode.appendChild(errorMsg);
-                    }
-                    errorMsg.textContent = 'Format: 6281234567890 (dimulai 628 dan 10-13 digit total)';
-                } else {
-                    e.target.classList.remove('is-invalid');
-                    const errorMsg = e.target.parentNode.parentNode.querySelector('.invalid-feedback');
-                    if (errorMsg) {
-                        errorMsg.remove();
-                    }
+            // Fallback for older browsers
+            input.addEventListener('keypress', function(e) {
+                // Allow numbers, backspace, delete, tab, arrow keys
+                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+                if (allowedKeys.includes(e.key) || /[0-9]/.test(e.key)) {
+                    return true;
                 }
+                e.preventDefault();
+                return false;
+            });
+
+            // Validation on blur with timeout for iOS
+            input.addEventListener('blur', function(e) {
+                // Add small delay for iOS to process input
+                setTimeout(() => {
+                    const value = e.target.value;
+                    // Pattern for Indonesian phone number: 62 + 8xxxxxxxx (10-11 digits after 62)
+                    const isValid = /^628[0-9]{8,11}$/.test(value);
+
+                    if (value && !isValid) {
+                        e.target.classList.add('is-invalid');
+                        // Show error message
+                        let errorMsg = e.target.parentNode.nextElementSibling;
+                        if (!errorMsg || !errorMsg.classList.contains('invalid-feedback')) {
+                            errorMsg = document.createElement('div');
+                            errorMsg.className = 'invalid-feedback';
+                            e.target.parentNode.parentNode.appendChild(errorMsg);
+                        }
+                        errorMsg.textContent = 'Format: 6281234567890 (dimulai 628 dan 10-13 digit total)';
+                    } else {
+                        e.target.classList.remove('is-invalid');
+                        const errorMsg = e.target.parentNode.parentNode.querySelector('.invalid-feedback');
+                        if (errorMsg) {
+                            errorMsg.remove();
+                        }
+                    }
+                }, 100);
             });
         });
 
@@ -1175,61 +1773,66 @@
             const nisnInput = document.getElementById('nisn');
 
             if (nisnInput) {
-                // Only allow numbers
+                // Set input attributes for better mobile experience
+                nisnInput.setAttribute('inputmode', 'numeric');
+                nisnInput.setAttribute('pattern', '[0-9]*');
+                nisnInput.setAttribute('maxlength', '10');
+
+                // Only allow numbers with iOS compatibility
                 nisnInput.addEventListener('input', function(e) {
                     let value = e.target.value.replace(/[^0-9]/g, '');
+
+                    // Limit to 10 digits
+                    if (value.length > 10) {
+                        value = value.substring(0, 10);
+                    }
+
                     e.target.value = value;
 
                     // Real-time validation only if user has started typing
                     if (value.length > 0) {
-                        if (value.length < 10) {
-                            showNISNError('NISN harus tepat 10 digit. Saat ini ' + value.length + ' digit.');
-                        } else if (value.length === 10) {
-                            clearNISNError();
-                        }
+                        // Clear any previous errors during typing
+                        clearNISNError();
                     } else {
-                        // If empty, clear any error
                         clearNISNError();
                     }
                 });
 
-                // Prevent non-numeric input
-                nisnInput.addEventListener('keypress', function(e) {
-                    if (!/[0-9]/.test(e.key) &&
-                        e.key !== 'Backspace' &&
-                        e.key !== 'Delete' &&
-                        e.key !== 'Tab' &&
-                        e.key !== 'ArrowLeft' &&
-                        e.key !== 'ArrowRight') {
+                // Use 'beforeinput' for better iOS compatibility
+                nisnInput.addEventListener('beforeinput', function(e) {
+                    if (e.inputType === 'insertText' && e.data && !/[0-9]/.test(e.data)) {
                         e.preventDefault();
                     }
                 });
 
-                // Validation on blur (when user leaves the field)
-                nisnInput.addEventListener('blur', function(e) {
-                    const value = e.target.value.trim();
+                // Prevent non-numeric input (fallback for older browsers)
+                nisnInput.addEventListener('keypress', function(e) {
+                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+                    if (allowedKeys.includes(e.key) || /[0-9]/.test(e.key)) {
+                        return true;
+                    }
+                    e.preventDefault();
+                    return false;
+                });
 
-                    // Only validate if user has entered something
-                    if (value.length > 0) {
-                        if (value.length !== 10) {
-                            showNISNError('NISN harus tepat 10 digit angka.');
+                // Validation on blur (when user leaves the field) with timeout for iOS
+                nisnInput.addEventListener('blur', function(e) {
+                    setTimeout(() => {
+                        const value = e.target.value.trim();
+
+                        // Only validate if user has entered something
+                        if (value.length > 0 && value.length !== 10) {
+                            showNISNError('NISN harus tepat 10 digit angka atau kosongkan jika tidak ada.');
                         } else {
                             clearNISNError();
                         }
-                    } else {
-                        // If empty, it's valid (optional field)
-                        clearNISNError();
-                    }
+                    }, 100);
                 });
 
                 // Validation on focus (when user clicks on the field)
                 nisnInput.addEventListener('focus', function(e) {
-                    const value = e.target.value.trim();
-
-                    // Only show validation if there's content and it's invalid
-                    if (value.length > 0 && value.length !== 10) {
-                        showNISNError('NISN harus tepat 10 digit. Saat ini ' + value.length + ' digit.');
-                    }
+                    // Clear errors when user focuses to try again
+                    clearNISNError();
                 });
             }
         }
@@ -1252,7 +1855,7 @@
             errorDiv.style.display = 'none';
         }
 
-        // Form submission validation
+        // Form submission validation with iOS compatibility
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
             const nisnInput = document.getElementById('nisn');
             const nisnValue = nisnInput.value.trim();
@@ -1262,20 +1865,222 @@
                 e.preventDefault();
                 showNISNError('NISN harus tepat 10 digit angka atau kosongkan jika tidak ada.');
                 nisnInput.focus();
+
+                // Re-enable submit button for retry
+                setTimeout(() => {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<i class="bi bi-send me-2"></i>Daftar Sekarang';
+                        submitBtn.disabled = false;
+                    }
+                }, 100);
                 return false;
             }
 
-            // Continue with original submit logic
+            // Additional validation for required fields (iOS sometimes doesn't trigger HTML5 validation)
+            const requiredFields = this.querySelectorAll('[required]');
+            let hasErrors = false;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    hasErrors = true;
+
+                    // Create error message if doesn't exist
+                    let errorMsg = field.parentNode.querySelector('.invalid-feedback');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('div');
+                        errorMsg.className = 'invalid-feedback';
+                        field.parentNode.appendChild(errorMsg);
+                    }
+                    errorMsg.textContent = 'Field ini wajib diisi.';
+                } else {
+                    field.classList.remove('is-invalid');
+                    const errorMsg = field.parentNode.querySelector('.invalid-feedback');
+                    if (errorMsg) {
+                        errorMsg.remove();
+                    }
+                }
+            });
+
+            if (hasErrors) {
+                e.preventDefault();
+                // Scroll to first error
+                const firstError = this.querySelector('.is-invalid');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => firstError.focus(), 500);
+                }
+                return false;
+            }
+
+            // Continue with submit if all validations pass
             const submitBtn = this.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
-            submitBtn.disabled = true;
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
+                submitBtn.disabled = true;
+            }
+
+            // Prevent double submission
+            this.style.pointerEvents = 'none';
+
+            return true;
         });
 
-        // Initialize all validations when page loads
+        // Initialize all validations when page loads with enhanced mobile support
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing mobile-friendly form...');
+
+            // Setup validations
             setupNISNValidation();
             setupPhoneValidation();
+
+            // Enhanced mobile form initialization
+            initializeMobileFormEnhancements();
+
+            // Initialize touch improvements for mobile devices
+            if (window.innerWidth <= 768 || /Mobi|Android/i.test(navigator.userAgent)) {
+                initializeMobileTouchEnhancements();
+            }
+
+            // Viewport height fix for mobile browsers
+            const setViewportHeight = () => {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            };
+
+            setViewportHeight();
+            window.addEventListener('resize', setViewportHeight);
+            window.addEventListener('orientationchange', setViewportHeight);
         });
+
+        // Enhanced mobile form initialization
+        function initializeMobileFormEnhancements() {
+            // Add mobile-friendly classes
+            document.body.classList.add('mobile-optimized');
+
+            // Enhance all form inputs for mobile
+            const allInputs = document.querySelectorAll('input, select, textarea');
+            allInputs.forEach(input => {
+                // Prevent zoom on iOS
+                if (input.type !== 'file') {
+                    input.style.fontSize = '16px';
+                    input.setAttribute('autocapitalize', 'off');
+                    input.setAttribute('autocorrect', 'off');
+                    input.setAttribute('spellcheck', 'false');
+                }
+
+                // Add touch-friendly classes
+                input.classList.add('mobile-input');
+
+                // Enhanced focus handling for mobile
+                input.addEventListener('focus', function() {
+                    this.classList.add('mobile-focused');
+
+                    // Scroll to input on mobile
+                    if (window.innerWidth <= 768) {
+                        setTimeout(() => {
+                            this.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center',
+                                inline: 'nearest'
+                            });
+                        }, 300);
+                    }
+                });
+
+                input.addEventListener('blur', function() {
+                    this.classList.remove('mobile-focused');
+                });
+            });
+
+            // Enhance file inputs for mobile
+            const fileInputs = document.querySelectorAll('input[type="file"]');
+            fileInputs.forEach(input => {
+                input.setAttribute('accept', input.getAttribute('accept') || 'image/*,.pdf');
+
+                // Enhanced change handling
+                input.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        console.log(`File selected: ${file.name}, size: ${file.size}, type: ${file.type}`);
+                    }
+                });
+            });
+        }
+
+        // Mobile touch enhancements
+        function initializeMobileTouchEnhancements() {
+            // Enhance button touch targets
+            const buttons = document.querySelectorAll('button, .btn');
+            buttons.forEach(btn => {
+                btn.style.minHeight = '48px';
+                btn.style.minWidth = '48px';
+                btn.style.touchAction = 'manipulation';
+            });
+
+            // Enhance select dropdowns for mobile
+            const selects = document.querySelectorAll('select');
+            selects.forEach(select => {
+                select.addEventListener('touchstart', function() {
+                    this.focus();
+                });
+            });
+
+            // Add visual feedback for touch
+            document.addEventListener('touchstart', function(e) {
+                if (e.target.matches('button, .btn, input, select, textarea, label')) {
+                    e.target.classList.add('touch-active');
+                }
+            });
+
+            document.addEventListener('touchend', function(e) {
+                if (e.target.matches('button, .btn, input, select, textarea, label')) {
+                    setTimeout(() => {
+                        e.target.classList.remove('touch-active');
+                    }, 150);
+                }
+            });
+        }
+
+        // Enhanced error handling for mobile
+        function showMobileError(message, element = null) {
+            // Create mobile-friendly error alert
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'mobile-error-alert';
+            errorDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Error:</strong> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Insert at top of form
+            const form = document.getElementById('registrationForm');
+            if (form) {
+                form.insertBefore(errorDiv, form.firstChild);
+
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.remove();
+                    }
+                }, 5000);
+
+                // Scroll to error
+                errorDiv.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+
+            // Focus on problematic element
+            if (element && element.focus) {
+                setTimeout(() => {
+                    element.focus();
+                }, 500);
+            }
+        }
     }
     </script>
 </body>
