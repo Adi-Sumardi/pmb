@@ -1,5 +1,10 @@
 @forelse($studentsData as $student)
-<tr class="align-middle">
+<tr class="align-middle student-row" 
+    data-academic-year="{{ $student->academic_year ?? '2026/2027' }}"
+    data-nama="{{ strtolower($student->nama_murid) }}"
+    data-no-pendaftaran="{{ strtolower($student->no_pendaftaran) }}"
+    data-unit="{{ strtolower($student->unit) }}"
+    data-status="{{ $student->status }}">
     <td>
         <div class="form-check">
             <input class="form-check-input row-checkbox" type="checkbox" value="{{ $student->id }}" id="check{{ $student->id }}">

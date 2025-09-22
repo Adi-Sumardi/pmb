@@ -17,6 +17,7 @@ class ProgresPendaftaranController extends Controller
     {
         $search = $request->get('search');
         $unit = $request->get('unit', 'all'); // Default to 'all' units
+        $academicYear = $request->get('academic_year', '2026/2027'); // Default to current academic year
 
         // Get available units for tabs
         $availableUnits = Pendaftar::select('unit')
@@ -28,8 +29,13 @@ class ProgresPendaftaranController extends Controller
 
         // Base query for individual students
         $query = Pendaftar::with('user')
-            ->select('id', 'user_id', 'nama_murid', 'no_pendaftaran', 'unit', 'jenjang', 'status', 'overall_status', 'sudah_bayar_formulir', 'student_status', 'student_activated_at', 'student_status_notes', 'created_at')
+            ->select('id', 'user_id', 'nama_murid', 'no_pendaftaran', 'unit', 'jenjang', 'status', 'overall_status', 'sudah_bayar_formulir', 'student_status', 'student_activated_at', 'student_status_notes', 'academic_year', 'created_at')
             ->orderBy('created_at', 'desc');
+
+        // Apply academic year filter
+        if ($academicYear && $academicYear !== '') {
+            $query->where('academic_year', $academicYear);
+        }
 
         // Apply unit filter
         if ($unit !== 'all') {
@@ -51,8 +57,14 @@ class ProgresPendaftaranController extends Controller
         $studentsData = $query->paginate(15);
         $studentsData->appends($request->query());
 
-        // Overall statistics (filtered by unit if selected)
+        // Overall statistics (filtered by unit and academic year if selected)
         $statsQuery = Pendaftar::query();
+        
+        // Apply academic year filter to stats
+        if ($academicYear && $academicYear !== '') {
+            $statsQuery->where('academic_year', $academicYear);
+        }
+        
         if ($unit !== 'all') {
             $statsQuery->where('unit', $unit);
         }
@@ -67,11 +79,16 @@ class ProgresPendaftaranController extends Controller
         $totalPaymentPending = $statsQuery->where('sudah_bayar_formulir', false)->count();
         $totalPaymentFailed = $statsQuery->where('overall_status', 'Tidak Lulus')->count();
 
-        // Unit statistics (always show all units)
-        $unitStats = Pendaftar::select('unit as school_unit', DB::raw('COUNT(*) as count'))
+        // Unit statistics (filtered by academic year if selected)
+        $unitStatsQuery = Pendaftar::select('unit as school_unit', DB::raw('COUNT(*) as count'))
             ->groupBy('unit')
-            ->orderBy('count', 'desc')
-            ->get();
+            ->orderBy('count', 'desc');
+            
+        if ($academicYear && $academicYear !== '') {
+            $unitStatsQuery->where('academic_year', $academicYear);
+        }
+        
+        $unitStats = $unitStatsQuery->get();
 
         // Handle AJAX requests
         if ($request->ajax()) {
@@ -97,6 +114,7 @@ class ProgresPendaftaranController extends Controller
             'studentsData',
             'search',
             'unit',
+            'academicYear',
             'availableUnits',
             'totalPendaftar',
             'totalApproved',

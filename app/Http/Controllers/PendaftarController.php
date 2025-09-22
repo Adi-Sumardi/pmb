@@ -39,6 +39,9 @@ class PendaftarController extends Controller
 
             $data = $validated;
 
+            // Add academic year
+            $data['academic_year'] = '2026/2027';
+
             // Calculate payment amount based on jenjang
             $data['payment_amount'] = $this->getPaymentAmount($validated['jenjang']);
 

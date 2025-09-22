@@ -20,6 +20,7 @@ class Pendaftar extends Model
         'alamat',
         'jenjang',
         'unit',
+        'academic_year',
         'asal_sekolah',
         'nama_sekolah',
         'kelas',

@@ -165,6 +165,14 @@
                                    value="{{ $search ?? '' }}">
                         </div>
                     </div>
+                    <div class="col-auto">
+                        <select class="form-select" id="academicYearFilter" style="width: auto;">
+                            <option value="">Semua Tahun Ajaran</option>
+                            <option value="2026/2027" {{ ($academicYear ?? '2026/2027') == '2026/2027' ? 'selected' : '' }}>2026/2027</option>
+                            <option value="2025/2026" {{ ($academicYear ?? '') == '2025/2026' ? 'selected' : '' }}>2025/2026</option>
+                            <option value="2024/2025" {{ ($academicYear ?? '') == '2024/2025' ? 'selected' : '' }}>2024/2025</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Bulk Actions Bar -->
@@ -396,6 +404,7 @@
 
         // Search functionality with debouncing
         const searchInput = document.getElementById('searchInput');
+        const academicYearFilter = document.getElementById('academicYearFilter');
         let searchTimeout;
 
         if (searchInput) {
@@ -407,6 +416,32 @@
                     performSearch(searchValue);
                 }, 300); // 300ms debounce
             });
+        }
+
+        if (academicYearFilter) {
+            academicYearFilter.addEventListener('change', function() {
+                const academicYear = this.value;
+                performAcademicYearFilter(academicYear);
+            });
+        }
+
+        function performAcademicYearFilter(academicYear) {
+            const currentUrl = new URL(window.location.href);
+            
+            if (academicYear) {
+                currentUrl.searchParams.set('academic_year', academicYear);
+            } else {
+                currentUrl.searchParams.delete('academic_year');
+            }
+
+            // Add loading state
+            const tableBody = document.getElementById('studentsTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Memfilter data...</td></tr>';
+            }
+
+            // Navigate to new URL to trigger server-side filtering
+            window.location.href = currentUrl.toString();
         }
 
         function performSearch(query) {

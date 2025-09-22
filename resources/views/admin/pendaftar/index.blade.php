@@ -191,6 +191,13 @@
                         <div class="d-flex justify-content-end gap-2">
                             <!-- Filter Controls -->
                             <div class="d-flex gap-2">
+                                <select class="form-select form-select-sm" id="academicYearFilter" style="width: auto;">
+                                    <option value="">Semua Tahun Ajaran</option>
+                                    <option value="2026/2027" selected>2026/2027</option>
+                                    <option value="2025/2026">2025/2026</option>
+                                    <option value="2024/2025">2024/2025</option>
+                                </select>
+
                                 <select class="form-select form-select-sm" id="statusFilter" style="width: auto;">
                                     <option value="">Semua Status</option>
                                     <option value="pending">🟡 Pending</option>
@@ -305,6 +312,7 @@
                                 <tr class="table-row"
                                     data-status="{{ $item->status }}"
                                     data-unit="{{ $item->unit }}"
+                                    data-academic-year="{{ $item->academic_year ?? '2026/2027' }}"
                                     data-age="{{ \Carbon\Carbon::parse($item->tanggal_lahir)->diff(\Carbon\Carbon::create(2026,7,1))->y }}"
                                     data-nama="{{ strtolower($item->nama_murid) }}"
                                     data-no-pendaftaran="{{ strtolower($item->no_pendaftaran) }}"
@@ -713,6 +721,7 @@
     // Variables
     const quickSearch = document.getElementById('quickSearch');
     const clearQuickSearch = document.getElementById('clearQuickSearch');
+    const academicYearFilter = document.getElementById('academicYearFilter');
     const statusFilter = document.getElementById('statusFilter');
     const unitFilter = document.getElementById('unitFilter');
     const ageFilter = document.getElementById('ageFilter');
@@ -792,6 +801,7 @@
 
             tableRows.forEach(row => {
                 const searchableText = row.dataset.search || '';
+                const academicYear = row.dataset.academicYear || '';
                 const status = row.dataset.status;
                 const unit = row.dataset.unit;
                 const age = parseInt(row.dataset.age);
@@ -826,10 +836,12 @@
                 }
 
                 // Apply other filters
+                const academicYearValue = academicYearFilter ? academicYearFilter.value : '';
                 const statusValue = statusFilter ? statusFilter.value : '';
                 const unitValue = unitFilter ? unitFilter.value : '';
                 const ageValue = ageFilter ? ageFilter.value : '';
 
+                if (academicYearValue && academicYear !== academicYearValue) show = false;
                 if (statusValue && status !== statusValue) show = false;
                 if (unitValue && unit !== unitValue) show = false;
 
@@ -1164,6 +1176,10 @@
                 quickSearch.focus();
             });
         }
+    }
+
+    if (academicYearFilter) {
+        academicYearFilter.addEventListener('change', performQuickSearch);
     }
 
     if (statusFilter) {
