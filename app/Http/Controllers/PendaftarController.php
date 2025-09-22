@@ -382,10 +382,86 @@ class PendaftarController extends Controller
                 ->whereIn('id', $ids)
                 ->update(['overall_status' => $status, 'current_status' => $status]);
 
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "$updated pendaftar telah diperbarui statusnya menjadi '$status'",
+                    'updated' => $updated
+                ]);
+            }
+
             return redirect()->back()->with('info', "$updated pendaftar telah diperbarui statusnya menjadi '$status'");
         } catch (\Exception $e) {
             Log::error('Error in bulk update status: ' . $e->getMessage());
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui status pendaftar: ' . $e->getMessage()
+                ], 500);
+            }
+
             return redirect()->back()->with('error', 'Gagal memperbarui status pendaftar: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkUpdateStudentStatus(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:pendaftars,id',
+            'student_status' => 'required|string|in:inactive,active,graduated,dropped_out,transferred'
+        ]);
+
+        $ids = $request->input('ids');
+        $studentStatus = $request->input('student_status');
+
+        try {
+            // Log the received IDs and status for debugging
+            Log::info('Bulk updating student status', [
+                'ids' => $ids,
+                'student_status' => $studentStatus,
+                'count' => count($ids)
+            ]);
+
+            // Use update on the query builder directly
+            $updated = DB::table('pendaftars')
+                ->whereIn('id', $ids)
+                ->update([
+                    'student_status' => $studentStatus,
+                    'student_activated_at' => $studentStatus === 'active' ? now() : null,
+                    'updated_at' => now()
+                ]);
+
+            // Get status text for response
+            $statusText = match($studentStatus) {
+                'active' => 'Aktif',
+                'graduated' => 'Lulus',
+                'dropped_out' => 'Keluar',
+                'transferred' => 'Pindah',
+                default => 'Belum Aktif'
+            };
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "$updated pendaftar telah diperbarui status siswanya menjadi '$statusText'",
+                    'updated' => $updated
+                ]);
+            }
+
+            return redirect()->back()->with('info', "$updated pendaftar telah diperbarui status siswanya menjadi '$statusText'");
+        } catch (\Exception $e) {
+            Log::error('Error in bulk update student status: ' . $e->getMessage());
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui status siswa: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()->with('error', 'Gagal memperbarui status siswa: ' . $e->getMessage());
         }
     }
 }

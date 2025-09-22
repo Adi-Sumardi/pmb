@@ -1,6 +1,12 @@
 @forelse($studentsData as $student)
 <tr class="align-middle">
     <td>
+        <div class="form-check">
+            <input class="form-check-input row-checkbox" type="checkbox" value="{{ $student->id }}" id="check{{ $student->id }}">
+            <label class="form-check-label visually-hidden" for="check{{ $student->id }}">Select</label>
+        </div>
+    </td>
+    <td>
         <div class="fw-semibold text-primary">{{ $student->no_pendaftaran }}</div>
     </td>
 
@@ -22,12 +28,6 @@
         <span class="badge bg-info bg-opacity-10 text-info border border-info">
             <i class="bi bi-building me-1"></i>
             {{ strtoupper($student->unit) }}
-        </span>
-    </td>
-
-    <td>
-        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">
-            {{ $student->jenjang }}
         </span>
     </td>
 
@@ -75,6 +75,43 @@
     </td>
 
     <td>
+        @php
+            $statusClass = match($student->student_status ?? 'inactive') {
+                'active' => 'success',
+                'graduated' => 'primary',
+                'dropped_out' => 'danger',
+                'transferred' => 'info',
+                default => 'secondary'
+            };
+            $statusIcon = match($student->student_status ?? 'inactive') {
+                'active' => 'person-check',
+                'graduated' => 'mortarboard',
+                'dropped_out' => 'person-x',
+                'transferred' => 'arrow-left-right',
+                default => 'person-dash'
+            };
+            $statusText = match($student->student_status ?? 'inactive') {
+                'active' => 'Aktif',
+                'graduated' => 'Lulus',
+                'dropped_out' => 'Keluar',
+                'transferred' => 'Pindah',
+                default => 'Belum Aktif'
+            };
+        @endphp
+
+        <span class="badge bg-{{ $statusClass }}">
+            <i class="bi bi-{{ $statusIcon }} me-1"></i>
+            {{ $statusText }}
+        </span>
+
+        @if($student->student_activated_at)
+            <small class="text-muted d-block mt-1">
+                Aktif: {{ \Carbon\Carbon::parse($student->student_activated_at)->format('d M Y') }}
+            </small>
+        @endif
+    </td>
+
+    <td>
         @if($student->sudah_bayar_formulir)
             <span class="badge bg-success">
                 <i class="bi bi-check-circle me-1"></i>
@@ -97,10 +134,25 @@
             {{ $student->created_at->format('H:i') }}
         </div>
     </td>
+
+    <td>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary"
+                    onclick="openStatusModal({{ $student->id }})"
+                    title="Kelola Status Siswa">
+                <i class="bi bi-gear"></i>
+            </button>
+            <a href="{{ route('admin.pendaftar.validasi', $student->id) }}"
+               class="btn btn-outline-info"
+               title="Lihat Detail">
+                <i class="bi bi-eye"></i>
+            </a>
+        </div>
+    </td>
 </tr>
 @empty
 <tr>
-    <td colspan="8" class="text-center py-5">
+    <td colspan="10" class="text-center py-5">
         <div class="d-flex flex-column align-items-center">
             <div class="bg-light rounded-circle p-3 mb-3">
                 <i class="bi bi-people text-muted fs-1"></i>

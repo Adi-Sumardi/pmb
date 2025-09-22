@@ -153,6 +153,11 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
+// Include admin routes with proper prefix
+Route::prefix('admin')->name('admin.')->group(function () {
+    require __DIR__.'/admin.php';
+});
+
 require __DIR__.'/auth.php';
 
 // Public webhook route (no auth required, no CSRF, but with enhanced security)

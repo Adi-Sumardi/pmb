@@ -68,6 +68,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('/bulk-verify', [PendaftarController::class, 'bulkVerify'])->name('bulk-verify');
         Route::delete('/bulk-delete', [PendaftarController::class, 'bulkDelete'])->name('bulk-delete');
         Route::patch('/bulk-update-status', [PendaftarController::class, 'bulkUpdateStatus'])->name('bulk-update-status');
+        Route::patch('/bulk-update-student-status', [PendaftarController::class, 'bulkUpdateStudentStatus'])->name('bulk-update-student-status');
     });
 
     /*
@@ -111,6 +112,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
     |----------------------------------------------------------------------
     */
     Route::get('/progres-pendaftaran', [\App\Http\Controllers\Admin\ProgresPendaftaranController::class, 'index'])->name('progres-pendaftaran.index');
+    Route::put('/progres-pendaftaran/{id}/status', [\App\Http\Controllers\Admin\ProgresPendaftaranController::class, 'updateStudentStatus'])->name('progres-pendaftaran.update-status');
+    Route::get('/progres-pendaftaran/{id}/status-modal', [\App\Http\Controllers\Admin\ProgresPendaftaranController::class, 'getStudentStatusModal'])->name('progres-pendaftaran.status-modal');
+    Route::patch('/progres-pendaftaran/bulk-update-overall-status', [\App\Http\Controllers\Admin\ProgresPendaftaranController::class, 'bulkUpdateOverallStatus'])->name('progres-pendaftaran.bulk-update-overall-status');
 
     /*
     |----------------------------------------------------------------------

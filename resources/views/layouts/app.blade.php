@@ -9,8 +9,8 @@
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
-        style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com;
-        font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net;
+        style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.bunny.net https://unpkg.com;
+        font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.bunny.net https://cdn.jsdelivr.net;
         img-src 'self' data: https:;
         connect-src 'self' https:;
     ">

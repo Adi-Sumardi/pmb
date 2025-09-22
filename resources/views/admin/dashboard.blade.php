@@ -86,59 +86,128 @@
                 </div>
             </div>
 
-            <!-- Verified -->
+            <!-- Active Students -->
             <div class="col-lg-3 col-md-6">
                 <div class="card border-0 shadow-sm h-100 stat-card rounded-4" data-aos="fade-up" data-aos-delay="300">
                     <div class="card-body p-4 position-relative">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Terverifikasi</div>
+                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Siswa Aktif</div>
                                 <div class="display-6 fw-bold text-success mb-2 counter"
-                                    data-target="{{ $stats['verified_pendaftar'] }}">0</div>
+                                    data-target="{{ $studentStats['active_students'] }}">0</div>
                                 @php
-                                $percentage = $stats['total_pendaftar'] > 0 ? ($stats['verified_pendaftar'] / $stats['total_pendaftar']) * 100 : 0;
+                                $activePercentage = $stats['total_pendaftar'] > 0 ? ($studentStats['active_students'] / $stats['total_pendaftar']) * 100 : 0;
                                 @endphp
                                 <div class="text-muted small">
-                                    <span class="fw-semibold">{{ number_format($percentage, 1) }}%</span> dari total
+                                    <span class="fw-semibold">{{ number_format($activePercentage, 1) }}%</span> dari total
                                 </div>
                             </div>
                             <div class="stat-icon bg-success bg-opacity-10 rounded-4 p-3">
-                                <i class="bi bi-check-circle-fill text-success fs-3"></i>
+                                <i class="bi bi-person-check-fill text-success fs-3"></i>
                             </div>
                         </div>
                         <div class="progress mt-3" style="height: 4px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ $percentage }}%"></div>
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ $activePercentage }}%"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Pending Verification -->
+            <!-- Total Revenue -->
             <div class="col-lg-3 col-md-6">
                 <div class="card border-0 shadow-sm h-100 stat-card rounded-4" data-aos="fade-up" data-aos-delay="400">
                     <div class="card-body p-4 position-relative">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Menunggu Verifikasi
+                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Total Pemasukan</div>
+                                <div class="display-6 fw-bold text-warning mb-2">
+                                    Rp {{ number_format($billingStats['total_revenue'], 0, ',', '.') }}
                                 </div>
-                                <div class="display-6 fw-bold text-warning mb-2 counter"
-                                    data-target="{{ $stats['pending_pendaftar'] }}">0</div>
-                                @if($stats['pending_pendaftar'] > 0)
-                                <a href="{{ route('admin.pendaftar.index') }}" class="btn btn-outline-warning btn-sm rounded-pill">
-                                    <i class="bi bi-arrow-right me-1"></i>Proses Sekarang
-                                </a>
-                                @else
-                                <div class="text-success small">
-                                    <i class="bi bi-check-circle me-1"></i>Semua Terverifikasi
+                                <div class="text-muted small">
+                                    <span class="fw-semibold">{{ $billingStats['paid_bills'] }}</span> tagihan lunas
                                 </div>
-                                @endif
                             </div>
                             <div class="stat-icon bg-warning bg-opacity-10 rounded-4 p-3">
-                                <i class="bi bi-clock text-warning fs-3"></i>
+                                <i class="bi bi-cash-coin text-warning fs-3"></i>
                             </div>
                         </div>
                         <div class="progress mt-3" style="height: 4px;">
-                            <div class="progress-bar bg-warning" role="progressbar" style="width: 60%"></div>
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 90%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Status Overview Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4" data-aos="fade-up" data-aos-delay="500">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="card-title mb-0 fw-bold">
+                            <i class="bi bi-person-lines-fill me-2 text-primary"></i>Status Siswa Overview
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <!-- Active Students -->
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                <div class="border rounded-3 p-3 text-center h-100 status-card active">
+                                    <div class="icon-circle bg-success bg-opacity-10 text-success mx-auto mb-2">
+                                        <i class="bi bi-person-check"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">{{ $studentStats['active_students'] }}</h6>
+                                    <small class="text-muted">Siswa Aktif</small>
+                                </div>
+                            </div>
+                            <!-- Inactive Students -->
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                <div class="border rounded-3 p-3 text-center h-100 status-card inactive">
+                                    <div class="icon-circle bg-secondary bg-opacity-10 text-secondary mx-auto mb-2">
+                                        <i class="bi bi-person-dash"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">{{ $studentStats['inactive_students'] }}</h6>
+                                    <small class="text-muted">Belum Aktif</small>
+                                </div>
+                            </div>
+                            <!-- Graduated Students -->
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                <div class="border rounded-3 p-3 text-center h-100 status-card graduated">
+                                    <div class="icon-circle bg-primary bg-opacity-10 text-primary mx-auto mb-2">
+                                        <i class="bi bi-mortarboard"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">{{ $studentStats['graduated_students'] }}</h6>
+                                    <small class="text-muted">Lulus</small>
+                                </div>
+                            </div>
+                            <!-- Dropped Out -->
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                <div class="border rounded-3 p-3 text-center h-100 status-card dropped">
+                                    <div class="icon-circle bg-danger bg-opacity-10 text-danger mx-auto mb-2">
+                                        <i class="bi bi-person-x"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">{{ $studentStats['dropped_out_students'] }}</h6>
+                                    <small class="text-muted">Keluar</small>
+                                </div>
+                            </div>
+                            <!-- Transferred -->
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                <div class="border rounded-3 p-3 text-center h-100 status-card transferred">
+                                    <div class="icon-circle bg-info bg-opacity-10 text-info mx-auto mb-2">
+                                        <i class="bi bi-arrow-left-right"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">{{ $studentStats['transferred_students'] }}</h6>
+                                    <small class="text-muted">Pindah</small>
+                                </div>
+                            </div>
+                            <!-- Quick Action -->
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                <div class="border rounded-3 p-3 text-center h-100 d-flex flex-column justify-content-center">
+                                    <a href="{{ route('admin.progres-pendaftaran.index') }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-gear me-1"></i>Kelola Status
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -345,7 +414,8 @@
                                         <th class="border-0 py-3 text-center">Total Pendaftar</th>
                                         <th class="border-0 py-3 text-center">Terverifikasi</th>
                                         <th class="border-0 py-3 text-center">Sudah Bayar</th>
-                                        <th class="border-0 py-3 text-center">Menunggu</th>
+                                        <th class="border-0 py-3 text-center">Siswa Aktif</th>
+                                        <th class="border-0 py-3 text-center">Belum Aktif</th>
                                         <th class="border-0 py-3 text-center">Progress</th>
                                         <th class="border-0 py-3 text-end pe-4">Tren</th>
                                     </tr>
@@ -356,6 +426,7 @@
                                         $colors = ['info', 'primary', 'success', 'warning', 'danger', 'secondary', 'dark'];
                                         $color = $colors[$index % count($colors)];
                                         $verificationRate = $stat->total > 0 ? ($stat->verified / $stat->total) * 100 : 0;
+                                        $activeStudentRate = $stat->total > 0 ? (($stat->active_students ?? 0) / $stat->total) * 100 : 0;
                                         // Random trend value for now, could be replaced with actual trend data
                                         $trend = rand(-10, 25);
                                         $trendDirection = $trend >= 0 ? 'up' : 'down';
@@ -376,14 +447,22 @@
                                         <td class="py-3 text-center fw-bold">{{ $stat->total }}</td>
                                         <td class="py-3 text-center text-success">{{ $stat->verified }}</td>
                                         <td class="py-3 text-center text-primary">{{ $stat->paid }}</td>
-                                        <td class="py-3 text-center text-warning">{{ $stat->pending }}</td>
+                                        <td class="py-3 text-center text-success">
+                                            <span class="fw-semibold">{{ $stat->active_students ?? 0 }}</span>
+                                            <small class="text-muted d-block">siswa</small>
+                                        </td>
+                                        <td class="py-3 text-center text-secondary">
+                                            <span class="fw-semibold">{{ $stat->inactive_students ?? 0 }}</span>
+                                            <small class="text-muted d-block">siswa</small>
+                                        </td>
                                         <td class="py-3">
                                             <div class="d-flex align-items-center justify-content-center">
                                                 <div class="progress flex-grow-1" style="height: 8px;">
-                                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ $verificationRate }}%"></div>
+                                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ $activeStudentRate }}%"></div>
                                                 </div>
-                                                <span class="ms-2 fw-semibold small">{{ number_format($verificationRate, 0) }}%</span>
+                                                <span class="ms-2 fw-semibold small">{{ number_format($activeStudentRate, 0) }}%</span>
                                             </div>
+                                            <small class="text-muted">Tingkat Aktivasi</small>
                                         </td>
                                         <td class="py-3 text-end pe-4">
                                             <span class="badge bg-{{ $trendColor }} bg-opacity-10 text-{{ $trendColor }} rounded-pill">
@@ -598,6 +677,63 @@
         .badge.rounded-pill {
             padding-left: 0.8em;
             padding-right: 0.8em;
+        }
+
+        /* Student Status Cards */
+        .status-card {
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0 !important;
+            cursor: pointer;
+        }
+
+        .status-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .status-card.active {
+            border-color: #10b981 !important;
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+
+        .status-card.inactive {
+            border-color: #6b7280 !important;
+            background-color: rgba(107, 114, 128, 0.05);
+        }
+
+        .status-card.graduated {
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .status-card.dropped {
+            border-color: #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.05);
+        }
+
+        .status-card.transferred {
+            border-color: #06b6d4 !important;
+            background-color: rgba(6, 182, 212, 0.05);
+        }
+
+        .status-card.graduated {
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .status-card.dropped {
+            border-color: #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.05);
+        }
+
+        .status-card.transferred {
+            border-color: #06b6d4 !important;
+            background-color: rgba(6, 182, 212, 0.05);
+        }
+
+        .status-card .icon-circle {
+            width: 40px;
+            height: 40px;
         }
     </style>
 
