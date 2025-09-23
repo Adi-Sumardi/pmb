@@ -1290,238 +1290,6 @@
             observer.observe(el);
         });
 
-        // Form logic dengan mobile compatibility
-        const jenjangSelect = document.getElementById("jenjang");
-        const unitSelect = document.getElementById("unit");
-        const asalSekolahGroup = document.getElementById("asal_sekolah_group");
-        const asalSekolahSelect = document.getElementById("asal_sekolah");
-        const namaSekolahGroup = document.getElementById("nama_sekolah_group");
-        const namaSekolahWrapper = document.getElementById("nama_sekolah_wrapper");
-        const kelasGroup = document.getElementById("kelas_group");
-
-        const options = {
-            sanggar: ["Playgroup Sakinah - Rawamangun", "RA Sakinah - Kebayoran"],
-            kelompok: ["Playgroup Sakinah - Rawamangun", "RA Sakinah - Kebayoran"],
-            tka: ["TK Islam Al Azhar 13 - Rawamangun"],
-            tkb: ["TK Islam Al Azhar 13 - Rawamangun"],
-            sd: ["SD Islam Al Azhar 13 - Rawamangun"],
-            smp: ["SMP Islam Al Azhar 12 - Rawamangun", "SMP Islam Al Azhar 55 - Jatimakmur"],
-            sma: ["SMA Islam Al Azhar 33 - Jatimakmur"]
-        };
-
-        // Mobile-friendly event handling untuk jenjang select
-        function handleJenjangChange() {
-            const selected = jenjangSelect.value;
-
-            // Reset form
-            unitSelect.innerHTML = '<option value="">-- Pilih Unit Sekolah --</option>';
-            asalSekolahGroup.classList.add("d-none");
-            namaSekolahGroup.classList.add("d-none");
-            kelasGroup.classList.add("d-none");
-
-            // Clear validation states
-            unitSelect.classList.remove('is-invalid');
-            asalSekolahSelect.classList.remove('is-invalid');
-
-            // Populate unit options
-            if (options[selected]) {
-                options[selected].forEach(unit => {
-                    const opt = document.createElement("option");
-                    opt.value = unit;
-                    opt.textContent = unit;
-                    unitSelect.appendChild(opt);
-                });
-            }
-
-            // Show asal sekolah for certain jenjang
-            if (["tka", "tkb", "sd", "smp", "sma"].includes(selected)) {
-                asalSekolahGroup.classList.remove("d-none");
-            }
-        }
-
-        // Cross-browser event handling
-        if (jenjangSelect) {
-            // Primary event
-            jenjangSelect.addEventListener("change", handleJenjangChange);
-
-            // Fallback events for mobile devices
-            jenjangSelect.addEventListener("touchend", function(e) {
-                setTimeout(handleJenjangChange, 100);
-            });
-
-            // Additional fallback for older mobile browsers
-            jenjangSelect.addEventListener("blur", function(e) {
-                setTimeout(handleJenjangChange, 50);
-            });
-        }
-
-        // Mobile-friendly event handling untuk asal sekolah select
-        function handleAsalSekolahChange() {
-            const selectedAsal = asalSekolahSelect.value;
-            const selectedJenjang = jenjangSelect.value;
-
-            // Reset kelas group
-            kelasGroup.classList.add("d-none");
-
-            // Clear validation states
-            const namaSekolahInput = namaSekolahWrapper.querySelector('select, input');
-            if (namaSekolahInput) {
-                namaSekolahInput.classList.remove('is-invalid');
-            }
-
-            // Handle "tidak_ada" case - hide nama sekolah group and set value to null
-            if (selectedAsal === "tidak_ada") {
-                namaSekolahGroup.classList.add("d-none");
-                namaSekolahWrapper.innerHTML = "";
-                // Create hidden input with null value
-                const hiddenInput = document.createElement("input");
-                hiddenInput.type = "hidden";
-                hiddenInput.name = "nama_sekolah";
-                hiddenInput.value = "";
-                namaSekolahWrapper.appendChild(hiddenInput);
-                return;
-            }
-
-            // Show nama sekolah group for other options
-            namaSekolahGroup.classList.remove("d-none");
-            namaSekolahWrapper.innerHTML = "";
-
-            if (selectedAsal === "dalam") {
-                const select = document.createElement("select");
-                select.name = "nama_sekolah";
-                select.className = "form-select";
-                select.innerHTML = '<option value="">-- Pilih Sekolah YAPI --</option>';
-
-                let sekolahDalam = [];
-                if (selectedJenjang === "sd") {
-                    sekolahDalam = ["TK Islam Al Azhar 13 - Rawamangun"];
-                } else if (selectedJenjang === "smp") {
-                    sekolahDalam = ["SD Islam Al Azhar 13 - Rawamangun"];
-                } else if (selectedJenjang === "sma") {
-                    sekolahDalam = ["SMP Islam Al Azhar 12 - Rawamangun", "SMP Islam Al Azhar 55 - Jatimakmur"];
-                } else {
-                    sekolahDalam = ["Playgroup Sakinah", "RA Sakinah"];
-                }
-
-                sekolahDalam.forEach(school => {
-                    const opt = document.createElement("option");
-                    opt.value = school;
-                    opt.textContent = school;
-                    select.appendChild(opt);
-                });
-
-                namaSekolahWrapper.appendChild(select);
-            } else if (selectedAsal === "luar" || selectedAsal === "pindahan") {
-                const input = document.createElement("input");
-                input.type = "text";
-                input.name = "nama_sekolah";
-                input.className = "form-control";
-                input.placeholder = "Masukkan nama sekolah asal";
-
-                // Mobile optimization
-                input.setAttribute('autocomplete', 'off');
-                input.setAttribute('autocorrect', 'off');
-                input.setAttribute('autocapitalize', 'words');
-
-                namaSekolahWrapper.appendChild(input);
-
-                if (selectedAsal === "pindahan") {
-                    kelasGroup.classList.remove("d-none");
-                }
-            }
-        }
-
-        // Cross-browser event handling
-        if (asalSekolahSelect) {
-            // Primary event
-            asalSekolahSelect.addEventListener("change", handleAsalSekolahChange);
-
-            // Fallback events for mobile devices
-            asalSekolahSelect.addEventListener("touchend", function(e) {
-                setTimeout(handleAsalSekolahChange, 100);
-            });
-
-            // Additional fallback for older mobile browsers
-            asalSekolahSelect.addEventListener("blur", function(e) {
-                setTimeout(handleAsalSekolahChange, 50);
-            });
-        }
-
-        // Mobile-friendly file upload previews
-        const fotoInput = document.getElementById("foto_murid");
-        const previewFoto = document.getElementById("preview_foto");
-
-        if (fotoInput && previewFoto) {
-            function handlePhotoChange() {
-                const file = fotoInput.files[0];
-                if (file) {
-                    // Validate file size (2MB limit)
-                    if (file.size > 2 * 1024 * 1024) {
-                        alert('Ukuran file terlalu besar. Maksimal 2MB.');
-                        fotoInput.value = '';
-                        previewFoto.style.display = "none";
-                        return;
-                    }
-
-                    // Validate file type
-                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-                    if (!allowedTypes.includes(file.type)) {
-                        alert('Format file tidak didukung. Gunakan JPG atau PNG.');
-                        fotoInput.value = '';
-                        previewFoto.style.display = "none";
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        previewFoto.src = e.target.result;
-                        previewFoto.style.display = "block";
-
-                        // Remove any error styling
-                        fotoInput.classList.remove('is-invalid');
-                    };
-                    reader.onerror = function() {
-                        alert('Error membaca file. Silakan coba lagi.');
-                        fotoInput.value = '';
-                        previewFoto.style.display = "none";
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    previewFoto.src = "";
-                    previewFoto.style.display = "none";
-                }
-            }
-
-            // Cross-browser event handling
-            fotoInput.addEventListener("change", handlePhotoChange);
-
-            // Additional events for mobile devices
-            fotoInput.addEventListener("input", handlePhotoChange);
-        }
-
-        // Mobile-friendly file input labels update
-        document.querySelectorAll('input[type="file"]').forEach(input => {
-            function updateFileLabel() {
-                const label = input.nextElementSibling;
-                const fileName = input.files[0]?.name;
-                if (fileName && label) {
-                    const icon = label.querySelector('i');
-                    const span = label.querySelector('span');
-                    if (icon && span) {
-                        icon.className = 'bi bi-check-circle-fill text-success fs-3 d-block mb-1';
-                        span.textContent = fileName;
-                    }
-
-                    // Remove error styling
-                    input.classList.remove('is-invalid');
-                }
-            }
-
-            // Cross-browser event handling
-            input.addEventListener('change', updateFileLabel);
-            input.addEventListener('input', updateFileLabel);
-        });
-
         // Enhanced mobile-friendly form validation with comprehensive error handling
         function validateForm() {
             let isValid = true;
@@ -1914,6 +1682,12 @@
             console.log('DOM loaded, initializing mobile-friendly form...');
 
             try {
+                // Initialize dropdown dependencies first
+                initializeDropdownLogic();
+
+                // Initialize file upload previews
+                initializeFileUploads();
+
                 // Setup validations
                 setupNISNValidation();
                 setupPhoneValidation();
@@ -1941,6 +1715,294 @@
                 // Graceful degradation - form will still work without enhancements
             }
         });
+
+        // Initialize dropdown logic function
+        function initializeDropdownLogic() {
+            try {
+                console.log('Initializing dropdown logic...');
+
+                // Get form elements
+                const jenjangSelect = document.getElementById("jenjang");
+                const unitSelect = document.getElementById("unit");
+                const asalSekolahGroup = document.getElementById("asal_sekolah_group");
+                const asalSekolahSelect = document.getElementById("asal_sekolah");
+                const namaSekolahGroup = document.getElementById("nama_sekolah_group");
+                const namaSekolahWrapper = document.getElementById("nama_sekolah_wrapper");
+                const kelasGroup = document.getElementById("kelas_group");
+
+                // Check if elements exist
+                if (!jenjangSelect || !unitSelect || !asalSekolahGroup || !asalSekolahSelect) {
+                    console.error('Required form elements not found');
+                    return;
+                }
+
+                console.log('All required elements found, setting up dropdown logic...');
+
+                const options = {
+                    sanggar: ["Playgroup Sakinah - Rawamangun", "RA Sakinah - Kebayoran"],
+                    kelompok: ["Playgroup Sakinah - Rawamangun", "RA Sakinah - Kebayoran"],
+                    tka: ["TK Islam Al Azhar 13 - Rawamangun"],
+                    tkb: ["TK Islam Al Azhar 13 - Rawamangun"],
+                    sd: ["SD Islam Al Azhar 13 - Rawamangun"],
+                    smp: ["SMP Islam Al Azhar 12 - Rawamangun", "SMP Islam Al Azhar 55 - Jatimakmur"],
+                    sma: ["SMA Islam Al Azhar 33 - Jatimakmur"]
+                };
+
+                // Mobile-friendly event handling untuk jenjang select
+                function handleJenjangChange() {
+                    try {
+                        console.log('Jenjang changed to:', jenjangSelect.value);
+                        const selected = jenjangSelect.value;
+
+                        // Reset form
+                        unitSelect.innerHTML = '<option value="">-- Pilih Unit Sekolah --</option>';
+                        asalSekolahGroup.classList.add("d-none");
+                        namaSekolahGroup.classList.add("d-none");
+                        kelasGroup.classList.add("d-none");
+
+                        // Clear validation states
+                        unitSelect.classList.remove('is-invalid');
+                        asalSekolahSelect.classList.remove('is-invalid');
+
+                        // Populate unit options
+                        if (options[selected]) {
+                            console.log('Adding unit options for:', selected, options[selected]);
+                            options[selected].forEach(unit => {
+                                const opt = document.createElement("option");
+                                opt.value = unit;
+                                opt.textContent = unit;
+                                unitSelect.appendChild(opt);
+                            });
+                        }
+
+                        // Show asal sekolah for certain jenjang
+                        if (["tka", "tkb", "sd", "smp", "sma"].includes(selected)) {
+                            asalSekolahGroup.classList.remove("d-none");
+                        }
+                    } catch (error) {
+                        console.error('Error in handleJenjangChange:', error);
+                    }
+                }
+
+                // Mobile-friendly event handling untuk asal sekolah select
+                function handleAsalSekolahChange() {
+                    try {
+                        const selectedAsal = asalSekolahSelect.value;
+                        const selectedJenjang = jenjangSelect.value;
+
+                        console.log('Asal sekolah changed to:', selectedAsal);
+
+                        // Reset kelas group
+                        kelasGroup.classList.add("d-none");
+
+                        // Clear validation states
+                        const namaSekolahInput = namaSekolahWrapper.querySelector('select, input');
+                        if (namaSekolahInput) {
+                            namaSekolahInput.classList.remove('is-invalid');
+                        }
+
+                        // Handle "tidak_ada" case - hide nama sekolah group and set value to null
+                        if (selectedAsal === "tidak_ada") {
+                            namaSekolahGroup.classList.add("d-none");
+                            namaSekolahWrapper.innerHTML = "";
+                            // Create hidden input with null value
+                            const hiddenInput = document.createElement("input");
+                            hiddenInput.type = "hidden";
+                            hiddenInput.name = "nama_sekolah";
+                            hiddenInput.value = "";
+                            namaSekolahWrapper.appendChild(hiddenInput);
+                            return;
+                        }
+
+                        // Show nama sekolah group for other options
+                        namaSekolahGroup.classList.remove("d-none");
+                        namaSekolahWrapper.innerHTML = "";
+
+                        if (selectedAsal === "dalam") {
+                            const select = document.createElement("select");
+                            select.name = "nama_sekolah";
+                            select.className = "form-select";
+                            select.innerHTML = '<option value="">-- Pilih Sekolah YAPI --</option>';
+
+                            let sekolahDalam = [];
+                            if (selectedJenjang === "sd") {
+                                sekolahDalam = ["TK Islam Al Azhar 13 - Rawamangun"];
+                            } else if (selectedJenjang === "smp") {
+                                sekolahDalam = ["SD Islam Al Azhar 13 - Rawamangun"];
+                            } else if (selectedJenjang === "sma") {
+                                sekolahDalam = ["SMP Islam Al Azhar 12 - Rawamangun", "SMP Islam Al Azhar 55 - Jatimakmur"];
+                            } else {
+                                sekolahDalam = ["Playgroup Sakinah", "RA Sakinah"];
+                            }
+
+                            sekolahDalam.forEach(school => {
+                                const opt = document.createElement("option");
+                                opt.value = school;
+                                opt.textContent = school;
+                                select.appendChild(opt);
+                            });
+
+                            namaSekolahWrapper.appendChild(select);
+                        } else if (selectedAsal === "luar" || selectedAsal === "pindahan") {
+                            const input = document.createElement("input");
+                            input.type = "text";
+                            input.name = "nama_sekolah";
+                            input.className = "form-control";
+                            input.placeholder = "Masukkan nama sekolah asal";
+
+                            // Mobile optimization
+                            input.setAttribute('autocomplete', 'off');
+                            input.setAttribute('autocorrect', 'off');
+                            input.setAttribute('autocapitalize', 'words');
+
+                            namaSekolahWrapper.appendChild(input);
+
+                            if (selectedAsal === "pindahan") {
+                                kelasGroup.classList.remove("d-none");
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error in handleAsalSekolahChange:', error);
+                    }
+                }
+
+                // Cross-browser event handling
+                if (jenjangSelect) {
+                    console.log('Adding event listeners to jenjang select...');
+                    // Primary event
+                    jenjangSelect.addEventListener("change", handleJenjangChange);
+
+                    // Fallback events for mobile devices
+                    jenjangSelect.addEventListener("touchend", function(e) {
+                        setTimeout(handleJenjangChange, 100);
+                    });
+
+                    // Additional fallback for older mobile browsers
+                    jenjangSelect.addEventListener("blur", function(e) {
+                        setTimeout(handleJenjangChange, 50);
+                    });
+                }
+
+                // Cross-browser event handling for asal sekolah
+                if (asalSekolahSelect) {
+                    console.log('Adding event listeners to asal sekolah select...');
+                    // Primary event
+                    asalSekolahSelect.addEventListener("change", handleAsalSekolahChange);
+
+                    // Fallback events for mobile devices
+                    asalSekolahSelect.addEventListener("touchend", function(e) {
+                        setTimeout(handleAsalSekolahChange, 100);
+                    });
+
+                    // Additional fallback for older mobile browsers
+                    asalSekolahSelect.addEventListener("blur", function(e) {
+                        setTimeout(handleAsalSekolahChange, 50);
+                    });
+                }
+
+                console.log('Dropdown logic initialization completed successfully');
+            } catch (error) {
+                console.error('Error in initializeDropdownLogic:', error);
+            }
+        }
+
+        // Initialize file upload previews and handling
+        function initializeFileUploads() {
+            try {
+                console.log('Initializing file uploads...');
+
+                // Mobile-friendly file upload previews
+                const fotoInput = document.getElementById("foto_murid");
+                const previewFoto = document.getElementById("preview_foto");
+
+                if (fotoInput && previewFoto) {
+                    function handlePhotoChange() {
+                        try {
+                            const file = fotoInput.files[0];
+                            if (file) {
+                                // Validate file size (2MB limit)
+                                if (file.size > 2 * 1024 * 1024) {
+                                    alert('Ukuran file terlalu besar. Maksimal 2MB.');
+                                    fotoInput.value = '';
+                                    previewFoto.style.display = "none";
+                                    return;
+                                }
+
+                                // Validate file type
+                                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                                if (!allowedTypes.includes(file.type)) {
+                                    alert('Format file tidak didukung. Gunakan JPG atau PNG.');
+                                    fotoInput.value = '';
+                                    previewFoto.style.display = "none";
+                                    return;
+                                }
+
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    previewFoto.src = e.target.result;
+                                    previewFoto.style.display = "block";
+
+                                    // Remove any error styling
+                                    fotoInput.classList.remove('is-invalid');
+                                };
+                                reader.onerror = function() {
+                                    alert('Error membaca file. Silakan coba lagi.');
+                                    fotoInput.value = '';
+                                    previewFoto.style.display = "none";
+                                };
+                                reader.readAsDataURL(file);
+                            } else {
+                                previewFoto.src = "";
+                                previewFoto.style.display = "none";
+                            }
+                        } catch (error) {
+                            console.error('Error handling photo change:', error);
+                        }
+                    }
+
+                    // Cross-browser event handling
+                    fotoInput.addEventListener("change", handlePhotoChange);
+
+                    // Additional events for mobile devices
+                    fotoInput.addEventListener("input", handlePhotoChange);
+                }
+
+                // Mobile-friendly file input labels update
+                document.querySelectorAll('input[type="file"]').forEach(input => {
+                    function updateFileLabel() {
+                        try {
+                            const label = input.nextElementSibling;
+                            const fileName = input.files[0]?.name;
+                            if (fileName && label) {
+                                const icon = label.querySelector('i');
+                                const span = label.querySelector('span');
+                                if (icon && span) {
+                                    icon.className = 'bi bi-check-circle-fill text-success fs-3 d-block mb-1';
+                                    span.textContent = fileName;
+                                }
+
+                                // Remove error styling
+                                input.classList.remove('is-invalid');
+                            }
+                        } catch (error) {
+                            console.error('Error updating file label:', error);
+                        }
+                    }
+
+                    try {
+                        // Cross-browser event handling
+                        input.addEventListener('change', updateFileLabel);
+                        input.addEventListener('input', updateFileLabel);
+                    } catch (error) {
+                        console.error('Error setting up file input:', error);
+                    }
+                });
+
+                console.log('File uploads initialization completed successfully');
+            } catch (error) {
+                console.error('Error in initializeFileUploads:', error);
+            }
+        }
 
         // Enhanced mobile form initialization with comprehensive error handling
         function initializeMobileFormEnhancements() {
