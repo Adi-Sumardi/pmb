@@ -9,6 +9,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash; // Add this import
+use Illuminate\Support\Facades\Auth; // Add Auth facade
 use Illuminate\Support\Str; // Add this import
 use App\Http\Controllers\WhatsAppController;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,23 @@ class PendaftarController extends Controller
     public function store(Request $request)
     {
         try {
+            // Check for duplicate submission by email and name combination
+            $existingPendaftar = Pendaftar::where('user_id', Auth::id())
+                ->where('nama_murid', $request->nama_murid)
+                ->where('created_at', '>', now()->subMinutes(5)) // Within last 5 minutes
+                ->first();
+
+            if ($existingPendaftar) {
+                Log::warning('Duplicate form submission detected', [
+                    'user_id' => Auth::id(),
+                    'nama_murid' => $request->nama_murid,
+                    'existing_id' => $existingPendaftar->id
+                ]);
+
+                return redirect()->route('user.dashboard')
+                    ->with('error', 'Data pendaftaran sudah pernah disubmit. Silakan cek dashboard Anda.');
+            }
+
             $validated = $request->validate([
                 'nama_murid'   => 'required|string|max:255',
                 'nisn'         => 'nullable|string|max:50',
