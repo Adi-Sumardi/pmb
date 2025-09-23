@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth; // Add Auth facade
 use Illuminate\Support\Str; // Add this import
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\WhatsAppController;
+use Illuminate\Validation\ValidationException;
 
 class PendaftarController extends Controller
 {
@@ -56,7 +57,13 @@ class PendaftarController extends Controller
 
             $validated = $request->validate([
                 'nama_murid'   => 'required|string|max:255',
-                'nisn'         => 'nullable|string|max:50',
+                'nisn'         => [
+                    'nullable',
+                    'string',
+                    'size:10',
+                    'regex:/^[0-9]{10}$/',
+                    'unique:pendaftars,nisn'
+                ],
                 'tanggal_lahir'=> 'required|date',
                 'alamat'       => 'required|string',
                 'jenjang'      => 'required|string',
@@ -71,6 +78,27 @@ class PendaftarController extends Controller
                 'foto_murid' => 'required|file|mimes:jpg,jpeg,png|max:2048',
                 'akta_kelahiran' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
                 'kartu_keluarga' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            ], [
+                // Custom error messages for NISN
+                'nisn.size' => 'NISN harus tepat 10 digit angka.',
+                'nisn.regex' => 'NISN hanya boleh berisi angka (0-9).',
+                'nisn.unique' => 'NISN ini sudah terdaftar. Jika ini NISN Anda, silakan hubungi admin atau gunakan akun yang sudah ada.',
+
+                // Other custom messages
+                'foto_murid.required' => 'Foto murid wajib diunggah.',
+                'foto_murid.mimes' => 'Foto murid harus berformat JPG, JPEG, atau PNG.',
+                'foto_murid.max' => 'Ukuran foto murid maksimal 2MB.',
+
+                'akta_kelahiran.required' => 'Akta kelahiran wajib diunggah.',
+                'akta_kelahiran.mimes' => 'Akta kelahiran harus berformat PDF, JPG, JPEG, atau PNG.',
+                'akta_kelahiran.max' => 'Ukuran akta kelahiran maksimal 2MB.',
+
+                'kartu_keluarga.required' => 'Kartu keluarga wajib diunggah.',
+                'kartu_keluarga.mimes' => 'Kartu keluarga harus berformat PDF, JPG, JPEG, atau PNG.',
+                'kartu_keluarga.max' => 'Ukuran kartu keluarga maksimal 2MB.',
+
+                'telp_ayah.required' => 'Nomor telepon ayah wajib diisi.',
+                'telp_ibu.required' => 'Nomor telepon ibu wajib diisi.',
             ]);
 
             $data = $validated;
@@ -146,6 +174,44 @@ class PendaftarController extends Controller
                 'message' => 'Pendaftaran berhasil! Data Anda telah tersimpan.',
                 'no_pendaftaran' => $pendaftar->no_pendaftaran,
                 'payment_amount' => $pendaftar->payment_amount
+            ]);
+
+        } catch (ValidationException $e) {
+            // Handle validation errors specifically
+            Log::warning('Validation error during registration', [
+                'errors' => $e->errors(),
+                'request_data' => $request->except(['foto_murid', 'akta_kelahiran', 'kartu_keluarga']),
+                'client_info' => $request->input('client_info'),
+                'user_agent' => $request->userAgent(),
+                'ip' => $request->ip()
+            ]);
+
+            // Check if NISN validation failed
+            if ($e->errors()['nisn'] ?? false) {
+                $nisnErrors = $e->errors()['nisn'];
+                $errorMessage = 'Error pada NISN: ' . implode(', ', $nisnErrors);
+
+                return view('notif.error')->with([
+                    'message' => $errorMessage,
+                    'nisn_specific' => true,
+                    'suggestions' => [
+                        'Pastikan NISN tepat 10 digit angka',
+                        'Pastikan NISN belum pernah didaftarkan sebelumnya',
+                        'Jika NISN sudah terdaftar, hubungi admin atau gunakan akun yang sudah ada',
+                        'Jika tidak memiliki NISN, kosongkan field ini'
+                    ]
+                ]);
+            }
+
+            // For other validation errors, show them normally
+            $allErrors = [];
+            foreach ($e->errors() as $field => $errors) {
+                $allErrors = array_merge($allErrors, $errors);
+            }
+
+            return view('notif.error')->with([
+                'message' => 'Terdapat kesalahan pada form: ' . implode(', ', $allErrors),
+                'validation_errors' => $e->errors()
             ]);
 
         } catch (\Exception $e) {
