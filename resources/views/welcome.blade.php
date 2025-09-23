@@ -1052,8 +1052,12 @@
 
                     <!-- Form Body -->
                     <div class="p-4 pt-0">
-                        <form action="{{ route('pendaftaran.store') }}" method="POST" class="row g-4" enctype="multipart/form-data" id="registrationForm">
+                        <form action="{{ route('pendaftaran.store') }}" method="POST" class="row g-4" enctype="multipart/form-data" id="registrationForm" novalidate>
                             @csrf
+
+                            <!-- iOS Safari Debug Info -->
+                            <input type="hidden" name="client_info" id="client_info" value="">
+                            <input type="hidden" name="submission_timestamp" id="submission_timestamp" value="">
 
                             <!-- Data Murid Section -->
                             <div class="col-12">
@@ -1520,14 +1524,24 @@
         const registrationForm = document.getElementById('registrationForm');
         if (registrationForm) {
             let isSubmitting = false; // Prevent double submission
+            let formSubmitted = false; // Track if form was already submitted successfully
 
             function handleFormSubmit(e) {
-                // Prevent double submission
-                if (isSubmitting) {
-                    console.log('Form already submitting, ignoring duplicate attempt');
+                // Prevent any kind of double submission
+                if (isSubmitting || formSubmitted) {
+                    console.log('Form submission blocked - already in progress or completed');
                     e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
                     return false;
                 }
+
+                // iOS Safari specific handling
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+                console.log('Form submission started', { isIOS, isSafari });
 
                 // Normalize date input before validation
                 const dateInput = document.getElementById('tanggal_lahir');
@@ -1549,29 +1563,150 @@
 
                 // Validate form
                 if (!validateForm()) {
+                    console.log('Form validation failed');
                     e.preventDefault();
                     return false;
                 }
 
-                // Set submitting flag
+                // Set submitting flag immediately
                 isSubmitting = true;
 
                 // Show loading state
                 const submitBtn = registrationForm.querySelector('button[type="submit"]');
-                const originalContent = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
-                submitBtn.disabled = true;
+                if (submitBtn) {
+                    const originalContent = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memproses...';
+                    submitBtn.disabled = true;
+
+                    // Store original content for potential restoration
+                    submitBtn.setAttribute('data-original-content', originalContent);
+                }
 
                 // Add loading class to form
                 registrationForm.classList.add('submitting');
 
+                // Set client info for debugging
+                const clientInfoInput = document.getElementById('client_info');
+                const timestampInput = document.getElementById('submission_timestamp');
+
+                if (clientInfoInput) {
+                    const clientInfo = {
+                        userAgent: navigator.userAgent,
+                        platform: navigator.platform,
+                        isIOS: isIOS,
+                        isSafari: isSafari,
+                        viewport: window.innerWidth + 'x' + window.innerHeight,
+                        timestamp: new Date().toISOString()
+                    };
+                    clientInfoInput.value = JSON.stringify(clientInfo);
+                }
+
+                if (timestampInput) {
+                    timestampInput.value = Date.now();
+                }
+
+                // iOS Safari specific: Ensure form method and action are set correctly
+                if (isIOS || isSafari) {
+                    registrationForm.setAttribute('method', 'POST');
+                    registrationForm.setAttribute('action', '{{ route('pendaftaran.store') }}');
+
+                    // Ensure CSRF token exists
+                    const csrfToken = registrationForm.querySelector('input[name="_token"]');
+                    if (!csrfToken || !csrfToken.value) {
+                        console.error('CSRF token missing or empty');
+                        isSubmitting = false;
+                        e.preventDefault();
+                        alert('Security token missing. Please refresh the page and try again.');
+                        return false;
+                    }
+
+                    // Ensure all required fields have names and values
+                    const requiredInputs = registrationForm.querySelectorAll('[required]');
+                    let missingFields = [];
+                    requiredInputs.forEach(input => {
+                        if (!input.name || !input.value.trim()) {
+                            missingFields.push(input.id || input.name || 'unknown field');
+                        }
+                    });
+
+                    if (missingFields.length > 0) {
+                        console.error('Missing required fields:', missingFields);
+                        isSubmitting = false;
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+
+                // Set form as submitted to prevent future submissions
+                formSubmitted = true;
+
                 // Allow normal form submission to proceed
-                console.log('Submitting form normally...');
-                return true; // Let the form submit naturally
+                console.log('Form submission proceeding...');
+                return true;
             }
 
-            // SINGLE event listener for form submission
-            registrationForm.addEventListener('submit', handleFormSubmit, { once: false });
+            // Remove any existing event listeners first
+            registrationForm.removeEventListener('submit', handleFormSubmit);
+
+            // Add the event listener with iOS-specific options
+            registrationForm.addEventListener('submit', handleFormSubmit, {
+                once: false,
+                passive: false,
+                capture: false
+            });
+
+            // iOS Safari specific: Handle page visibility changes
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                // Add form recovery mechanism for iOS
+                function resetFormState() {
+                    isSubmitting = false;
+                    formSubmitted = false;
+                    registrationForm.classList.remove('submitting');
+
+                    const submitBtn = registrationForm.querySelector('button[type="submit"]');
+                    if (submitBtn && submitBtn.hasAttribute('data-original-content')) {
+                        submitBtn.innerHTML = submitBtn.getAttribute('data-original-content');
+                        submitBtn.disabled = false;
+                    }
+
+                    console.log('Form state reset for iOS');
+                }
+
+                // Reset form state if page becomes visible again after being hidden
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden && isSubmitting && !formSubmitted) {
+                        console.log('Page visible again - checking form state');
+                        // Give it a moment to see if submission completed
+                        setTimeout(() => {
+                            if (isSubmitting && !formSubmitted) {
+                                console.log('Submission seems stuck - resetting state');
+                                resetFormState();
+                                alert('Form submission was interrupted. Please try again.');
+                            }
+                        }, 2000);
+                    }
+                });
+
+                // Handle iOS Safari page reload issues
+                window.addEventListener('beforeunload', function(e) {
+                    if (isSubmitting && !formSubmitted) {
+                        e.preventDefault();
+                        e.returnValue = 'Form sedang diproses, mohon tunggu...';
+                        return 'Form sedang diproses, mohon tunggu...';
+                    }
+                });
+
+                // Add double-tap prevention for iOS
+                let lastTouchTime = 0;
+                registrationForm.addEventListener('touchend', function(e) {
+                    const currentTime = Date.now();
+                    if (currentTime - lastTouchTime < 300) {
+                        e.preventDefault();
+                        console.log('Double tap prevented on iOS');
+                    }
+                    lastTouchTime = currentTime;
+                });
+            }
         }
 
         function setupPhoneValidation() {

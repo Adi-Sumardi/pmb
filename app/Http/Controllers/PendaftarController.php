@@ -19,6 +19,24 @@ class PendaftarController extends Controller
     public function store(Request $request)
     {
         try {
+            // Log submission details for debugging iOS issues
+            $clientInfo = $request->input('client_info');
+            $isIOS = false;
+
+            if ($clientInfo) {
+                $clientData = json_decode($clientInfo, true);
+                $isIOS = $clientData['isIOS'] ?? false;
+
+                Log::info('Form submission received', [
+                    'client_info' => $clientData,
+                    'submission_timestamp' => $request->input('submission_timestamp'),
+                    'request_method' => $request->method(),
+                    'is_ios' => $isIOS,
+                    'user_agent' => $request->userAgent(),
+                    'ip' => $request->ip()
+                ]);
+            }
+
             // Check for duplicate submission by email and name combination
             $existingPendaftar = Pendaftar::where('user_id', Auth::id())
                 ->where('nama_murid', $request->nama_murid)
@@ -133,8 +151,36 @@ class PendaftarController extends Controller
         } catch (\Exception $e) {
             Log::error('Error saat menyimpan pendaftaran: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'request_data' => $request->except(['foto_murid', 'akta_kelahiran', 'kartu_keluarga'])
+                'request_data' => $request->except(['foto_murid', 'akta_kelahiran', 'kartu_keluarga']),
+                'client_info' => $request->input('client_info'),
+                'user_agent' => $request->userAgent(),
+                'method' => $request->method(),
+                'url' => $request->fullUrl(),
+                'ip' => $request->ip(),
+                'headers' => $request->headers->all()
             ]);
+
+            // Check if this is iOS Safari and provide specific guidance
+            $clientInfo = $request->input('client_info');
+            $isIOS = false;
+
+            if ($clientInfo) {
+                $clientData = json_decode($clientInfo, true);
+                $isIOS = $clientData['isIOS'] ?? false;
+            }
+
+            if ($isIOS) {
+                Log::warning('iOS Safari submission error detected', [
+                    'error' => $e->getMessage(),
+                    'client_data' => $clientData ?? null
+                ]);
+
+                return view('notif.error')->with([
+                    'message' => 'Terjadi kesalahan pada perangkat iOS. Silakan coba langkah berikut: 1) Refresh halaman, 2) Pastikan koneksi internet stabil, 3) Coba lagi dalam beberapa menit.',
+                    'ios_specific' => true
+                ]);
+            }
+
             return view('notif.error')->with('message', 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
         }
     }
