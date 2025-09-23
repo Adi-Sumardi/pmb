@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash; // Add this import
 use Illuminate\Support\Facades\Auth; // Add Auth facade
 use Illuminate\Support\Str; // Add this import
-use App\Http\Controllers\WhatsAppController;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\WhatsAppController;
 
 class PendaftarController extends Controller
 {
