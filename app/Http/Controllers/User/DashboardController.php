@@ -34,30 +34,63 @@ class DashboardController extends Controller
         $payment = null;
         $isPaid = false;
         $formulirBill = null;
+
         if ($pendaftar) {
-            // Check formulir payment through new billing system
+            // Calculate payment amount based on UNIT (not hardcoded)
+            $paymentAmount = $this->getFormulirAmountByUnit($pendaftar->unit);
+
+            // Check or create formulir payment through new billing system
             $formulirBill = StudentBill::where('pendaftar_id', $pendaftar->id)
                 ->where('bill_type', 'registration_fee')
                 ->first();
+
+            // If no registration fee bill exists, create one with correct amount
+            if (!$formulirBill) {
+                $formulirBill = StudentBill::create([
+                    'pendaftar_id' => $pendaftar->id,
+                    'bill_type' => 'registration_fee',
+                    'description' => 'Biaya Formulir Pendaftaran',
+                    'total_amount' => $paymentAmount,
+                    'paid_amount' => 0,
+                    'remaining_amount' => $paymentAmount,
+                    'due_date' => now()->addDays(7), // 7 days to pay
+                    'academic_year' => now()->year . '/' . (now()->year + 1),
+                    'semester' => null, // No semester needed for school registration
+                    'payment_status' => 'pending',
+                    'notes' => 'Biaya formulir pendaftaran peserta didik baru',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            } else {
+                // If bill exists but has old amount (150000), update it with correct unit-based amount
+                if ($formulirBill->total_amount == 150000 && $paymentAmount != 150000) {
+                    $formulirBill->update([
+                        'total_amount' => $paymentAmount,
+                        'remaining_amount' => $paymentAmount - $formulirBill->paid_amount
+                    ]);
+                }
+            }
+
+            // Use the amount from the bill (now guaranteed to be correct)
+            $paymentAmount = $formulirBill->total_amount;
 
             if ($formulirBill) {
                 $isPaid = $formulirBill->payment_status === 'paid';
                 if ($isPaid) {
                     $latestPayment = BillPayment::where('student_bill_id', $formulirBill->id)
-                        ->where('status', 'paid')
+                        ->where('status', 'completed')
                         ->latest()
                         ->first();
                     $payment = $latestPayment;
                 }
             } else {
                 // Fallback to old payment system for existing data
-                $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'paid')->first();
+                $payment = Payment::where('pendaftar_id', $pendaftar->id)->where('status', 'PAID')->first();
                 $isPaid = $payment ? true : false;
             }
         }
 
         $paymentDate = $payment ? Carbon::parse($payment->updated_at)->format('d M Y, H:i') : null;
-        $paymentAmount = 150000; // Default payment amount
 
         // Initialize completion tracking
         $completedSections = 0;
@@ -544,5 +577,22 @@ class DashboardController extends Controller
         }
 
         return 'draft';
+    }
+
+    /**
+     * Get formulir amount based on school unit (same as PendaftarController)
+     */
+    private function getFormulirAmountByUnit($unit)
+    {
+        return match($unit) {
+            'RA Sakinah' => 100000,
+            'PG Sakinah' => 400000,
+            'TKIA 13' => 450000,
+            'SDIA 13', 'SD Islam Al Azhar 13 - Rawamangun' => 550000,
+            'SMPIA 12' => 550000,
+            'SMPIA 55' => 550000,
+            'SMAIA 33', 'SMA Islam Al Azhar 33 - Jatimakmur' => 550000,
+            default => 0
+        };
     }
 }

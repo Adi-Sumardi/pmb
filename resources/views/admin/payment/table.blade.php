@@ -61,7 +61,19 @@
 
                         <!-- Nominal -->
                         <td class="text-end fw-medium">
-                            Rp 150.000
+                            @php
+                                $formulirAmount = match($pendaftar->unit) {
+                                    'RA Sakinah' => 100000,
+                                    'PG Sakinah' => 400000,
+                                    'TKIA 13' => 450000,
+                                    'SDIA 13', 'SD Islam Al Azhar 13 - Rawamangun' => 550000,
+                                    'SMPIA 12' => 550000,
+                                    'SMPIA 55' => 550000,
+                                    'SMAIA 33', 'SMA Islam Al Azhar 33 - Jatimakmur' => 550000,
+                                    default => $pendaftar->payment_amount ?? 0
+                                };
+                            @endphp
+                            Rp {{ number_format($formulirAmount, 0, ',', '.') }}
                         </td>
 
                         <!-- Tanggal -->

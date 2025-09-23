@@ -42,8 +42,14 @@ class PendaftarController extends Controller
             // Add academic year
             $data['academic_year'] = '2026/2027';
 
-            // Calculate payment amount based on jenjang
-            $data['payment_amount'] = $this->getPaymentAmount($validated['jenjang']);
+            // Calculate payment amount based on UNIT (not jenjang) using new system
+            $data['payment_amount'] = $this->getFormulirAmountByUnit($validated['unit']);
+
+            Log::info('Processing pendaftaran with unit-based pricing', [
+                'unit' => $validated['unit'],
+                'calculated_amount' => $data['payment_amount'],
+                'nama_murid' => $validated['nama_murid']
+            ]);
 
             if ($request->hasFile('foto_murid')) {
                 $file = $request->file('foto_murid');
@@ -71,7 +77,10 @@ class PendaftarController extends Controller
                 $data['kartu_keluarga_size'] = $file->getSize();
             }
 
-            $data['status'] = 'pending';
+            $data['status_pendaftaran'] = 'menunggu_verifikasi';
+            $data['overall_status'] = 'Draft';
+            $data['current_status'] = 'Draft';
+            $data['data_completion_status'] = 'incomplete';
             $data['sudah_bayar_formulir'] = false;
 
             // Generate nomor pendaftaran unik
@@ -85,50 +94,31 @@ class PendaftarController extends Controller
             $nextNumber = $lastPendaftar ? ((int)substr($lastPendaftar->no_pendaftaran, -4) + 1) : 1;
             $data['no_pendaftaran'] = 'PMB' . $month . $year . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
-            Pendaftar::create($data);
+            // Create pendaftar with transaction to ensure atomicity
+            $pendaftar = DB::transaction(function() use ($data) {
+                return Pendaftar::create($data);
+            });
 
-            return view('notif.success')->with('message', 'Pendaftaran berhasil! Data Anda telah tersimpan.');
+            Log::info('Pendaftaran successfully created', [
+                'pendaftar_id' => $pendaftar->id,
+                'no_pendaftaran' => $pendaftar->no_pendaftaran,
+                'unit' => $pendaftar->unit,
+                'payment_amount' => $pendaftar->payment_amount
+            ]);
+
+            return view('notif.success')->with([
+                'message' => 'Pendaftaran berhasil! Data Anda telah tersimpan.',
+                'no_pendaftaran' => $pendaftar->no_pendaftaran,
+                'payment_amount' => $pendaftar->payment_amount
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('Error saat menyimpan pendaftaran: ' . $e->getMessage());
+            Log::error('Error saat menyimpan pendaftaran: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except(['foto_murid', 'akta_kelahiran', 'kartu_keluarga'])
+            ]);
             return view('notif.error')->with('message', 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
         }
-    }
-
-    /**
-     * Calculate payment amount based on jenjang
-     */
-    private function getPaymentAmount($jenjang)
-    {
-        $paymentAmounts = [
-            'sanggar' => 325000,
-            'kelompok' => 325000,
-            'tka' => 355000,
-            'tkb' => 355000,
-            'sd' => 425000,
-            'smp' => 455000,
-            'sma' => 525000,
-        ];
-
-        return $paymentAmounts[$jenjang] ?? 0;
-    }
-
-    /**
-     * Get jenjang display name
-     */
-    private function getJenjangName($jenjang)
-    {
-        $jenjangNames = [
-            'sanggar' => 'Sanggar Bermain',
-            'kelompok' => 'Kelompok Bermain',
-            'tka' => 'TK A',
-            'tkb' => 'TK B',
-            'sd' => 'SD',
-            'smp' => 'SMP',
-            'sma' => 'SMA',
-        ];
-
-        return $jenjangNames[$jenjang] ?? strtoupper($jenjang);
     }
 
     public function index()
@@ -297,13 +287,30 @@ class PendaftarController extends Controller
                 return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
             }
 
-            // Update status ke diverifikasi
-            $updated = Pendaftar::whereIn('id', $ids)
-                ->where('status', 'pending')
-                ->update(['status' => 'diverifikasi']);
+            // Update status ke diverifikasi dan generate StudentBills
+            $updated = 0;
+            $billsGenerated = 0;
+
+            foreach ($ids as $id) {
+                $pendaftar = Pendaftar::find($id);
+
+                if ($pendaftar && $pendaftar->status === 'pending') {
+                    // Update status
+                    $pendaftar->update([
+                        'status' => 'diverifikasi',
+                        'admin_verification_status' => 'approved',
+                        'admin_verification_date' => now()
+                    ]);
+
+                    // Generate default StudentBills for verified pendaftar
+                    $generated = $this->generateDefaultStudentBills($pendaftar);
+                    $billsGenerated += $generated;
+                    $updated++;
+                }
+            }
 
             if ($updated > 0) {
-                return redirect()->back()->with('success', "Berhasil memverifikasi {$updated} pendaftar.");
+                return redirect()->back()->with('success', "Berhasil memverifikasi {$updated} pendaftar dan generate {$billsGenerated} tagihan.");
             } else {
                 return redirect()->back()->with('error', 'Tidak ada data yang dapat diverifikasi.');
             }
@@ -466,5 +473,193 @@ class PendaftarController extends Controller
 
             return redirect()->back()->with('error', 'Gagal memperbarui status siswa: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Generate default StudentBills for verified pendaftar
+     */
+    private function generateDefaultStudentBills(Pendaftar $pendaftar): int
+    {
+        $generated = 0;
+        $currentYear = now()->year;
+        $academicYear = $currentYear . '/' . ($currentYear + 1);
+
+        // Default bills based on jenjang
+        $defaultBills = [
+            // Registration fee (formulir) - always required - amount based on unit
+            [
+                'bill_type' => 'registration_fee',
+                'description' => 'Biaya Formulir Pendaftaran',
+                'total_amount' => $this->getFormulirAmountByUnit($pendaftar->unit),
+                'due_date' => now()->addDays(7),
+                'notes' => 'Biaya formulir pendaftaran peserta didik baru'
+            ],
+            // Uang pangkal - required for all levels
+            [
+                'bill_type' => 'uang_pangkal',
+                'description' => 'Uang Pangkal',
+                'total_amount' => $this->getUangPangkalAmount($pendaftar->jenjang),
+                'due_date' => now()->addDays(30),
+                'notes' => 'Uang pangkal untuk konfirmasi penerimaan'
+            ]
+        ];
+
+        // Add SPP for first month if TK/SD/SMP levels
+        if (in_array(strtolower($pendaftar->jenjang), ['tk', 'sd', 'smp'])) {
+            $defaultBills[] = [
+                'bill_type' => 'spp',
+                'description' => 'SPP ' . now()->format('F Y'),
+                'total_amount' => $this->getSppAmount($pendaftar->jenjang),
+                'due_date' => now()->endOfMonth(),
+                'month' => now()->month,
+                'notes' => 'Sumbangan Pembinaan Pendidikan'
+            ];
+        }
+
+        foreach ($defaultBills as $billData) {
+            // Check if bill already exists
+            $existingBill = \App\Models\StudentBill::where('pendaftar_id', $pendaftar->id)
+                ->where('bill_type', $billData['bill_type'])
+                ->when(isset($billData['month']), function($query) use ($billData) {
+                    return $query->where('month', $billData['month']);
+                })
+                ->first();
+
+            if (!$existingBill) {
+                \App\Models\StudentBill::create([
+                    'pendaftar_id' => $pendaftar->id,
+                    'bill_type' => $billData['bill_type'],
+                    'description' => $billData['description'],
+                    'total_amount' => $billData['total_amount'],
+                    'paid_amount' => 0,
+                    'remaining_amount' => $billData['total_amount'],
+                    'due_date' => $billData['due_date'],
+                    'academic_year' => $academicYear,
+                    'semester' => null, // No semester needed for school registration
+                    'month' => $billData['month'] ?? null,
+                    'payment_status' => 'pending',
+                    'notes' => $billData['notes'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                $generated++;
+            }
+        }
+
+        return $generated;
+    }
+
+    /**
+     * Get uang pangkal amount based on education level
+     */
+    private function getUangPangkalAmount(string $jenjang): int
+    {
+        return match(strtolower($jenjang)) {
+            'tk', 'paud' => 2000000,
+            'sd' => 3000000,
+            'smp' => 4000000,
+            'sma', 'smk' => 5000000,
+            default => 2500000
+        };
+    }
+
+    /**
+     * Get SPP amount based on education level
+     */
+    private function getSppAmount(string $jenjang): int
+    {
+        return match(strtolower($jenjang)) {
+            'tk', 'paud' => 200000,
+            'sd' => 250000,
+            'smp' => 300000,
+            'sma', 'smk' => 350000,
+            default => 250000
+        };
+    }
+
+    /**
+     * Get formulir amount based on school unit (updated amounts per request)
+     */
+    private function getFormulirAmountByUnit(string $unit): int
+    {
+        // Exact unit name mappings based on user requirements
+        $formulirAmounts = [
+            // RA Sakinah = Rp.100.000
+            'RA Sakinah' => 100000,
+            'RA Sakinah - Rawamangun' => 100000,
+
+            // PG Sakinah = Rp 400.000
+            'PG Sakinah' => 400000,
+            'PG Sakinah - Rawamangun' => 400000,
+            'Playgroup Sakinah' => 400000,
+            'Playgroup Sakinah - Rawamangun' => 400000,
+
+            // TKIA 13 = Rp 450.000
+            'TKIA 13' => 450000,
+            'TK Islam Al Azhar 13' => 450000,
+            'TK Islam Al Azhar 13 - Rawamangun' => 450000,
+
+            // SDIA 13 = Rp 550.000
+            'SDIA 13' => 550000,
+            'SD Islam Al Azhar 13' => 550000,
+            'SD Islam Al Azhar 13 - Rawamangun' => 550000,
+
+            // SMPIA 12 = Rp 550.000
+            'SMPIA 12' => 550000,
+            'SMP Islam Al Azhar 12' => 550000,
+            'SMP Islam Al Azhar 12 - Rawamangun' => 550000,
+
+            // SMPIA 55 = Rp 550.000
+            'SMPIA 55' => 550000,
+            'SMP Islam Al Azhar 55' => 550000,
+            'SMP Islam Al Azhar 55 - Rawamangun' => 550000,
+
+            // SMAIA 33 = Rp 550.000
+            'SMAIA 33' => 550000,
+            'SMA Islam Al Azhar 33' => 550000,
+            'SMA Islam Al Azhar 33 - Rawamangun' => 550000,
+            'SMA Islam Al Azhar 33 - Jatimakmur' => 550000,
+        ];
+
+        // Check exact match first
+        if (isset($formulirAmounts[$unit])) {
+            return $formulirAmounts[$unit];
+        }
+
+        // Fallback: check partial matches for flexibility
+        $unitLower = strtolower($unit);
+
+        if (strpos($unitLower, 'ra') !== false && strpos($unitLower, 'sakinah') !== false) {
+            return 100000; // RA Sakinah
+        }
+
+        if (strpos($unitLower, 'playgroup') !== false && strpos($unitLower, 'sakinah') !== false) {
+            return 400000; // PG Sakinah
+        }
+
+        if (strpos($unitLower, 'tk') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '13') !== false) {
+            return 450000; // TKIA 13
+        }
+
+        if (strpos($unitLower, 'sd') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '13') !== false) {
+            return 550000; // SDIA 13
+        }
+
+        if (strpos($unitLower, 'smp') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '12') !== false) {
+            return 550000; // SMPIA 12
+        }
+
+        if (strpos($unitLower, 'smp') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '55') !== false) {
+            return 550000; // SMPIA 55
+        }
+
+        if (strpos($unitLower, 'sma') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '33') !== false) {
+            return 550000; // SMAIA 33
+        }
+
+        // No fallback - unit not recognized, return 0 to indicate error
+        Log::warning('Unit formulir tidak dikenali', ['unit' => $unit]);
+        return 0;
     }
 }

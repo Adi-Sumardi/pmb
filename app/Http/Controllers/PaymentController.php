@@ -295,6 +295,94 @@ class PaymentController extends Controller
     }
 
     /**
+     * Get formulir amount based on school unit (updated amounts per request)
+     */
+    private function getFormulirAmountByUnit(string $unit): int
+    {
+        // Exact unit name mappings based on user requirements
+        $formulirAmounts = [
+            // RA Sakinah = Rp.100.000
+            'RA Sakinah' => 100000,
+            'RA Sakinah - Kebayoran' => 100000,
+
+            // PG Sakinah = Rp 400.000
+            'PG Sakinah' => 400000,
+            'PG Sakinah - Rawamangun' => 400000,
+            'Playgroup Sakinah' => 400000,
+            'Playgroup Sakinah - Rawamangun' => 400000,
+
+            // TKIA 13 = Rp 450.000
+            'TKIA 13' => 450000,
+            'TK Islam Al Azhar 13' => 450000,
+            'TK Islam Al Azhar 13 - Rawamangun' => 450000,
+
+            // SDIA 13 = Rp 550.000
+            'SDIA 13' => 550000,
+            'SD Islam Al Azhar 13' => 550000,
+            'SD Islam Al Azhar 13 - Rawamangun' => 550000,
+
+            // SMPIA 12 = Rp 550.000
+            'SMPIA 12' => 550000,
+            'SMP Islam Al Azhar 12' => 550000,
+            'SMP Islam Al Azhar 12 - Rawamangun' => 550000,
+
+            // SMPIA 55 = Rp 550.000
+            'SMPIA 55' => 550000,
+            'SMP Islam Al Azhar 55' => 550000,
+            'SMP Islam Al Azhar 55 - Jatimakmur' => 550000,
+
+            // SMAIA 33 = Rp 550.000
+            'SMAIA 33' => 550000,
+            'SMA Islam Al Azhar 33' => 550000,
+            'SMA Islam Al Azhar 33 - Jatimakmur' => 550000,
+        ];
+
+        // Check exact match first
+        if (isset($formulirAmounts[$unit])) {
+            return $formulirAmounts[$unit];
+        }
+
+        // Fallback: check partial matches for flexibility
+        $unitLower = strtolower($unit);
+
+        if (strpos($unitLower, 'ra') !== false && strpos($unitLower, 'sakinah') !== false) {
+            return 100000; // RA Sakinah
+        }
+
+        if (strpos($unitLower, 'playgroup') !== false && strpos($unitLower, 'sakinah') !== false) {
+            return 400000; // PG Sakinah
+        }
+
+        if (strpos($unitLower, 'tk') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '13') !== false) {
+            return 450000; // TKIA 13
+        }
+
+        if (strpos($unitLower, 'sd') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '13') !== false) {
+            return 550000; // SDIA 13
+        }
+
+        if (strpos($unitLower, 'smp') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '12') !== false) {
+            return 550000; // SMPIA 12
+        }
+
+        if (strpos($unitLower, 'smp') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '55') !== false) {
+            return 550000; // SMPIA 55
+        }
+
+        if (strpos($unitLower, 'sma') !== false && strpos($unitLower, 'azhar') !== false && strpos($unitLower, '33') !== false) {
+            return 550000; // SMAIA 33
+        }
+
+        // Unknown unit - log for debugging and return 0 to force proper unit setup
+        Log::warning('Unknown unit encountered in formulir amount calculation', [
+            'unit' => $unit,
+            'unit_lower' => $unitLower
+        ]);
+
+        return 0; // Changed from 150000 to 0 to enforce proper unit-based pricing
+    }
+
+    /**
      * Get jenjang display name
      */
     private function getJenjangName(string $jenjang): string
@@ -766,10 +854,20 @@ class PaymentController extends Controller
         $updatedBills = [];
 
         foreach ($cartItems as $item) {
-            if (isset($item['bill_id'])) {
-                $studentBill = \App\Models\StudentBill::find($item['bill_id']);
+            // Use 'id' from cart items (which represents student_bill_id)
+            $billId = $item['bill_id'] ?? $item['id'] ?? null;
+
+            if ($billId) {
+                $studentBill = \App\Models\StudentBill::find($billId);
 
                 if ($studentBill && $studentBill->payment_status === 'pending') {
+                    Log::info('Updating StudentBill from cart item', [
+                        'student_bill_id' => $studentBill->id,
+                        'bill_name' => $studentBill->description,
+                        'bill_type' => $studentBill->bill_type,
+                        'paid_amount' => $studentBill->remaining_amount
+                    ]);
+
                     // Update the student bill status
                     $studentBill->update([
                         'payment_status' => 'paid',
@@ -797,10 +895,20 @@ class PaymentController extends Controller
 
                     $updatedBills[] = [
                         'bill_id' => $studentBill->id,
-                        'name' => $studentBill->name,
+                        'name' => $studentBill->description,
                         'amount' => $studentBill->paid_amount
                     ];
+                } else {
+                    Log::warning('StudentBill not found or already paid', [
+                        'bill_id' => $billId,
+                        'student_bill_exists' => $studentBill ? 'yes' : 'no',
+                        'payment_status' => $studentBill->payment_status ?? 'N/A'
+                    ]);
                 }
+            } else {
+                Log::warning('No bill_id found in cart item', [
+                    'cart_item' => $item
+                ]);
             }
         }
 
@@ -1042,9 +1150,9 @@ class PaymentController extends Controller
         $studentStatus = $pendaftar->student_status ?? 'inactive';
         $isActiveStudent = $studentStatus === 'active';
 
-        // If student is not active, only show formulir and uang_pangkal bills
+        // If student is not active, only show registration_fee and uang_pangkal bills
         if (!$isActiveStudent) {
-            $query->whereIn('bill_type', ['formulir', 'uang_pangkal']);
+            $query->whereIn('bill_type', ['registration_fee', 'uang_pangkal']);
         }
         // If student is active, show all bill types including SPP, seragam, buku
 
@@ -1055,7 +1163,7 @@ class PaymentController extends Controller
             ->where('payment_status', 'paid');
 
         if (!$isActiveStudent) {
-            $paidQuery->whereIn('bill_type', ['formulir', 'uang_pangkal']);
+            $paidQuery->whereIn('bill_type', ['registration_fee', 'uang_pangkal']);
         }
 
         $paidBills = $paidQuery->orderBy('paid_at', 'desc')->get();
@@ -1116,6 +1224,14 @@ class PaymentController extends Controller
             'user_id' => Auth::id()
         ]);
 
+        // Debug cart items raw data
+        Log::info('=== DEBUG CART ITEMS RAW ===', [
+            'items_raw' => $request->items,
+            'items_type' => gettype($request->items),
+            'items_length' => strlen($request->items ?? ''),
+            'first_50_chars' => substr($request->items ?? '', 0, 50)
+        ]);
+
         $request->validate([
             'pendaftar_id' => 'required|exists:pendaftars,id',
             'amount' => 'required|numeric|min:10000|max:50000000', // Increased range for cart payments
@@ -1142,17 +1258,48 @@ class PaymentController extends Controller
             'discount_id' => $request->discount_id
         ]);
 
-        // Parse cart items
+        // Parse cart items with HTML entity decoding
         $cartItems = [];
         if ($request->items) {
             try {
-                $cartItems = json_decode($request->items, true);
+                // Decode HTML entities first, then parse JSON
+                $decodedItems = html_entity_decode($request->items);
+
+                Log::info('=== DEBUG DECODING PROCESS ===', [
+                    'step_1_raw' => $request->items,
+                    'step_2_html_decoded' => $decodedItems,
+                    'step_3_json_last_error_before' => json_last_error_msg()
+                ]);
+
+                $cartItems = json_decode($decodedItems, true);
+
+                Log::info('=== DEBUG JSON DECODE RESULT ===', [
+                    'json_decode_result' => $cartItems,
+                    'json_last_error' => json_last_error_msg(),
+                    'is_array' => is_array($cartItems),
+                    'type' => gettype($cartItems)
+                ]);
+
                 if (!is_array($cartItems)) {
-                    throw new \Exception('Invalid cart items format');
+                    throw new \Exception('Invalid cart items format - not array. Got: ' . gettype($cartItems));
                 }
+
+                // Log successful parsing
+                Log::info('Cart items parsed successfully', [
+                    'original_string' => $request->items,
+                    'decoded_string' => $decodedItems,
+                    'parsed_items' => $cartItems,
+                    'items_count' => count($cartItems)
+                ]);
+
             } catch (\Exception $e) {
-                Log::error('Failed to parse cart items', ['error' => $e->getMessage()]);
-                return back()->with('error', 'Format data keranjang tidak valid.');
+                Log::error('Failed to parse cart items', [
+                    'error' => $e->getMessage(),
+                    'original_string' => $request->items,
+                    'decoded_attempt' => html_entity_decode($request->items),
+                    'json_last_error' => json_last_error_msg()
+                ]);
+                return back()->with('error', 'Format data keranjang tidak valid: ' . $e->getMessage());
             }
         }
 
@@ -1178,17 +1325,39 @@ class PaymentController extends Controller
         }
 
         // Calculate transaction fees
-        $paymentAmount = (float) $request->amount;
-        $bestFeeOption = $this->getBestFeeOption($paymentAmount);
-        $transactionFee = $bestFeeOption['min_fee'];
-        $finalAmount = $paymentAmount + $transactionFee;
+        // Note: $request->amount already includes transaction fee from frontend
+        // We need to extract the subtotal and transaction fee separately
+        $totalAmountFromFrontend = (float) $request->amount;
+
+        // Calculate what the subtotal should be by parsing cart items
+        $calculatedSubtotal = 0;
+        if (!empty($cartItems)) {
+            foreach ($cartItems as $item) {
+                $calculatedSubtotal += ($item['amount'] ?? 0) * ($item['quantity'] ?? 1);
+            }
+        }
+
+        // Calculate expected transaction fee based on subtotal
+        $bestFeeOption = $this->getBestFeeOption($calculatedSubtotal);
+        $expectedTransactionFee = $bestFeeOption['min_fee'];
+
+        // Verify if frontend sent correct total
+        $expectedTotal = $calculatedSubtotal + $expectedTransactionFee - $discountAmount;
+
+        // Use calculated values for consistency
+        $paymentAmount = $calculatedSubtotal; // This is the real subtotal
+        $transactionFee = $expectedTransactionFee;
+        $finalAmount = $paymentAmount + $transactionFee - $discountAmount;
 
         Log::info('Payment calculation completed', [
-            'subtotal' => $paymentAmount,
+            'cart_subtotal' => $calculatedSubtotal,
+            'frontend_total' => $totalAmountFromFrontend,
+            'expected_total' => $expectedTotal,
             'discount_amount' => $discountAmount,
             'transaction_fee' => $transactionFee,
             'final_amount' => $finalAmount,
-            'recommended_method' => $bestFeeOption['recommended_method']
+            'recommended_method' => $bestFeeOption['recommended_method'],
+            'difference' => $totalAmountFromFrontend - $expectedTotal
         ]);
 
         // Create payment record in database first
@@ -1230,9 +1399,14 @@ class PaymentController extends Controller
 
     private function createXenditInvoice(Pendaftar $pendaftar)
     {
+        // Calculate current unit-based amount instead of using old payment_amount field
+        $currentFormulirAmount = $this->getFormulirAmountByUnit($pendaftar->unit);
+
         Log::info('=== CREATE XENDIT INVOICE START ===', [
             'pendaftar_id' => $pendaftar->id,
-            'amount' => $pendaftar->payment_amount
+            'unit' => $pendaftar->unit,
+            'old_payment_amount' => $pendaftar->payment_amount,
+            'new_calculated_amount' => $currentFormulirAmount
         ]);
 
         try {
@@ -1243,12 +1417,12 @@ class PaymentController extends Controller
 
             $user = Auth::user();
 
-            // Create cart items for formulir payment
+            // Create cart items for formulir payment using current unit-based amount
             $formulirCartItems = [
                 [
                     'bill_id' => null,
                     'name' => 'Biaya Formulir Pendaftaran',
-                    'amount' => $pendaftar->payment_amount
+                    'amount' => $currentFormulirAmount
                 ]
             ];
 
@@ -1257,7 +1431,7 @@ class PaymentController extends Controller
 
             Log::info('Xendit invoice data prepared', [
                 'external_id' => $externalId,
-                'amount' => $pendaftar->payment_amount,
+                'amount' => $currentFormulirAmount,
                 'student' => $pendaftar->nama_murid,
                 'jenjang' => $jenjangName
             ]);
@@ -1265,7 +1439,7 @@ class PaymentController extends Controller
             // ✅ PERBAIKI KONFIGURASI INVOICE DATA
             $invoiceData = [
                 'external_id' => $externalId,
-                'amount' => (int)$pendaftar->payment_amount,
+                'amount' => (int)$currentFormulirAmount,
                 'description' => sprintf(
                     'Biaya Pendaftaran PPDB %s - %s - %s',
                     $jenjangName,
@@ -1306,32 +1480,32 @@ class PaymentController extends Controller
                     [
                         'bank_code' => 'BCA',
                         'collection_type' => 'POOL',
-                        'transfer_amount' => (int)$pendaftar->payment_amount
+                        'transfer_amount' => (int)$currentFormulirAmount
                     ],
                     [
                         'bank_code' => 'BNI',
                         'collection_type' => 'POOL',
-                        'transfer_amount' => (int)$pendaftar->payment_amount
+                        'transfer_amount' => (int)$currentFormulirAmount
                     ],
                     [
                         'bank_code' => 'BRI',
                         'collection_type' => 'POOL',
-                        'transfer_amount' => (int)$pendaftar->payment_amount
+                        'transfer_amount' => (int)$currentFormulirAmount
                     ],
                     [
                         'bank_code' => 'MANDIRI',
                         'collection_type' => 'POOL',
-                        'transfer_amount' => (int)$pendaftar->payment_amount
+                        'transfer_amount' => (int)$currentFormulirAmount
                     ],
                     [
                         'bank_code' => 'PERMATA',
                         'collection_type' => 'POOL',
-                        'transfer_amount' => (int)$pendaftar->payment_amount
+                        'transfer_amount' => (int)$currentFormulirAmount
                     ],
                     [
                         'bank_code' => 'CIMB',
                         'collection_type' => 'POOL',
-                        'transfer_amount' => (int)$pendaftar->payment_amount
+                        'transfer_amount' => (int)$currentFormulirAmount
                     ]
                 ],
 
@@ -1369,7 +1543,7 @@ class PaymentController extends Controller
                     [
                         'name' => sprintf('Biaya Pendaftaran PPDB %s - %s', $jenjangName, $pendaftar->unit),
                         'quantity' => 1,
-                        'price' => (int)$pendaftar->payment_amount,
+                        'price' => (int)$currentFormulirAmount,
                         'category' => 'Education'
                     ]
                 ],
@@ -1458,7 +1632,7 @@ class PaymentController extends Controller
                 'external_id' => $externalId,
                 'invoice_id' => $responseData['id'],
                 'invoice_url' => $responseData['invoice_url'],
-                'amount' => $pendaftar->payment_amount,
+                'amount' => $currentFormulirAmount,
                 'status' => self::STATUS_PENDING,
                 'xendit_response' => $responseData,
                 'expires_at' => now()->addHour(),
@@ -2574,5 +2748,42 @@ class PaymentController extends Controller
         }
 
         return $types;
+    }
+
+    /**
+     * Debug payment data - temporary method
+     */
+    public function debugPaymentData()
+    {
+        $user = Auth::user();
+
+        // Get the latest successful payment for the user
+        $payment = Payment::whereHas('pendaftar', function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+        ->where('status', 'completed')
+        ->orderBy('paid_at', 'desc')
+        ->first();
+
+        if (!$payment) {
+            return response()->json(['error' => 'No successful payment found']);
+        }
+
+        $cartItems = $this->getCartItemsFromMetadata($payment);
+        $transactionTypes = $this->getTransactionTypes($payment);
+        $paymentTypeDescription = $this->generatePaymentTypeDescription($cartItems);
+
+        return response()->json([
+            'payment_id' => $payment->id,
+            'external_id' => $payment->external_id,
+            'payment_metadata' => $payment->metadata,
+            'cart_items' => $cartItems,
+            'transaction_types' => $transactionTypes,
+            'payment_type_description' => $paymentTypeDescription,
+            'transaction_fee' => $payment->metadata['transaction_fee'] ?? 0,
+            'discount_amount' => $payment->metadata['discount_amount'] ?? 0,
+            'total_amount' => $payment->amount,
+            'formatted_amount' => $payment->formatted_amount,
+        ]);
     }
 }

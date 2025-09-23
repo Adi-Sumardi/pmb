@@ -97,9 +97,15 @@
                                 <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">
                                     Total Revenue
                                 </div>
-                                <div class="display-6 fw-bold text-info mb-2 counter" data-target="{{ $pendaftars->where('sudah_bayar_formulir', true)->count() * 150 }}">0</div>
+                                @php
+                                    $totalRevenue = \App\Models\StudentBill::where('bill_type', 'registration_fee')
+                                        ->where('payment_status', 'paid')
+                                        ->sum('total_amount');
+                                    $totalRevenueInThousands = $totalRevenue / 1000;
+                                @endphp
+                                <div class="display-6 fw-bold text-info mb-2 counter" data-target="{{ $totalRevenueInThousands }}">0</div>
                                 <div class="text-muted small">
-                                    Rp {{ number_format($pendaftars->where('sudah_bayar_formulir', true)->count() * 150000, 0, ',', '.') }}
+                                    Rp {{ number_format($totalRevenue, 0, ',', '.') }}
                                 </div>
                             </div>
                             <div class="stat-icon bg-info bg-opacity-10 rounded-3 p-3">
