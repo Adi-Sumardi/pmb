@@ -87,6 +87,11 @@ class ComprehensiveSecurityMiddleware
      */
     private function protectAgainstSQLInjection(Request $request): void
     {
+        // Skip SQL injection checks for admin bulk operations
+        if ($this->isAdminBulkOperation($request)) {
+            return;
+        }
+
         $suspiciousPatterns = [
             '/(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b)/i',
             '/(\b(or|and)\s+\d+\s*=\s*\d+)/i',
@@ -101,13 +106,50 @@ class ComprehensiveSecurityMiddleware
     }
 
     /**
+     * Check if this is an admin bulk operation
+     */
+    private function isAdminBulkOperation(Request $request): bool
+    {
+        $adminBulkRoutes = [
+            'admin/pendaftar/bulk-delete',
+            'admin/users/bulk-delete',
+            'admin/bulk-delete',
+        ];
+
+        $currentPath = $request->path();
+
+        foreach ($adminBulkRoutes as $route) {
+            if (str_contains($currentPath, $route)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Check input for suspicious patterns
      */
     private function checkInputForPatterns(Request $request, array $patterns, string $attackType): void
     {
         $allInput = $request->all();
 
+        // Fields to exclude from SQL injection checks
+        $excludedFields = [
+            '_method',     // Laravel method spoofing
+            '_token',      // CSRF token
+            '_redirect',   // Redirect fields
+            'method',      // Method field variants
+            'ids',         // Bulk operation IDs
+            'selected_ids' // Alternative bulk IDs field
+        ];
+
         foreach ($allInput as $key => $value) {
+            // Skip excluded fields for SQL injection checks
+            if ($attackType === 'SQL Injection' && in_array($key, $excludedFields)) {
+                continue;
+            }
+
             if (is_string($value)) {
                 foreach ($patterns as $pattern) {
                     if (preg_match($pattern, $value)) {
@@ -117,10 +159,12 @@ class ComprehensiveSecurityMiddleware
                             'path' => $request->path(),
                             'field' => $key,
                             'pattern' => $pattern,
-                            'value' => substr($value, 0, 100) // Log first 100 chars only
+                            'value' => substr($value, 0, 100), // Log first 100 chars only
+                            'is_admin_bulk' => $this->isAdminBulkOperation($request),
+                            'all_input_keys' => array_keys($allInput)
                         ]);
 
-                        abort(400, 'Malicious input detected');
+                        abort(400, 'Malicious input detected: ' . $attackType . ' in field: ' . $key);
                     }
                 }
             }
@@ -206,12 +250,12 @@ class ComprehensiveSecurityMiddleware
     private function detectSuspiciousActivity(Request $request): void
     {
         $suspiciousIndicators = [
-            // Common attack paths
-            'admin', 'phpmyadmin', 'wp-admin', 'wp-login',
+            // Common attack paths (excluding our legitimate admin routes)
+            'phpmyadmin', 'wp-admin', 'wp-login',
             // File inclusion attempts
             '../', '..\\', '/etc/passwd', '/etc/shadow',
             // Command injection
-            '&&', '||', '|', ';', '`',
+            '&&', '||', '|', '`',
             // Directory traversal
             '%2e%2e', '%252e%252e'
         ];
@@ -219,7 +263,41 @@ class ComprehensiveSecurityMiddleware
         $path = $request->path();
         $userAgent = $request->userAgent();
 
+        // Whitelist legitimate admin paths
+        $legitimateAdminPaths = [
+            'admin/dashboard',
+            'admin/pendaftar',
+            'admin/payments',
+            'admin/settings',
+            'admin/users',
+            'admin/reports'
+        ];
+
+        // Check if current path is a legitimate admin path
+        $isLegitimateAdmin = false;
+        foreach ($legitimateAdminPaths as $legitimatePath) {
+            if (str_starts_with($path, $legitimatePath)) {
+                $isLegitimateAdmin = true;
+                break;
+            }
+        }
+
         foreach ($suspiciousIndicators as $indicator) {
+            // Skip 'admin' check for legitimate admin paths
+            if ($indicator === 'admin' && $isLegitimateAdmin) {
+                continue;
+            }
+
+            // Skip semicolon check for legitimate admin operations and CSRF
+            if ($indicator === ';' && (
+                $isLegitimateAdmin ||
+                $request->hasHeader('X-CSRF-TOKEN') ||
+                str_contains($path, 'logout') ||
+                str_contains($path, 'login')
+            )) {
+                continue;
+            }
+
             if (stripos($path, $indicator) !== false || stripos($userAgent, $indicator) !== false) {
                 Log::warning('Suspicious activity detected', [
                     'ip' => $request->ip(),
