@@ -565,6 +565,35 @@
                 font-size: 0.8rem;
                 margin-top: 0.25rem;
             }
+
+            /* iOS date input specific styling */
+            .ios-date-success {
+                padding: 8px 12px;
+                background-color: #d4edda;
+                border: 1px solid #c3e6cb;
+                border-radius: 0.375rem;
+                margin-top: 0.5rem;
+                animation: fadeInOut 3s ease-in-out;
+            }
+
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-10px); }
+                15% { opacity: 1; transform: translateY(0); }
+                85% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-10px); }
+            }
+
+            /* Enhanced iOS/Safari date input handling */
+            input[type="date"] {
+                background: white !important;
+                border: 1px solid #ced4da;
+                border-radius: 0.375rem;
+                padding: 0.375rem 0.75rem;
+                font-size: 16px; /* Prevent zoom on iOS */
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+            }
         }
 
         @media (max-width: 576px) {
@@ -1060,7 +1089,6 @@
                             <div class="col-md-6 animate-on-scroll">
                                 <label class="form-label">
                                     <i class="bi bi-calendar-event me-1"></i>Tanggal Lahir
-                                    <small class="text-muted">(Format: DD/MM/YYYY)</small>
                                 </label>
                                 <input type="date"
                                        name="tanggal_lahir"
@@ -1073,6 +1101,12 @@
                                 <div class="form-text text-muted">
                                     <i class="bi bi-info-circle me-1"></i>
                                     Contoh: 23/09/2010 untuk 23 September 2010
+                                </div>
+                                <div class="ios-platform-notice" style="display: none;">
+                                    <div class="alert alert-info mt-2 py-2">
+                                        <i class="bi bi-phone me-1"></i>
+                                        <strong>Untuk iOS/iPad:</strong> Format tanggal akan ditampilkan sesuai pengaturan perangkat Anda (misalnya "25 Sep 2025"). Ini normal dan data akan tersimpan dengan benar.
+                                    </div>
                                 </div>
                             </div>
 
@@ -2105,11 +2139,23 @@
                 // Add format indicator based on platform
                 function updateFormatIndicator() {
                     const formText = dateInput.parentNode.querySelector('.form-text');
+                    const iosNotice = dateInput.parentNode.querySelector('.ios-platform-notice');
+
                     if (formText) {
                         if (isIOS || isSafari) {
-                            formText.innerHTML = '<i class="bi bi-info-circle me-1"></i>iOS akan menampilkan: "23 Sept 2010" (format internal tetap DD/MM/YYYY)';
+                            formText.innerHTML = '<i class="bi bi-info-circle me-1"></i>📱 Format tanggal akan disesuaikan dengan pengaturan perangkat Anda';
+
+                            // Show iOS-specific notice
+                            if (iosNotice) {
+                                iosNotice.style.display = 'block';
+                            }
                         } else {
                             formText.innerHTML = '<i class="bi bi-info-circle me-1"></i>Contoh: 23/09/2010 untuk 23 September 2010';
+
+                            // Hide iOS notice for non-iOS devices
+                            if (iosNotice) {
+                                iosNotice.style.display = 'none';
+                            }
                         }
                     }
                 }
@@ -2203,6 +2249,11 @@
                     setTimeout(() => {
                         normalizeDateValue();
                         validateDateInput();
+
+                        // Show iOS-specific confirmation
+                        if ((isIOS || isSafari) && this.value) {
+                            showIOSDateConfirmation();
+                        }
                     }, 100);
                 });
 
@@ -2216,6 +2267,39 @@
                 dateInput.addEventListener('focus', function() {
                     clearDateError();
                 });
+
+                // iOS-specific date confirmation
+                function showIOSDateConfirmation() {
+                    try {
+                        if (dateInput.value) {
+                            const selectedDate = new Date(dateInput.value);
+                            if (!isNaN(selectedDate.getTime())) {
+                                // Create temporary success message
+                                let successDiv = dateInput.parentNode.querySelector('.ios-date-success');
+                                if (!successDiv) {
+                                    successDiv = document.createElement('div');
+                                    successDiv.className = 'ios-date-success text-success mt-1';
+                                    successDiv.style.fontSize = '0.875em';
+                                    dateInput.parentNode.appendChild(successDiv);
+                                }
+
+                                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                                const formattedDate = selectedDate.toLocaleDateString('id-ID', options);
+                                successDiv.innerHTML = `✅ Tanggal terpilih: ${formattedDate}`;
+                                successDiv.style.display = 'block';
+
+                                // Auto-hide after 3 seconds
+                                setTimeout(() => {
+                                    if (successDiv) {
+                                        successDiv.style.display = 'none';
+                                    }
+                                }, 3000);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Error showing iOS confirmation:', error);
+                    }
+                }
 
                 // Update format indicator on load
                 updateFormatIndicator();
