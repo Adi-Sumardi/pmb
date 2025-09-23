@@ -23,6 +23,18 @@
                 @php
                     // Use payment->pendaftar if $pendaftar is not defined
                     $pendaftar = $pendaftar ?? $payment->pendaftar;
+
+                    // Ensure cartItems is always an array
+                    $cartItems = $cartItems ?? [];
+                    if (!is_array($cartItems)) {
+                        $cartItems = [];
+                    }
+
+                    // Ensure transactionTypes is always an array
+                    $transactionTypes = $transactionTypes ?? [];
+                    if (!is_array($transactionTypes)) {
+                        $transactionTypes = [];
+                    }
                 @endphp
 
                 <!-- Success Alert -->
@@ -30,7 +42,7 @@
                     <i class="bi bi-check-circle-fill me-3 fs-3"></i>
                     <div>
                         <h4 class="alert-heading fw-bold mb-1">Pembayaran Berhasil!</h4>
-                        <p class="mb-0">{{ $paymentTypeDescription ?? 'Pembayaran PPDB' }} untuk <strong>{{ $pendaftar->nama_murid }}</strong> telah berhasil diverifikasi.</p>
+                        <p class="mb-0">{{ $paymentTypeDescription ?? 'Pembayaran PPDB' }} untuk <strong>{{ $pendaftar->nama_murid ?? 'Siswa' }}</strong> telah berhasil diverifikasi.</p>
                     </div>
                 </div>
                 <!-- Invoice Card -->
@@ -43,15 +55,6 @@
                                     <i class="bi bi-mortarboard-fill text-primary me-2" style="font-size: 2rem;"></i>
                                     <div>
                                         <h3 class="fw-bold text-primary mb-0">SIAKAD YAPI</h3>
-                                        <div class="d-flex flex-wrap gap-1 mb-1">
-                                            @if(isset($transactionTypes) && !empty($transactionTypes))
-                                                @foreach($transactionTypes as $type)
-                                                    <span class="badge bg-{{ $type['badge'] }} bg-opacity-75 text-{{ $type['badge'] }}">{{ $type['label'] }}</span>
-                                                @endforeach
-                                            @else
-                                                <span class="badge bg-info bg-opacity-75 text-black">Pembayaran</span>
-                                            @endif
-                                        </div>
                                         <small class="text-muted">Sistem Informasi Akademik</small>
                                     </div>
                                 </div>
@@ -173,10 +176,18 @@
                                             <td colspan="5" class="text-end fw-bold">Subtotal:</td>
                                             <td class="text-end fw-bold">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                         </tr>
+                                        @if(isset($payment->metadata['transaction_fee']) && $payment->metadata['transaction_fee'] > 0)
                                         <tr class="table-light">
-                                            <td colspan="5" class="text-end fw-bold">Admin Fee:</td>
-                                            <td class="text-end fw-bold">Rp 0</td>
+                                            <td colspan="5" class="text-end fw-bold">Biaya Transaksi:</td>
+                                            <td class="text-end fw-bold">Rp {{ number_format($payment->metadata['transaction_fee'], 0, ',', '.') }}</td>
                                         </tr>
+                                        @endif
+                                        @if(isset($payment->metadata['discount_amount']) && $payment->metadata['discount_amount'] > 0)
+                                        <tr class="table-light text-success">
+                                            <td colspan="5" class="text-end fw-bold">Diskon:</td>
+                                            <td class="text-end fw-bold">-Rp {{ number_format($payment->metadata['discount_amount'], 0, ',', '.') }}</td>
+                                        </tr>
+                                        @endif
                                         <tr class="table-success">
                                             <td colspan="5" class="text-end fw-bold h5 mb-0">TOTAL PEMBAYARAN:</td>
                                             <td class="text-end fw-bold h5 mb-0 text-success">{{ $payment->formatted_amount }}</td>
@@ -566,6 +577,31 @@ _Sistem Informasi Akademik & Keuangan YAPI_`;
 
         // Show success animation
         document.addEventListener('DOMContentLoaded', function() {
+            // Debug calculation
+            if (document.getElementById('debug-subtotal')) {
+                let cartItems = @json($cartItems);
+                let subtotal = 0;
+                cartItems.forEach(item => {
+                    subtotal += (item.amount || 0) * (item.quantity || 1);
+                });
+
+                let transactionFee = {{ $payment->metadata['transaction_fee'] ?? 0 }};
+                let discountAmount = {{ $payment->metadata['discount_amount'] ?? 0 }};
+                let expectedTotal = subtotal + transactionFee - discountAmount;
+
+                document.getElementById('debug-subtotal').textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
+                document.getElementById('debug-total').textContent = 'Rp ' + expectedTotal.toLocaleString('id-ID');
+
+                console.log('DEBUG CALCULATION:', {
+                    subtotal: subtotal,
+                    transactionFee: transactionFee,
+                    discountAmount: discountAmount,
+                    expectedTotal: expectedTotal,
+                    actualTotal: {{ $payment->amount }},
+                    difference: {{ $payment->amount }} - expectedTotal
+                });
+            }
+
             // Add success animation or any auto-actions
             setTimeout(() => {
                 const alert = document.querySelector('.alert-success');

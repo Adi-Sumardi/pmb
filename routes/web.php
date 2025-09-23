@@ -172,4 +172,5 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/logs/download', [App\Http\Controllers\LogController::class, 'downloadLogs'])->name('logs.download');
     Route::get('/logs/stream', [App\Http\Controllers\LogController::class, 'streamLogs'])->name('logs.stream');
     Route::get('/debug/payment-methods', [PaymentController::class, 'debugPaymentMethods'])->name('admin.debug.payment-methods');
+    Route::get('/debug/payment-data', [PaymentController::class, 'debugPaymentData'])->name('admin.debug.payment-data');
 });

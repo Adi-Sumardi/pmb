@@ -60,7 +60,7 @@
                                             <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
                                                 <i class="bi bi-credit-card me-2"></i>
                                                 <div>
-                                                    <strong>Pembayaran Formulir Diperlukan!</strong> Silakan lakukan pembayaran formulir sebesar Rp 150.000 untuk melanjutkan proses pendaftaran.
+                                                    <strong>Pembayaran Formulir Diperlukan!</strong> Silakan lakukan pembayaran formulir sebesar Rp {{ number_format($paymentAmount, 0, ',', '.') }} untuk melanjutkan proses pendaftaran.
                                                     @if(!empty($nextSteps))
                                                         <br><small class="text-muted">Langkah selanjutnya: {{ implode(', ', $nextSteps) }}</small>
                                                     @endif
