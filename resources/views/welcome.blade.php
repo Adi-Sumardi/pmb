@@ -536,6 +536,35 @@
                 border-color: #dc3545 !important;
                 border-width: 2px !important;
             }
+
+            /* Date input specific styling */
+            input[type="date"] {
+                position: relative;
+                background-color: white;
+            }
+
+            input[type="date"]::-webkit-datetime-edit {
+                color: #495057;
+            }
+
+            input[type="date"]::-webkit-calendar-picker-indicator {
+                color: var(--primary-color);
+                cursor: pointer;
+                filter: invert(0.5) sepia(1) saturate(5) hue-rotate(200deg);
+            }
+
+            input[type="date"]:focus::-webkit-calendar-picker-indicator {
+                filter: invert(0.3) sepia(1) saturate(3) hue-rotate(200deg);
+            }
+
+            .date-error {
+                margin-top: 0.25rem;
+            }
+
+            .form-text.text-muted {
+                font-size: 0.8rem;
+                margin-top: 0.25rem;
+            }
         }
 
         @media (max-width: 576px) {
@@ -1031,8 +1060,20 @@
                             <div class="col-md-6 animate-on-scroll">
                                 <label class="form-label">
                                     <i class="bi bi-calendar-event me-1"></i>Tanggal Lahir
+                                    <small class="text-muted">(Format: DD/MM/YYYY)</small>
                                 </label>
-                                <input type="date" name="tanggal_lahir" class="form-control" required>
+                                <input type="date"
+                                       name="tanggal_lahir"
+                                       id="tanggal_lahir"
+                                       class="form-control"
+                                       required
+                                       placeholder="dd/mm/yyyy"
+                                       max="2025-12-31"
+                                       min="1950-01-01">
+                                <div class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Contoh: 23/09/2010 untuk 23 September 2010
+                                </div>
                             </div>
 
                             <!-- Alamat -->
@@ -1364,6 +1405,29 @@
                 }
             }
 
+            // Validate date input
+            const dateInput = document.getElementById('tanggal_lahir');
+            if (dateInput && dateInput.value) {
+                const dateValue = new Date(dateInput.value);
+                const today = new Date();
+                const minDate = new Date('1950-01-01');
+                const maxDate = new Date('2025-12-31');
+
+                if (isNaN(dateValue.getTime())) {
+                    dateInput.classList.add('is-invalid');
+                    errors.push('Format tanggal lahir tidak valid');
+                    isValid = false;
+                } else if (dateValue < minDate || dateValue > maxDate) {
+                    dateInput.classList.add('is-invalid');
+                    errors.push('Tanggal lahir harus antara tahun 1950-2025');
+                    isValid = false;
+                } else if (dateValue > today) {
+                    dateInput.classList.add('is-invalid');
+                    errors.push('Tanggal lahir tidak boleh di masa depan');
+                    isValid = false;
+                }
+            }
+
             // Validate file sizes and types
             const fileInputs = document.querySelectorAll('input[type="file"]');
             fileInputs.forEach(input => {
@@ -1429,6 +1493,24 @@
                     console.log('Form already submitting, ignoring duplicate attempt');
                     e.preventDefault();
                     return false;
+                }
+
+                // Normalize date input before validation
+                const dateInput = document.getElementById('tanggal_lahir');
+                if (dateInput && dateInput.value) {
+                    try {
+                        const dateValue = new Date(dateInput.value);
+                        if (!isNaN(dateValue.getTime())) {
+                            const year = dateValue.getFullYear();
+                            const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+                            const day = String(dateValue.getDate()).padStart(2, '0');
+                            const normalizedValue = `${year}-${month}-${day}`;
+                            dateInput.value = normalizedValue;
+                            console.log('Date normalized for submission:', normalizedValue);
+                        }
+                    } catch (error) {
+                        console.warn('Error normalizing date for submission:', error);
+                    }
                 }
 
                 // Validate form
@@ -1687,6 +1769,9 @@
 
                 // Initialize file upload previews
                 initializeFileUploads();
+
+                // Initialize date input handling
+                initializeDateInputs();
 
                 // Setup validations
                 setupNISNValidation();
@@ -2001,6 +2086,143 @@
                 console.log('File uploads initialization completed successfully');
             } catch (error) {
                 console.error('Error in initializeFileUploads:', error);
+            }
+        }
+
+        // Initialize date input handling for cross-platform consistency
+        function initializeDateInputs() {
+            try {
+                console.log('Initializing date inputs...');
+
+                const dateInput = document.getElementById('tanggal_lahir');
+                if (!dateInput) return;
+
+                // Detect iOS/Safari for special handling
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+                // Add format indicator based on platform
+                function updateFormatIndicator() {
+                    const formText = dateInput.parentNode.querySelector('.form-text');
+                    if (formText) {
+                        if (isIOS || isSafari) {
+                            formText.innerHTML = '<i class="bi bi-info-circle me-1"></i>iOS akan menampilkan: "23 Sept 2010" (format internal tetap DD/MM/YYYY)';
+                        } else {
+                            formText.innerHTML = '<i class="bi bi-info-circle me-1"></i>Contoh: 23/09/2010 untuk 23 September 2010';
+                        }
+                    }
+                }
+
+                // Normalize date value for submission
+                function normalizeDateValue() {
+                    try {
+                        if (dateInput.value) {
+                            const dateValue = new Date(dateInput.value);
+                            if (!isNaN(dateValue.getTime())) {
+                                // Ensure the value is in YYYY-MM-DD format for backend
+                                const year = dateValue.getFullYear();
+                                const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+                                const day = String(dateValue.getDate()).padStart(2, '0');
+                                const normalizedValue = `${year}-${month}-${day}`;
+
+                                console.log('Date normalized:', dateInput.value, '->', normalizedValue);
+
+                                // Update the main input value to normalized format for backend
+                                dateInput.value = normalizedValue;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Error normalizing date:', error);
+                    }
+                }
+
+                // Validate date input
+                function validateDateInput() {
+                    try {
+                        if (!dateInput.value) return;
+
+                        const dateValue = new Date(dateInput.value);
+                        const today = new Date();
+                        const minDate = new Date('1950-01-01');
+                        const maxDate = new Date('2025-12-31');
+
+                        if (isNaN(dateValue.getTime())) {
+                            showDateError('Format tanggal tidak valid');
+                            return false;
+                        }
+
+                        if (dateValue < minDate || dateValue > maxDate) {
+                            showDateError('Tanggal harus antara 1950-2025');
+                            return false;
+                        }
+
+                        if (dateValue > today) {
+                            showDateError('Tanggal lahir tidak boleh di masa depan');
+                            return false;
+                        }
+
+                        clearDateError();
+                        return true;
+                    } catch (error) {
+                        console.warn('Error validating date:', error);
+                        return false;
+                    }
+                }
+
+                function showDateError(message) {
+                    try {
+                        dateInput.classList.add('is-invalid');
+                        let errorDiv = dateInput.parentNode.querySelector('.date-error');
+                        if (!errorDiv) {
+                            errorDiv = document.createElement('div');
+                            errorDiv.className = 'date-error invalid-feedback';
+                            dateInput.parentNode.appendChild(errorDiv);
+                        }
+                        errorDiv.textContent = message;
+                        errorDiv.style.display = 'block';
+                    } catch (error) {
+                        console.warn('Error showing date error:', error);
+                    }
+                }
+
+                function clearDateError() {
+                    try {
+                        dateInput.classList.remove('is-invalid');
+                        const errorDiv = dateInput.parentNode.querySelector('.date-error');
+                        if (errorDiv) {
+                            errorDiv.style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.warn('Error clearing date error:', error);
+                    }
+                }
+
+                // Setup event listeners
+                dateInput.addEventListener('change', function() {
+                    setTimeout(() => {
+                        normalizeDateValue();
+                        validateDateInput();
+                    }, 100);
+                });
+
+                dateInput.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        normalizeDateValue();
+                        validateDateInput();
+                    }, 100);
+                });
+
+                dateInput.addEventListener('focus', function() {
+                    clearDateError();
+                });
+
+                // Update format indicator on load
+                updateFormatIndicator();
+
+                console.log('Date inputs initialization completed successfully');
+            } catch (error) {
+                console.error('Error in initializeDateInputs:', error);
             }
         }
 
