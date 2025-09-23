@@ -444,13 +444,30 @@ class Pendaftar extends Model
             $this->unit === 'SMAIA 33' ||
             ($this->unit === 'SMA' && str_contains(strtolower($this->nama_sekolah ?? ''), 'azhar 33')) => 550000,
 
-            // Fallback berdasarkan unit umum
-            $this->unit === 'TK' => 450000, // Assume TKIA 13 for TK
-            $this->unit === 'SD' => 550000, // Assume SDIA 13 for SD
-            $this->unit === 'SMP' => 550000, // Assume SMPIA for SMP
-            $this->unit === 'SMA' => 550000, // Assume SMAIA for SMA
+            // Fallback berdasarkan unit umum - HARGA SESUAI JENJANG
+            $this->unit === 'RA' => 100000, // RA
+            $this->unit === 'PG' => 400000, // PG
+            $this->unit === 'TK' => 450000, // TK Islam Al Azhar 13
+            $this->unit === 'SD' => 550000, // SD Islam Al Azhar 13
+            $this->unit === 'SMP' => 550000, // SMP Islam Al Azhar
+            $this->unit === 'SMA' => 550000, // SMA Islam Al Azhar
 
-            default => 0 // No default amount - must specify unit
+            // Fallback berdasarkan jenjang jika unit tidak terdeteksi
+            strtolower($this->jenjang ?? '') === 'ra' => 100000,
+            strtolower($this->jenjang ?? '') === 'pg' => 400000,
+            strtolower($this->jenjang ?? '') === 'tk' => 450000,
+            strtolower($this->jenjang ?? '') === 'sd' => 550000,
+            strtolower($this->jenjang ?? '') === 'smp' => 550000,
+            strtolower($this->jenjang ?? '') === 'sma' => 550000,
+
+            // Edge case: deteksi dari pola nama untuk jenjang yang tidak standar
+            str_contains(strtolower($this->unit ?? ''), 'sanggar') ||
+            str_contains(strtolower($this->unit ?? ''), 'kelompok') => 100000, // Kemungkinan RA level
+
+            str_contains(strtolower($this->unit ?? ''), 'tka') ||
+            str_contains(strtolower($this->unit ?? ''), 'tkb') => 450000, // TK level
+
+            default => 550000 // Default untuk edge case (SD/SMP/SMA rate - yang paling umum)
         };
     }
 

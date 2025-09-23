@@ -36,8 +36,8 @@ class DashboardController extends Controller
         $formulirBill = null;
 
         if ($pendaftar) {
-            // Calculate payment amount based on UNIT (not hardcoded)
-            $paymentAmount = $this->getFormulirAmountByUnit($pendaftar->unit);
+            // Calculate payment amount based on UNIT using model method (more comprehensive)
+            $paymentAmount = $pendaftar->getFormulirAmountByUnit();
 
             // Check or create formulir payment through new billing system
             $formulirBill = StudentBill::where('pendaftar_id', $pendaftar->id)
@@ -577,22 +577,5 @@ class DashboardController extends Controller
         }
 
         return 'draft';
-    }
-
-    /**
-     * Get formulir amount based on school unit (same as PendaftarController)
-     */
-    private function getFormulirAmountByUnit($unit)
-    {
-        return match($unit) {
-            'RA Sakinah' => 100000,
-            'PG Sakinah' => 400000,
-            'TKIA 13' => 450000,
-            'SDIA 13', 'SD Islam Al Azhar 13 - Rawamangun' => 550000,
-            'SMPIA 12' => 550000,
-            'SMPIA 55' => 550000,
-            'SMAIA 33', 'SMA Islam Al Azhar 33 - Jatimakmur' => 550000,
-            default => 0
-        };
     }
 }

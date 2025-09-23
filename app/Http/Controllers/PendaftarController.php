@@ -788,8 +788,47 @@ class PendaftarController extends Controller
             return 550000; // SMAIA 33
         }
 
-        // No fallback - unit not recognized, return 0 to indicate error
-        Log::warning('Unit formulir tidak dikenali', ['unit' => $unit]);
-        return 0;
+        // Fallback untuk jenjang umum jika unit spesifik tidak ditemukan
+        if (strpos($unitLower, 'ra') !== false || strpos($unitLower, 'raudhatul') !== false) {
+            return 100000; // Default RA
+        }
+
+        if (strpos($unitLower, 'pg') !== false || strpos($unitLower, 'playgroup') !== false) {
+            return 400000; // Default PG
+        }
+
+        if (strpos($unitLower, 'tk') !== false || strpos($unitLower, 'taman kanak') !== false) {
+            return 450000; // Default TK (TKIA 13 rate)
+        }
+
+        if (strpos($unitLower, 'sd') !== false || strpos($unitLower, 'sekolah dasar') !== false) {
+            return 550000; // Default SD (SDIA 13 rate)
+        }
+
+        if (strpos($unitLower, 'smp') !== false || strpos($unitLower, 'sekolah menengah pertama') !== false) {
+            return 550000; // Default SMP (SMPIA rate)
+        }
+
+        if (strpos($unitLower, 'sma') !== false || strpos($unitLower, 'sekolah menengah atas') !== false) {
+            return 550000; // Default SMA (SMAIA rate)
+        }
+
+        // Edge case terakhir: analisis dari nama unit untuk deteksi jenjang
+        if (preg_match('/\b(sanggar|kelompok)\b/i', $unit)) {
+            return 100000; // Kemungkinan RA level
+        }
+
+        if (preg_match('/\b(tka|tkb)\b/i', $unit)) {
+            return 450000; // TK level
+        }
+
+        // Log untuk debugging dan berikan harga berdasarkan asumsi jenjang tertinggi
+        Log::warning('Unit formulir tidak dapat diidentifikasi - menggunakan harga SD default', [
+            'unit' => $unit,
+            'unit_lower' => $unitLower,
+            'default_amount' => 550000
+        ]);
+
+        return 550000; // Default untuk edge case (SD/SMP/SMA rate - yang paling umum)
     }
 }
