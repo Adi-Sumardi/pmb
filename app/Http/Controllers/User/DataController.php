@@ -101,7 +101,7 @@ class DataController extends Controller
         // Find existing record or create new one
         $studentDetail = StudentDetail::updateOrCreate(
             ['pendaftar_id' => $pendaftar->id],
-            $request->all()
+            $request->validated()
         );
 
         // Update NISN in pendaftar table if needed
@@ -184,7 +184,7 @@ class DataController extends Controller
 
         AcademicHistory::updateOrCreate(
             ['pendaftar_id' => $pendaftar->id],
-            $request->all()
+            $request->validated()
         );
 
         return redirect()->route('user.data.index')->with('success', 'Data riwayat akademik berhasil disimpan.');
@@ -213,7 +213,7 @@ class DataController extends Controller
 
         HealthRecord::updateOrCreate(
             ['pendaftar_id' => $pendaftar->id],
-            $request->all()
+            $request->validated()
         );
 
         return redirect()->route('user.data.index')->with('success', 'Data kesehatan berhasil disimpan.');

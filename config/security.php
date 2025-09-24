@@ -26,14 +26,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Rate Limiting
+    | Rate Limiting - SECURITY FIX: Enhanced rate limiting
     |--------------------------------------------------------------------------
     */
     'rate_limiting' => [
         'enabled' => env('SECURITY_RATE_LIMITING', true),
-        'requests_per_minute' => env('SECURITY_REQUESTS_PER_MINUTE', 100),
-        'login_attempts' => env('SECURITY_LOGIN_ATTEMPTS', 5),
-        'login_lockout_minutes' => env('SECURITY_LOGIN_LOCKOUT', 15),
+        'requests_per_minute' => env('SECURITY_REQUESTS_PER_MINUTE', 60), // SECURITY FIX: Reduced from 100 to 60
+        'login_attempts' => env('SECURITY_LOGIN_ATTEMPTS', 3), // SECURITY FIX: Reduced from 5 to 3
+        'login_lockout_minutes' => env('SECURITY_LOGIN_LOCKOUT', 30), // SECURITY FIX: Increased from 15 to 30
+        'progressive_lockout' => true, // SECURITY FIX: Enable progressive lockout
+        'max_lockout_minutes' => env('SECURITY_MAX_LOCKOUT', 1440), // SECURITY FIX: Max 24 hours lockout
+        'api_requests_per_minute' => env('API_RATE_LIMIT', 30), // SECURITY FIX: API specific rate limit
+        'payment_requests_per_hour' => env('PAYMENT_RATE_LIMIT', 10), // SECURITY FIX: Payment specific limit
+        'file_upload_per_hour' => env('UPLOAD_RATE_LIMIT', 20), // SECURITY FIX: File upload limit
     ],
 
     /*
@@ -81,29 +86,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Session Security
+    | Session Security - SECURITY FIX: Enhanced session management
     |--------------------------------------------------------------------------
     */
     'session' => [
-        'timeout_minutes' => env('SESSION_TIMEOUT', 120),
+        'timeout_minutes' => env('SESSION_TIMEOUT', 30), // SECURITY FIX: Reduced from 120 to 30 minutes
         'regenerate_on_login' => true,
-        'secure_cookies' => env('SESSION_SECURE_COOKIES', false),
-        'same_site' => 'lax',
+        'secure_cookies' => env('SESSION_SECURE_COOKIES', true), // SECURITY FIX: Default to true
+        'same_site' => env('SESSION_SAME_SITE', 'strict'), // SECURITY FIX: Changed from 'lax' to 'strict'
+        'http_only' => true, // SECURITY FIX: Prevent JavaScript access
+        'encrypt' => true, // SECURITY FIX: Encrypt session data
+        'regenerate_on_activity' => true, // SECURITY FIX: Regenerate session ID on activity
+        'idle_timeout' => env('SESSION_IDLE_TIMEOUT', 15), // SECURITY FIX: Idle timeout in minutes
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Authentication Security
+    | Authentication Security - SECURITY FIX: Enhanced password policy
     |--------------------------------------------------------------------------
     */
     'authentication' => [
-        'password_min_length' => 8,
+        'password_min_length' => 12, // SECURITY FIX: Increased from 8 to 12
         'require_uppercase' => true,
         'require_lowercase' => true,
         'require_numbers' => true,
-        'require_symbols' => false,
-        'prevent_password_reuse' => 5,
-        'two_factor_enabled' => false,
+        'require_symbols' => true, // SECURITY FIX: Now required
+        'prevent_password_reuse' => 10, // SECURITY FIX: Increased from 5 to 10
+        'two_factor_enabled' => env('TWO_FACTOR_ENABLED', true), // SECURITY FIX: Enable 2FA by default
+        'password_expiry_days' => env('PASSWORD_EXPIRY_DAYS', 90), // SECURITY FIX: Password expiry
+        'max_login_attempts' => 3, // SECURITY FIX: Max login attempts
+        'account_lockout_duration' => 30, // SECURITY FIX: Lockout duration in minutes
+        'require_password_confirmation' => true, // SECURITY FIX: Require confirmation for sensitive actions
     ],
 
     /*

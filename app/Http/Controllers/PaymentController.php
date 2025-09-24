@@ -1293,48 +1293,92 @@ class PaymentController extends Controller
             'discount_id' => $request->discount_id
         ]);
 
-        // Parse cart items with HTML entity decoding
+        // SECURITY FIX: Enhanced cart items validation
         $cartItems = [];
         if ($request->items) {
             try {
-                // Decode HTML entities first, then parse JSON
-                $decodedItems = html_entity_decode($request->items);
-
-                Log::info('=== DEBUG DECODING PROCESS ===', [
-                    'step_1_raw' => $request->items,
-                    'step_2_html_decoded' => $decodedItems,
-                    'step_3_json_last_error_before' => json_last_error_msg()
-                ]);
-
-                $cartItems = json_decode($decodedItems, true);
-
-                Log::info('=== DEBUG JSON DECODE RESULT ===', [
-                    'json_decode_result' => $cartItems,
-                    'json_last_error' => json_last_error_msg(),
-                    'is_array' => is_array($cartItems),
-                    'type' => gettype($cartItems)
-                ]);
-
-                if (!is_array($cartItems)) {
-                    throw new \Exception('Invalid cart items format - not array. Got: ' . gettype($cartItems));
+                // SECURITY FIX: Validate input length first
+                if (strlen($request->items) > 10000) {
+                    throw new \Exception('Cart data too large');
                 }
 
-                // Log successful parsing
-                Log::info('Cart items parsed successfully', [
-                    'original_string' => $request->items,
-                    'decoded_string' => $decodedItems,
-                    'parsed_items' => $cartItems,
-                    'items_count' => count($cartItems)
+                // SECURITY FIX: Sanitize input before processing
+                $sanitizedItems = \App\Services\SecurityValidationService::sanitizeInput($request->items);
+
+                // Decode HTML entities first, then parse JSON
+                $decodedItems = html_entity_decode($sanitizedItems);
+
+                // SECURITY FIX: Additional JSON validation
+                if (empty($decodedItems) || !is_string($decodedItems)) {
+                    throw new \Exception('Invalid cart data format');
+                }
+
+                $cartItems = json_decode($decodedItems, true, 10, JSON_THROW_ON_ERROR);
+
+                // SECURITY FIX: Comprehensive structure validation
+                if (!is_array($cartItems)) {
+                    throw new \Exception('Cart items must be an array');
+                }
+
+                if (count($cartItems) > 50) {
+                    throw new \Exception('Too many cart items');
+                }
+
+                // SECURITY FIX: Validate each cart item structure
+                foreach ($cartItems as $index => $item) {
+                    if (!is_array($item)) {
+                        throw new \Exception("Cart item at index {$index} must be an array");
+                    }
+
+                    // Required fields validation
+                    $requiredFields = ['name', 'amount'];
+                    foreach ($requiredFields as $field) {
+                        if (!isset($item[$field])) {
+                            throw new \Exception("Cart item at index {$index} missing required field: {$field}");
+                        }
+                    }
+
+                    // Validate amount
+                    if (!is_numeric($item['amount']) || $item['amount'] < 0 || $item['amount'] > 100000000) {
+                        throw new \Exception("Invalid amount in cart item at index {$index}");
+                    }
+
+                    // Validate quantity if present
+                    if (isset($item['quantity']) && (!is_numeric($item['quantity']) || $item['quantity'] < 1 || $item['quantity'] > 100)) {
+                        throw new \Exception("Invalid quantity in cart item at index {$index}");
+                    }
+
+                    // Validate bill_id if present
+                    if (isset($item['bill_id']) && !empty($item['bill_id']) && (!is_numeric($item['bill_id']) || $item['bill_id'] < 1)) {
+                        throw new \Exception("Invalid bill_id in cart item at index {$index}");
+                    }
+
+                    // Sanitize string fields
+                    if (isset($item['name'])) {
+                        $cartItems[$index]['name'] = \App\Services\SecurityValidationService::sanitizeInput($item['name']);
+                    }
+                    if (isset($item['description'])) {
+                        $cartItems[$index]['description'] = \App\Services\SecurityValidationService::sanitizeInput($item['description']);
+                    }
+                }
+
+                Log::info('Cart items validated successfully', [
+                    'items_count' => count($cartItems),
+                    'total_amount' => array_sum(array_column($cartItems, 'amount'))
                 ]);
 
-            } catch (\Exception $e) {
-                Log::error('Failed to parse cart items', [
+            } catch (\JsonException $e) {
+                Log::error('JSON parsing error', [
                     'error' => $e->getMessage(),
-                    'original_string' => $request->items,
-                    'decoded_attempt' => html_entity_decode($request->items),
-                    'json_last_error' => json_last_error_msg()
+                    'input_length' => strlen($request->items)
                 ]);
-                return back()->with('error', 'Format data keranjang tidak valid: ' . $e->getMessage());
+                return back()->with('error', 'Format JSON keranjang tidak valid');
+            } catch (\Exception $e) {
+                Log::error('Cart validation error', [
+                    'error' => $e->getMessage(),
+                    'input_length' => strlen($request->items ?? '')
+                ]);
+                return back()->with('error', 'Validasi keranjang gagal: ' . $e->getMessage());
             }
         }
 
@@ -2155,7 +2199,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Handle production webhook (with verification for live environment)
+     * Handle production webhook (with verification for ALL environments)
      */
     private function handleProductionWebhook(Request $request)
     {
@@ -2164,18 +2208,15 @@ class PaymentController extends Controller
             'data' => $request->all()
         ]);
 
-        // Untuk testing, skip signature verification jika development
-        if ($this->getXenditEnvironment() === 'live') {
-            if (!$this->verifyWebhookSignature($request)) {
-                Log::warning('Unauthorized webhook attempt', [
-                    'received_token' => $request->header('x-callback-token'),
-                    'ip' => $request->ip(),
-                    'user_agent' => $request->userAgent()
-                ]);
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-        } else {
-            Log::info('Skipping signature verification for test environment');
+        // SECURITY FIX: Always verify webhook signature regardless of environment
+        if (!$this->verifyWebhookSignature($request)) {
+            Log::warning('Unauthorized webhook attempt', [
+                'received_token' => $request->header('x-callback-token'),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'environment' => $this->getXenditEnvironment()
+            ]);
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         $data = $request->all();
@@ -2277,40 +2318,57 @@ class PaymentController extends Controller
      */
     public function adminTransactions(Request $request)
     {
-        if (!Auth::user() || Auth::user()->role !== 'admin') {
-            abort(403, 'Unauthorized');
+        // SECURITY FIX: Enhanced authorization check
+        $user = Auth::user();
+        if (!$user || !$user->isAdmin() || !$user->is_active) {
+            Log::warning('Unauthorized admin access attempt', [
+                'user_id' => $user?->id,
+                'role' => $user?->role,
+                'is_active' => $user?->is_active,
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
+            abort(403, 'Unauthorized access');
         }
 
-        // Build query dengan filter
+        // Build query dengan filter - SECURITY FIX: Add input validation
+        $request->validate([
+            'status' => 'nullable|in:PENDING,PAID,EXPIRED,FAILED,CANCELLED',
+            'jenjang' => 'nullable|string|max:50',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'search' => 'nullable|string|max:255'
+        ]);
+
         $query = Payment::with(['pendaftar.user']);
 
-        // Filter by status
+        // Filter by status - using validated input
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->where('status', $request->validated()['status']);
         }
 
-        // Filter by jenjang
+        // Filter by jenjang - using validated input
         if ($request->filled('jenjang')) {
             $query->whereHas('pendaftar', function($q) use ($request) {
-                $q->where('jenjang', $request->jenjang);
+                $q->where('jenjang', $request->validated()['jenjang']);
             });
         }
 
-        // Filter by date range
+        // Filter by date range - using validated input
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+            $query->whereDate('created_at', '>=', $request->validated()['date_from']);
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+            $query->whereDate('created_at', '<=', $request->validated()['date_to']);
         }
 
-        // Search by name or registration number
+        // Search by name or registration number - using parameter binding
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = $request->validated()['search'];
             $query->whereHas('pendaftar', function($q) use ($search) {
-                $q->where('nama_murid', 'like', "%{$search}%")
-                  ->orWhere('no_pendaftaran', 'like', "%{$search}%");
+                $q->where('nama_murid', 'like', '%' . $search . '%')
+                  ->orWhere('no_pendaftaran', 'like', '%' . $search . '%');
             });
         }
 
@@ -2334,8 +2392,17 @@ class PaymentController extends Controller
 
     public function adminTransactionDetail($id)
     {
-        if (!Auth::user() || Auth::user()->role !== 'admin') {
-            abort(403, 'Unauthorized');
+        // SECURITY FIX: Enhanced authorization check
+        $user = Auth::user();
+        if (!$user || !$user->isAdmin() || !$user->is_active) {
+            Log::warning('Unauthorized admin access attempt', [
+                'user_id' => $user?->id,
+                'role' => $user?->role,
+                'is_active' => $user?->is_active,
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
+            abort(403, 'Unauthorized access');
         }
 
         $payment = Payment::with(['pendaftar.user'])->findOrFail($id);

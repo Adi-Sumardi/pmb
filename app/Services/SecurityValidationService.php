@@ -8,61 +8,109 @@ use Illuminate\Validation\ValidationException;
 class SecurityValidationService
 {
     /**
-     * Sanitize user input to prevent XSS attacks
+     * Sanitize user input to prevent XSS attacks - SECURITY FIX: Enhanced sanitization
      */
     public static function sanitizeInput(string $input): string
     {
-        // Remove null bytes
+        // SECURITY FIX: Input length validation
+        if (strlen($input) > 10000) {
+            throw new \Exception('Input too long');
+        }
+
+        // Remove null bytes and control characters
         $input = str_replace(chr(0), '', $input);
+        $input = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $input);
 
-        // Decode HTML entities and Unicode sequences
-        $input = html_entity_decode($input, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $input = html_entity_decode($input, ENT_QUOTES | ENT_HTML5, 'UTF-8'); // Double decode
-
-        // Handle Unicode escapes
-        $input = preg_replace('/\\\\u([0-9a-fA-F]{4})/', '&#x$1;', $input);
+        // SECURITY FIX: Single decode only to prevent bypass
         $input = html_entity_decode($input, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        // Remove dangerous patterns
+        // SECURITY FIX: Enhanced dangerous patterns detection
         $dangerousPatterns = [
-            // Script tags
+            // Script tags and JavaScript
             '/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i',
+            '/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/i',
+            '/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/i',
+            '/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/i',
+            '/<link\b[^>]*>/i',
+            '/<meta\b[^>]*>/i',
             '/javascript:/i',
             '/vbscript:/i',
-            '/data:/i',
+            '/data:(?!image\/[a-z]+;base64,)[^;]*;/i', // Allow only image data URLs
             '/on\w+\s*=/i',
             '/alert\s*\(/i',
+            '/confirm\s*\(/i',
+            '/prompt\s*\(/i',
+            '/document\./i',
+            '/window\./i',
+            '/eval\s*\(/i',
+            '/setTimeout\s*\(/i',
+            '/setInterval\s*\(/i',
 
             // SQL injection patterns
-            '/(\bOR\b|\bAND\b)\s*\d+\s*=\s*\d+/i',
+            '/(\bOR\b|\bAND\b)\s*[\'"]*\d+[\'"]*\s*=\s*[\'"]*\d+[\'"]*/i',
             '/UNION\s+SELECT/i',
             '/DROP\s+TABLE/i',
             '/DELETE\s+FROM/i',
             '/INSERT\s+INTO/i',
             '/UPDATE\s+SET/i',
-            '/--/',
-            '/\/\*.*?\*\//',
+            '/TRUNCATE\s+TABLE/i',
+            '/ALTER\s+TABLE/i',
+            '/CREATE\s+TABLE/i',
+            '/--[^\r\n]*/i',
+            '/\/\*.*?\*\//s',
+            '/;\s*(DROP|DELETE|INSERT|UPDATE|TRUNCATE|ALTER|CREATE)/i',
 
             // Directory traversal
             '/\.\.\//',
             '/\.\.\\\\/',
             '/%2e%2e%2f/i',
             '/%2e%2e%5c/i',
-            '/\.{2,}/',
+            '/\.{3,}/',
             '/\/etc\//i',
+            '/\/proc\//i',
+            '/\/sys\//i',
+            '/\/dev\//i',
+            '/\/var\/log/i',
+
+            // Command injection
+            '/;\s*[a-z_]+/i',
+            '/\|\s*[a-z_]+/i',
+            '/&&\s*[a-z_]+/i',
+            '/\|\|\s*[a-z_]+/i',
+            '/`[^`]*`/i',
+            '/\$\([^)]*\)/i',
 
             // Dangerous functions
-            '/\beval\s*\(/i',
-            '/\bexec\s*\(/i',
-            '/\bsystem\s*\(/i',
-            '/\bshell_exec\s*\(/i',
-            '/\bpassthru\s*\(/i',
-            '/\bproc_open\s*\(/i',
-            '/\bfile_get_contents\s*\(/i',
+            '/\b(eval|exec|system|shell_exec|passthru|proc_open|popen|file_get_contents|file_put_contents|fopen|fwrite|include|require|include_once|require_once)\s*\(/i',
             '/\bbase64_decode\s*\(/i',
-        ];        foreach ($dangerousPatterns as $pattern) {
+            '/\bstr_rot13\s*\(/i',
+            '/\bgzinflate\s*\(/i',
+            '/\bgzuncompress\s*\(/i',
+
+            // PHP tags
+            '/<\?php/i',
+            '/<\?=/i',
+            '/<\?/i',
+            '/<script\s+language\s*=\s*["\']?php["\']?/i',
+
+            // Server-side includes
+            '/<!--\s*#\s*(include|exec|config|echo)/i',
+
+            // LDAP injection
+            '/[()&|!]/i', // Only for LDAP contexts
+
+            // XPath injection
+            '/\'\s*or\s*\'/i',
+            '/\"\s*or\s*\"/i',
+        ];
+
+        foreach ($dangerousPatterns as $pattern) {
             $input = preg_replace($pattern, '', $input);
         }
+
+        // SECURITY FIX: Remove any remaining HTML tags except safe ones
+        $allowedTags = '<b><i><u><strong><em>';
+        $input = strip_tags($input, $allowedTags);
 
         // HTML encode remaining content
         $input = htmlspecialchars($input, ENT_QUOTES | ENT_HTML5, 'UTF-8');

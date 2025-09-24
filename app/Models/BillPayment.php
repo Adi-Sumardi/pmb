@@ -146,7 +146,7 @@ class BillPayment extends Model
     }
 
     // Methods
-    public function markAsCompleted(User $verifiedBy = null): void
+    public function markAsCompleted(?User $verifiedBy = null): void
     {
         $this->status = 'completed';
         $this->confirmed_at = now();
@@ -162,7 +162,7 @@ class BillPayment extends Model
         $this->studentBill->updatePaymentStatus();
     }
 
-    public function markAsFailed(string $reason = null): void
+    public function markAsFailed(?string $reason = null): void
     {
         $this->status = 'failed';
         $this->failed_at = now();
@@ -174,7 +174,7 @@ class BillPayment extends Model
         $this->save();
     }
 
-    public function verify(User $admin, string $notes = null): void
+    public function verify(User $admin, ?string $notes = null): void
     {
         $this->verified_by = $admin->id;
         $this->verified_at = now();

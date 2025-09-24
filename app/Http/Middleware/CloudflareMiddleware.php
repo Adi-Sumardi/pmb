@@ -28,12 +28,64 @@ class CloudflareMiddleware
     }
 
     /**
-     * Set trusted proxies for Cloudflare
+     * Set trusted proxies for Cloudflare - SECURITY FIX: Dynamic IP ranges
      */
     private function setTrustedProxies(Request $request): void
     {
-        // Cloudflare IP ranges - these should be updated periodically
-        $cloudflareIps = [
+        // SECURITY FIX: Get Cloudflare IPs from cache or fetch dynamically
+        $cloudflareIps = $this->getCloudflareIpRanges();
+
+        // SECURITY FIX: Additional validation before trusting
+        if ($this->isFromCloudflare($request) && $this->validateCloudflareRequest($request)) {
+            $request->setTrustedProxies($cloudflareIps, Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
+        }
+    }
+
+    /**
+     * Get Cloudflare IP ranges with caching and fallback
+     */
+    private function getCloudflareIpRanges(): array
+    {
+        // Try to get from cache first
+        $cacheKey = 'cloudflare_ip_ranges';
+        $cachedIps = cache()->get($cacheKey);
+
+        if ($cachedIps) {
+            return $cachedIps;
+        }
+
+        // Try to fetch from Cloudflare API
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(5)->get('https://www.cloudflare.com/ips-v4');
+            $ipv4Ranges = [];
+
+            if ($response->successful()) {
+                $ipv4Ranges = array_filter(explode("\n", trim($response->body())));
+            }
+
+            $response = \Illuminate\Support\Facades\Http::timeout(5)->get('https://www.cloudflare.com/ips-v6');
+            $ipv6Ranges = [];
+
+            if ($response->successful()) {
+                $ipv6Ranges = array_filter(explode("\n", trim($response->body())));
+            }
+
+            $allRanges = array_merge($ipv4Ranges, $ipv6Ranges);
+
+            if (!empty($allRanges)) {
+                // Cache for 24 hours
+                cache()->put($cacheKey, $allRanges, now()->addHours(24));
+                return $allRanges;
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to fetch Cloudflare IP ranges', [
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Fallback to hardcoded ranges (updated as of 2024)
+        $fallbackRanges = [
+            // IPv4 ranges
             '103.21.244.0/22',
             '103.22.200.0/22',
             '103.31.4.0/22',
@@ -59,10 +111,46 @@ class CloudflareMiddleware
             '2c0f:f248::/32',
         ];
 
-        // Set trusted proxies if request is from Cloudflare
-        if ($this->isFromCloudflare($request)) {
-            $request->setTrustedProxies($cloudflareIps, Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
+        // Cache fallback for 1 hour
+        cache()->put($cacheKey, $fallbackRanges, now()->addHour());
+
+        return $fallbackRanges;
+    }
+
+    /**
+     * Enhanced Cloudflare request validation
+     */
+    private function validateCloudflareRequest(Request $request): bool
+    {
+        // Check for required Cloudflare headers
+        $requiredHeaders = ['CF-RAY', 'CF-Connecting-IP'];
+        foreach ($requiredHeaders as $header) {
+            if (!$request->hasHeader($header)) {
+                return false;
+            }
         }
+
+        // Validate CF-RAY format (should be hex-datacenter)
+        $cfRay = $request->header('CF-RAY');
+        if (!preg_match('/^[a-f0-9]+-[A-Z]{3}$/', $cfRay)) {
+            \Illuminate\Support\Facades\Log::warning('Invalid CF-RAY format', [
+                'cf_ray' => $cfRay,
+                'ip' => $request->ip()
+            ]);
+            return false;
+        }
+
+        // Validate CF-Connecting-IP format
+        $cfConnectingIp = $request->header('CF-Connecting-IP');
+        if (!filter_var($cfConnectingIp, FILTER_VALIDATE_IP)) {
+            \Illuminate\Support\Facades\Log::warning('Invalid CF-Connecting-IP', [
+                'cf_connecting_ip' => $cfConnectingIp,
+                'ip' => $request->ip()
+            ]);
+            return false;
+        }
+
+        return true;
     }
 
     /**

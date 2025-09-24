@@ -99,7 +99,7 @@ class SecureFileUploadService
     }
 
     /**
-     * Validate file content by checking magic bytes
+     * Validate file content by checking magic bytes - SECURITY FIX: Enhanced validation
      */
     private function validateFileContent(UploadedFile $file): void
     {
@@ -110,65 +110,159 @@ class SecureFileUploadService
             throw new \Exception('Cannot read file content');
         }
 
-        $header = fread($handle, 10);
+        // SECURITY FIX: Read more bytes for better validation
+        $header = fread($handle, 2048);
         fclose($handle);
 
-        $mimeType = $file->getMimeType();
+        // SECURITY FIX: Use finfo for more reliable MIME detection
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $detectedMimeType = finfo_file($finfo, $filePath);
+        finfo_close($finfo);
 
-        // Validate based on file type
-        switch ($mimeType) {
+        $uploadedMimeType = $file->getMimeType();
+
+        // SECURITY FIX: Verify MIME type consistency
+        if ($detectedMimeType !== $uploadedMimeType) {
+            throw new \Exception('MIME type mismatch detected - possible file spoofing');
+        }
+
+        // SECURITY FIX: Enhanced magic byte validation
+        switch ($detectedMimeType) {
             case 'application/pdf':
                 if (strpos($header, '%PDF') !== 0) {
-                    throw new \Exception('Invalid PDF file');
+                    throw new \Exception('Invalid PDF file - magic bytes mismatch');
+                }
+                // Check for embedded JavaScript or suspicious content
+                if (stripos($header, '/javascript') !== false || stripos($header, '/js') !== false) {
+                    throw new \Exception('PDF contains potentially malicious JavaScript');
                 }
                 break;
 
             case 'image/jpeg':
-            case 'image/jpg':
-                if (bin2hex(substr($header, 0, 3)) !== 'ffd8ff') {
-                    throw new \Exception('Invalid JPEG file');
+                $jpegHeader = bin2hex(substr($header, 0, 3));
+                if ($jpegHeader !== 'ffd8ff') {
+                    throw new \Exception('Invalid JPEG file - magic bytes mismatch');
+                }
+                // Check for JPEG with embedded PHP
+                if (stripos($header, '<?php') !== false) {
+                    throw new \Exception('JPEG contains embedded PHP code');
                 }
                 break;
 
             case 'image/png':
-                if (bin2hex(substr($header, 0, 8)) !== '89504e470d0a1a0a') {
-                    throw new \Exception('Invalid PNG file');
+                $pngHeader = bin2hex(substr($header, 0, 8));
+                if ($pngHeader !== '89504e470d0a1a0a') {
+                    throw new \Exception('Invalid PNG file - magic bytes mismatch');
+                }
+                // Check for PNG with embedded code
+                if (stripos($header, '<?php') !== false || stripos($header, '<script') !== false) {
+                    throw new \Exception('PNG contains embedded malicious code');
                 }
                 break;
+
+            default:
+                throw new \Exception('Unsupported file type detected: ' . $detectedMimeType);
         }
 
-        // Scan for malicious content patterns
-        $this->scanForMaliciousContent($filePath);
+        // SECURITY FIX: Enhanced malicious content scanning
+        $this->scanForMaliciousContent($filePath, $header);
     }
 
     /**
-     * Scan file for potentially malicious content
+     * Scan file for potentially malicious content - SECURITY FIX: Enhanced scanning
      */
-    private function scanForMaliciousContent(string $filePath): void
+    private function scanForMaliciousContent(string $filePath, string $header = null): void
     {
-        $content = file_get_contents($filePath, false, null, 0, 1024); // Read first 1KB
+        // Use provided header or read file content
+        $content = $header ?? file_get_contents($filePath, false, null, 0, 2048); // Read first 2KB
 
-        // Check for common malicious patterns
+        // SECURITY FIX: Enhanced malicious patterns detection
         $maliciousPatterns = [
+            // PHP code injection
             '<?php',
             '<?=',
+            '<%',
             '<script',
+            '</script>',
+
+            // JavaScript injection
             'javascript:',
             'vbscript:',
+            'data:text/html',
+            'data:application/',
+
+            // Event handlers
             'onload=',
             'onerror=',
+            'onclick=',
+            'onmouseover=',
+            'onfocus=',
+
+            // Dangerous functions
             'eval(',
             'base64_decode(',
             'shell_exec(',
             'system(',
             'exec(',
-            'passthru('
+            'passthru(',
+            'file_get_contents(',
+            'file_put_contents(',
+            'fopen(',
+            'fwrite(',
+
+            // SQL injection patterns
+            'union select',
+            'drop table',
+            'insert into',
+            'delete from',
+
+            // Command injection
+            '&&',
+            '||',
+            ';rm ',
+            ';cat ',
+            '`',
+            '$()',
+
+            // Polyglot file signatures
+            'GIF89a<?php',
+            'GIF87a<?php',
+            '\xff\xd8\xff<?php', // JPEG with PHP
+            '\x89PNG\r\n\x1a\n<?php', // PNG with PHP
         ];
 
         foreach ($maliciousPatterns as $pattern) {
             if (stripos($content, $pattern) !== false) {
-                throw new \Exception('File contains potentially malicious content');
+                throw new \Exception('File contains potentially malicious content: ' . $pattern);
             }
+        }
+
+        // SECURITY FIX: Check for suspicious binary patterns
+        $this->checkBinaryPatterns($content);
+    }
+
+    /**
+     * Check for suspicious binary patterns
+     */
+    private function checkBinaryPatterns(string $content): void
+    {
+        // Check for executable file signatures
+        $executableSignatures = [
+            'MZ',      // Windows PE
+            '\x7fELF', // Linux ELF
+            '\xca\xfe\xba\xbe', // Java class file
+            '\xfe\xed\xfa\xce', // Mach-O binary
+        ];
+
+        foreach ($executableSignatures as $signature) {
+            if (strpos($content, $signature) === 0) {
+                throw new \Exception('File appears to be an executable binary');
+            }
+        }
+
+        // Check for suspicious null bytes (common in binary exploits)
+        if (strpos($content, "\x00") !== false && strlen($content) < 100) {
+            throw new \Exception('File contains suspicious null bytes');
         }
     }
 
