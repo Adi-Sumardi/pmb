@@ -121,7 +121,11 @@
                                 </div>
                                 <div class="text-muted small">
                                     <i class="bi bi-trending-up text-success me-1"></i>
-                                    Revenue terkumpul
+                                    @if(request()->hasAny(['date_from', 'date_to']))
+                                        Revenue periode filter
+                                    @else
+                                        Revenue terkumpul
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -133,12 +137,35 @@
         <!-- Advanced Filter Section -->
         <div class="card border-0 shadow-sm mb-4 rounded-4" data-aos="fade-up" data-aos-delay="500">
             <div class="card-header bg-white border-bottom py-3 rounded-top-4">
-                <h5 class="card-title mb-0 fw-bold">
-                    <i class="bi bi-funnel me-2 text-primary"></i>Filter Transaksi
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0 fw-bold">
+                        <i class="bi bi-funnel me-2 text-primary"></i>Filter Transaksi
+                    </h5>
+                    @if(request()->hasAny(['status', 'payment_type', 'jenjang', 'date_from', 'date_to', 'search']))
+                        <div class="d-flex gap-1">
+                            @if(request('status'))
+                                <span class="badge bg-primary">Status: {{ request('status') }}</span>
+                            @endif
+                            @if(request('payment_type'))
+                                <span class="badge bg-warning">Jenis: {{ ucwords(str_replace('_', ' ', request('payment_type'))) }}</span>
+                            @endif
+                            @if(request('jenjang'))
+                                <span class="badge bg-info">Jenjang: {{ strtoupper(request('jenjang')) }}</span>
+                            @endif
+                            @if(request('date_from') || request('date_to'))
+                                <span class="badge bg-success">
+                                    Periode: {{ request('date_from') ?: 'Awal' }} - {{ request('date_to') ?: 'Sekarang' }}
+                                </span>
+                            @endif
+                            @if(request('search'))
+                                <span class="badge bg-warning">Pencarian: {{ Str::limit(request('search'), 20) }}</span>
+                            @endif
+                        </div>
+                    @endif
+                </div>
             </div>
             <div class="card-body">
-                <form method="GET" action="{{ route('admin.transactions.index') }}" class="row g-3">
+                <form method="GET" action="{{ route('admin.transactions.index') }}" class="row g-3" id="filterForm">
                     <div class="col-lg-2 col-md-4">
                         <label for="status" class="form-label fw-semibold">Status Pembayaran</label>
                         <select name="status" id="status" class="form-select rounded-pill">
@@ -146,6 +173,18 @@
                             <option value="PAID" {{ request('status') === 'PAID' ? 'selected' : '' }}>✅ Lunas</option>
                             <option value="PENDING" {{ request('status') === 'PENDING' ? 'selected' : '' }}>⏳ Menunggu</option>
                             <option value="FAILED" {{ request('status') === 'FAILED' ? 'selected' : '' }}>❌ Gagal</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-4">
+                        <label for="payment_type" class="form-label fw-semibold">Jenis Pembayaran</label>
+                        <select name="payment_type" id="payment_type" class="form-select rounded-pill">
+                            <option value="">💰 Semua Jenis</option>
+                            <option value="formulir" {{ request('payment_type') === 'formulir' ? 'selected' : '' }}>📄 Formulir Pendaftaran</option>
+                            <option value="spp" {{ request('payment_type') === 'spp' ? 'selected' : '' }}>🏫 SPP</option>
+                            <option value="uang_pangkal" {{ request('payment_type') === 'uang_pangkal' ? 'selected' : '' }}>💎 Uang Pangkal</option>
+                            <option value="uniform" {{ request('payment_type') === 'uniform' ? 'selected' : '' }}>👕 Seragam</option>
+                            <option value="books" {{ request('payment_type') === 'books' ? 'selected' : '' }}>📚 Buku</option>
+                            <option value="activity" {{ request('payment_type') === 'activity' ? 'selected' : '' }}>🎯 Kegiatan</option>
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-4">
@@ -177,7 +216,7 @@
                     <div class="col-lg-2 col-md-4">
                         <label class="form-label fw-semibold">&nbsp;</label>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary rounded-pill flex-fill" data-bs-toggle="tooltip" title="Terapkan filter">
+                            <button type="submit" class="btn btn-primary rounded-pill flex-fill" id="filterButton" data-bs-toggle="tooltip" title="Terapkan filter">
                                 <i class="bi bi-search me-1"></i>Filter
                             </button>
                             <a href="{{ route('admin.transactions.index') }}" class="btn btn-outline-secondary rounded-pill" data-bs-toggle="tooltip" title="Reset semua filter">
@@ -313,7 +352,33 @@
                                         <div class="fw-bold text-success fs-5">
                                             Rp {{ number_format($payment->amount, 0, ',', '.') }}
                                         </div>
-                                        <small class="text-muted">Uang Formulir</small>
+                                        <small class="text-muted">
+                                            @if(isset($payment->studentBill))
+                                                {{-- BillPayment - get type from StudentBill --}}
+                                                @switch($payment->studentBill->bill_type)
+                                                    @case('spp')
+                                                        📚 SPP
+                                                        @break
+                                                    @case('uang_pangkal')
+                                                        🏦 Uang Pangkal
+                                                        @break
+                                                    @case('seragam')
+                                                        👕 Seragam
+                                                        @break
+                                                    @case('buku')
+                                                        📖 Buku
+                                                        @break
+                                                    @case('kegiatan')
+                                                        🎯 Kegiatan
+                                                        @break
+                                                    @default
+                                                        💰 {{ ucwords(str_replace('_', ' ', $payment->studentBill->bill_type)) }}
+                                                @endswitch
+                                            @else
+                                                {{-- Payment - formulir pendaftaran --}}
+                                                📝 Uang Formulir
+                                            @endif
+                                        </small>
                                     </td>
                                     <!-- Payment method column -->
                                     <td class="px-4">
@@ -451,12 +516,21 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="text-muted small">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Menampilkan <span class="fw-bold text-primary">{{ $payments->firstItem() }}</span> -
-                                <span class="fw-bold text-primary">{{ $payments->lastItem() }}</span>
+                                Menampilkan <span class="fw-bold text-primary">{{ $payments->firstItem() ?? 0 }}</span> -
+                                <span class="fw-bold text-primary">{{ $payments->lastItem() ?? 0 }}</span>
                                 dari <span class="fw-bold">{{ $payments->total() }}</span> transaksi
+                                <span class="ms-2 text-muted">|</span>
+                                <span class="ms-2 fw-bold text-info">Halaman {{ $payments->currentPage() }} dari {{ $payments->lastPage() }}</span>
                             </div>
                             <div>
-                                {{ $payments->appends(request()->query())->links() }}
+                                @if($payments->hasPages())
+                                    {{ $payments->appends(request()->query())->links() }}
+                                @else
+                                    <span class="text-muted small">
+                                        <i class="bi bi-file-earmark-text me-1"></i>
+                                        Semua data ditampilkan
+                                    </span>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -853,5 +927,60 @@
                 }
             });
         }, 5000);
+
+        // Auto-submit form when date filter changes for better UX with validation
+        function validateAndSubmitDateFilter() {
+            const dateFrom = document.getElementById('date_from').value;
+            const dateTo = document.getElementById('date_to').value;
+
+            if (dateFrom && dateTo) {
+                if (dateFrom > dateTo) {
+                    alert('Tanggal "Dari" tidak boleh lebih besar dari tanggal "Sampai"!');
+                    return false;
+                }
+                showFilterLoadingState();
+                document.getElementById('filterForm').submit();
+            }
+        }
+
+        document.getElementById('date_from').addEventListener('change', function() {
+            if (this.value && document.getElementById('date_to').value) {
+                validateAndSubmitDateFilter();
+            }
+        });
+
+        document.getElementById('date_to').addEventListener('change', function() {
+            if (this.value && document.getElementById('date_from').value) {
+                validateAndSubmitDateFilter();
+            }
+        });
+
+        // Show loading state when form is submitted
+        function showFilterLoadingState() {
+            const filterButton = document.getElementById('filterButton');
+            filterButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memfilter...';
+            filterButton.disabled = true;
+        }
+
+        // Auto-submit when status, payment_type, or jenjang changes
+        document.getElementById('status').addEventListener('change', function() {
+            showFilterLoadingState();
+            document.getElementById('filterForm').submit();
+        });
+
+        document.getElementById('payment_type').addEventListener('change', function() {
+            showFilterLoadingState();
+            document.getElementById('filterForm').submit();
+        });
+
+        document.getElementById('jenjang').addEventListener('change', function() {
+            showFilterLoadingState();
+            document.getElementById('filterForm').submit();
+        });
+
+        // Add loading state to form submit
+        document.getElementById('filterForm').addEventListener('submit', function() {
+            showFilterLoadingState();
+        });
     </script>
 </x-app-layout>

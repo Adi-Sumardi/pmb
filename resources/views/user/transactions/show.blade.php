@@ -5,7 +5,7 @@
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 <i class="bi bi-receipt-cutoff me-2"></i>Detail Transaksi
             </h2>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 no-print">
                 <a href="{{ route('user.transactions.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-arrow-left me-1"></i>Kembali
                 </a>
@@ -350,4 +350,101 @@
             </div>
         </div>
     </div>
+
+    {{-- Print Styling --}}
+    <style>
+        @media print {
+            /* Hide elements that shouldn't appear in print */
+            .no-print,
+            header,
+            nav,
+            .btn,
+            .d-flex.gap-2,
+            x-slot[name="header"] {
+                display: none !important;
+            }
+
+            /* Optimize layout for print */
+            body {
+                font-size: 12px !important;
+                line-height: 1.4 !important;
+                color: #000 !important;
+                background: white !important;
+            }
+
+            .container,
+            .max-w-4xl {
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 20px !important;
+            }
+
+            .bg-white,
+            .dark\\:bg-gray-800 {
+                background: white !important;
+                box-shadow: none !important;
+            }
+
+            /* Ensure badges and status are visible */
+            .badge {
+                color: #000 !important;
+                background: #f8f9fa !important;
+                border: 1px solid #000 !important;
+            }
+
+            .badge.bg-success {
+                background: #d4edda !important;
+                border-color: #28a745 !important;
+            }
+
+            .badge.bg-warning {
+                background: #fff3cd !important;
+                border-color: #ffc107 !important;
+            }
+
+            .badge.bg-danger {
+                background: #f8d7da !important;
+                border-color: #dc3545 !important;
+            }
+
+            /* Table styling for print */
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+
+            table th,
+            table td {
+                border: 1px solid #000 !important;
+                padding: 8px !important;
+            }
+
+            /* Hide interactive elements */
+            .alert {
+                page-break-inside: avoid;
+            }
+
+            /* Page breaks */
+            .page-break {
+                page-break-before: always;
+            }
+
+            /* Margin adjustments */
+            @page {
+                margin: 1in;
+                size: A4;
+            }
+        }
+    </style>
+
+    @if(isset($isPrintMode) && $isPrintMode)
+        {{-- Auto-trigger print dialog when in print mode --}}
+        <script>
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    window.print();
+                }, 500);
+            });
+        </script>
+    @endif
 </x-app-layout>

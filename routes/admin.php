@@ -97,13 +97,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::prefix('transactions')->name('transactions.')->group(function () {
         Route::get('/', [PaymentController::class, 'adminTransactions'])->name('index');
-        Route::get('/{id}', [PaymentController::class, 'adminTransactionDetail'])->name('show');
-        Route::post('/{id}/confirm', [PaymentController::class, 'confirmPayment'])->name('confirm');
 
-        // Export & Reporting
+        // Export & Reporting - MUST be before /{id} route to avoid conflicts
         Route::get('/export', [TransactionController::class, 'export'])->name('export');
         Route::get('/export/pdf', [TransactionController::class, 'exportPdf'])->name('export.pdf');
         Route::get('/print', [TransactionController::class, 'printView'])->name('print');
+
+        // Detail routes - MUST be after specific routes
+        Route::get('/{id}', [PaymentController::class, 'adminTransactionDetail'])->name('show');
+        Route::post('/{id}/confirm', [PaymentController::class, 'confirmPayment'])->name('confirm');
     });
 
     /*

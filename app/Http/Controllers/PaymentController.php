@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Models\BillPayment;
 use App\Models\Pendaftar;
 use App\Models\StudentBill;
+use App\Services\RevenueCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -17,6 +19,7 @@ class PaymentController extends Controller
 {
     private $xenditApiKey;
     private $xenditWebhookToken;
+    protected $revenueService;
 
     // Payment status constants
     const STATUS_PENDING = 'PENDING';
@@ -28,10 +31,11 @@ class PaymentController extends Controller
     // Invoice duration in seconds (1 hour)
     const INVOICE_DURATION = 3600;
 
-    public function __construct()
+    public function __construct(RevenueCalculationService $revenueService)
     {
         $this->xenditApiKey = env('XENDIT_SECRET_KEY');
         $this->xenditWebhookToken = env('XENDIT_WEBHOOK_TOKEN');
+        $this->revenueService = $revenueService;
 
         if (!$this->xenditApiKey) {
             Log::error('Xendit API Key not configured');
@@ -842,16 +846,31 @@ class PaymentController extends Controller
             'external_id' => $payment->external_id,
             'current_status' => $payment->status,
             'pendaftar_id' => $payment->pendaftar_id,
-            'has_metadata' => isset($payment->metadata)
+            'has_metadata' => isset($payment->metadata),
+            'webhook_data_keys' => array_keys($webhookData)
         ]);
 
         DB::transaction(function() use ($payment, $webhookData) {
-            // Update payment status to PAID
+            // Update payment status to PAID with enhanced webhook data
+            $mergedResponse = array_merge($payment->xendit_response ?? [], $webhookData);
+
+            // Prioritize webhook data for payment method information
+            // since it contains the actual selected payment method
             $updateData = [
                 'status' => self::STATUS_PAID,
                 'paid_at' => now(),
-                'xendit_response' => array_merge($payment->xendit_response ?? [], $webhookData)
+                'xendit_response' => $mergedResponse
             ];
+
+            // Log payment method detection
+            Log::info('Payment method detection in webhook', [
+                'payment_id' => $payment->id,
+                'webhook_payment_method' => $webhookData['payment_method'] ?? 'not_found',
+                'webhook_bank_code' => $webhookData['bank_code'] ?? 'not_found',
+                'webhook_ewallet_type' => $webhookData['ewallet_type'] ?? 'not_found',
+                'webhook_retail_outlet' => $webhookData['retail_outlet_name'] ?? 'not_found',
+                'webhook_channel_code' => $webhookData['channel_code'] ?? 'not_found'
+            ]);
 
             $payment->update($updateData);
 
@@ -911,22 +930,37 @@ class PaymentController extends Controller
                         'paid_at' => now()
                     ]);
 
-                    // Create a bill payment record to track the relationship
-                    \App\Models\BillPayment::create([
-                        'student_bill_id' => $studentBill->id,
-                        'pendaftar_id' => $payment->pendaftar_id,
-                        'payment_number' => 'PAY-' . date('Y') . '-' . str_pad($payment->id, 6, '0', STR_PAD_LEFT),
-                        'external_transaction_id' => $payment->external_id,
-                        'invoice_id' => $payment->invoice_id,
-                        'amount' => $studentBill->paid_amount,
-                        'payment_method' => 'virtual_account', // Default for Xendit payments
-                        'payment_channel' => $payment->xendit_response['bank_code'] ?? 'XENDIT',
-                        'status' => 'completed',
-                        'payment_date' => $payment->paid_at,
-                        'confirmed_at' => now(),
-                        'verified_by' => null, // Auto-verified for successful payments
-                        'verified_at' => now()
-                    ]);
+                    // FIXED: Don't create BillPayment for registration_fee to avoid duplication
+                    // Registration fee payments are already tracked in Payment table
+                    if ($studentBill->bill_type !== 'registration_fee') {
+                        // Create a bill payment record to track the relationship
+                        \App\Models\BillPayment::create([
+                            'student_bill_id' => $studentBill->id,
+                            'pendaftar_id' => $payment->pendaftar_id,
+                            'payment_number' => 'PAY-' . date('Y') . '-' . str_pad($payment->id, 6, '0', STR_PAD_LEFT) . '-' . $studentBill->id,
+                            'external_transaction_id' => $payment->external_id,
+                            'invoice_id' => $payment->invoice_id,
+                            'amount' => $studentBill->paid_amount,
+                            'payment_method' => $this->mapPaymentMethodForBillPayment($payment),
+                            'payment_channel' => $this->getPaymentChannel($payment),
+                            'status' => 'completed',
+                            'payment_date' => $payment->paid_at,
+                            'confirmed_at' => now(),
+                            'verified_by' => null, // Auto-verified for successful payments
+                            'verified_at' => now()
+                        ]);
+
+                        Log::info('BillPayment created for non-registration bill', [
+                            'student_bill_id' => $studentBill->id,
+                            'bill_type' => $studentBill->bill_type,
+                            'payment_method' => $payment->payment_method
+                        ]);
+                    } else {
+                        Log::info('Skipped BillPayment creation for registration_fee (already tracked in Payment table)', [
+                            'student_bill_id' => $studentBill->id,
+                            'bill_type' => $studentBill->bill_type
+                        ]);
+                    }
 
                     $updatedBills[] = [
                         'bill_id' => $studentBill->id,
@@ -2108,7 +2142,7 @@ class PaymentController extends Controller
         return view('user.transactions.index', compact('payments', 'studentStatus', 'isActiveStudent', 'pendaftar'));
     }
 
-    public function transactionDetail($id)
+    public function transactionDetail($id, Request $request)
     {
         $user = Auth::user();
 
@@ -2124,7 +2158,10 @@ class PaymentController extends Controller
 
         $jenjangName = $this->getJenjangName($payment->pendaftar->jenjang);
 
-        return view('user.transactions.show', compact('payment', 'jenjangName'));
+        // Check if this is a print request
+        $isPrintMode = $request->has('print') && $request->get('print') == '1';
+
+        return view('user.transactions.show', compact('payment', 'jenjangName', 'isPrintMode'));
     }
 
     /**
@@ -2332,60 +2369,185 @@ class PaymentController extends Controller
         }
 
         // Build query dengan filter - SECURITY FIX: Add input validation
-        $request->validate([
+        $validatedData = $request->validate([
             'status' => 'nullable|in:PENDING,PAID,EXPIRED,FAILED,CANCELLED',
             'jenjang' => 'nullable|string|max:50',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
-            'search' => 'nullable|string|max:255'
+            'search' => 'nullable|string|max:255',
+            'payment_type' => 'nullable|in:formulir,spp,uang_pangkal,uniform,books,activity'
         ]);
 
-        $query = Payment::with(['pendaftar.user']);
+        // Handle payment type filter - different logic for different types
+        $paymentType = $validatedData['payment_type'] ?? null;
 
-        // Filter by status - using validated input
-        if ($request->filled('status')) {
-            $query->where('status', $request->validated()['status']);
+        if ($paymentType === 'formulir') {
+            // Show only Payment data (formulir pendaftaran)
+            $query = Payment::with(['pendaftar.user']);
+
+            // Apply filters for Payment
+            if ($request->filled('status')) {
+                $query->where('status', $validatedData['status']);
+            }
+
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $validatedData['date_from']);
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $validatedData['date_to']);
+            }
+
+            // Common filters
+            if ($request->filled('jenjang')) {
+                $query->whereHas('pendaftar', function($q) use ($validatedData) {
+                    $q->where('jenjang', $validatedData['jenjang']);
+                });
+            }
+
+            if ($request->filled('search')) {
+                $search = $validatedData['search'];
+                $query->whereHas('pendaftar', function($q) use ($search) {
+                    $q->where('nama_murid', 'like', '%' . $search . '%')
+                      ->orWhere('no_pendaftaran', 'like', '%' . $search . '%');
+                });
+            }
+
+            $payments = $query->orderBy('created_at', 'desc')->paginate(10);
+
+        } elseif ($paymentType && $paymentType !== 'formulir') {
+            // Filter for BillPayment data (SPP, Uang Pangkal, etc.)
+            $query = BillPayment::with(['pendaftar.user', 'studentBill'])
+                ->whereHas('studentBill', function($q) use ($paymentType) {
+                    $q->where('bill_type', $paymentType);
+                });
+
+            // Apply filters for BillPayment
+            if ($request->filled('status')) {
+                // Map Payment status to BillPayment status
+                $billStatus = $this->mapPaymentStatusToBillStatus($validatedData['status']);
+                if ($billStatus) {
+                    $query->where('status', $billStatus);
+                }
+            }
+
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $validatedData['date_from']);
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $validatedData['date_to']);
+            }
+
+            // Common filters
+            if ($request->filled('jenjang')) {
+                $query->whereHas('pendaftar', function($q) use ($validatedData) {
+                    $q->where('jenjang', $validatedData['jenjang']);
+                });
+            }
+
+            if ($request->filled('search')) {
+                $search = $validatedData['search'];
+                $query->whereHas('pendaftar', function($q) use ($search) {
+                    $q->where('nama_murid', 'like', '%' . $search . '%')
+                      ->orWhere('no_pendaftaran', 'like', '%' . $search . '%');
+                });
+            }
+
+            $payments = $query->orderBy('created_at', 'desc')->paginate(10);
+
+        } else {
+            // Default: Show ALL payment data (combine Payment and BillPayment)
+            // Get Payment data (formulir)
+            $paymentQuery = Payment::with(['pendaftar.user']);
+
+            // Apply filters for Payment
+            if ($request->filled('status')) {
+                $paymentQuery->where('status', $validatedData['status']);
+            }
+            if ($request->filled('date_from')) {
+                $paymentQuery->whereDate('created_at', '>=', $validatedData['date_from']);
+            }
+            if ($request->filled('date_to')) {
+                $paymentQuery->whereDate('created_at', '<=', $validatedData['date_to']);
+            }
+            if ($request->filled('jenjang')) {
+                $paymentQuery->whereHas('pendaftar', function($q) use ($validatedData) {
+                    $q->where('jenjang', $validatedData['jenjang']);
+                });
+            }
+            if ($request->filled('search')) {
+                $search = $validatedData['search'];
+                $paymentQuery->whereHas('pendaftar', function($q) use ($search) {
+                    $q->where('nama_murid', 'like', '%' . $search . '%')
+                      ->orWhere('no_pendaftaran', 'like', '%' . $search . '%');
+                });
+            }
+
+            // Get BillPayment data
+            $billPaymentQuery = BillPayment::with(['pendaftar.user', 'studentBill']);
+
+            // Apply filters for BillPayment
+            if ($request->filled('status')) {
+                $billStatus = $this->mapPaymentStatusToBillStatus($validatedData['status']);
+                if ($billStatus) {
+                    $billPaymentQuery->where('status', $billStatus);
+                }
+            }
+            if ($request->filled('date_from')) {
+                $billPaymentQuery->whereDate('created_at', '>=', $validatedData['date_from']);
+            }
+            if ($request->filled('date_to')) {
+                $billPaymentQuery->whereDate('created_at', '<=', $validatedData['date_to']);
+            }
+            if ($request->filled('jenjang')) {
+                $billPaymentQuery->whereHas('pendaftar', function($q) use ($validatedData) {
+                    $q->where('jenjang', $validatedData['jenjang']);
+                });
+            }
+            if ($request->filled('search')) {
+                $search = $validatedData['search'];
+                $billPaymentQuery->whereHas('pendaftar', function($q) use ($search) {
+                    $q->where('nama_murid', 'like', '%' . $search . '%')
+                      ->orWhere('no_pendaftaran', 'like', '%' . $search . '%');
+                });
+            }
+
+            // Get data and combine
+            $paymentData = $paymentQuery->orderBy('created_at', 'desc')->get();
+            $billPaymentData = $billPaymentQuery->orderBy('created_at', 'desc')->get();
+
+            // Combine and sort by created_at
+            $allPayments = $paymentData->concat($billPaymentData)
+                ->sortByDesc('created_at')
+                ->values();
+
+            // Manual pagination since we're combining collections
+            $currentPage = request()->get('page', 1);
+            $perPage = 10;
+            $total = $allPayments->count();
+            $offset = ($currentPage - 1) * $perPage;
+            $items = $allPayments->slice($offset, $perPage)->values();
+
+            $payments = new \Illuminate\Pagination\LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $currentPage,
+                [
+                    'path' => request()->url(),
+                    'pageName' => 'page',
+                    'query' => request()->query()
+                ]
+            );
         }
 
-        // Filter by jenjang - using validated input
-        if ($request->filled('jenjang')) {
-            $query->whereHas('pendaftar', function($q) use ($request) {
-                $q->where('jenjang', $request->validated()['jenjang']);
-            });
-        }
+        // Calculate registration-specific statistics with date filter support
+        $dateFrom = $request->filled('date_from') ? $validatedData['date_from'] : null;
+        $dateTo = $request->filled('date_to') ? $validatedData['date_to'] : null;
+        $status = $request->filled('status') ? $validatedData['status'] : null;
 
-        // Filter by date range - using validated input
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->validated()['date_from']);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->validated()['date_to']);
-        }
-
-        // Search by name or registration number - using parameter binding
-        if ($request->filled('search')) {
-            $search = $request->validated()['search'];
-            $query->whereHas('pendaftar', function($q) use ($search) {
-                $q->where('nama_murid', 'like', '%' . $search . '%')
-                  ->orWhere('no_pendaftaran', 'like', '%' . $search . '%');
-            });
-        }
-
-        $payments = $query->orderBy('created_at', 'desc')->paginate(20);
-
-        // Calculate statistics
-        $stats = [
-            'total_transactions' => Payment::count(),
-            'paid_transactions' => Payment::where('status', self::STATUS_PAID)->count(),
-            'pending_transactions' => Payment::where('status', self::STATUS_PENDING)->count(),
-            'failed_transactions' => Payment::whereIn('status', [
-                self::STATUS_FAILED,
-                self::STATUS_EXPIRED,
-                self::STATUS_CANCELLED
-            ])->count(),
-            'total_revenue' => Payment::where('status', self::STATUS_PAID)->sum('amount')
-        ];
+        $stats = $this->revenueService->getRegistrationStatsWithFilter($dateFrom, $dateTo, $status);
 
         return view('admin.transactions.index', compact('payments', 'stats'));
     }
@@ -2853,6 +3015,121 @@ class PaymentController extends Controller
     }
 
     /**
+     * Map Xendit payment method to BillPayment enum values
+     */
+    private function mapPaymentMethodForBillPayment(Payment $payment): string
+    {
+        // Map Xendit payment methods to database enum values
+        $xenditResponse = $payment->xendit_response ?? [];
+
+        // Try to get payment method from different possible keys with priority order
+        $paymentMethod = null;
+
+        // Check specific identifiers first (most reliable)
+        if (isset($xenditResponse['retail_outlet_name'])) {
+            $paymentMethod = 'RETAIL_OUTLET';
+        } elseif (isset($xenditResponse['ewallet_type'])) {
+            $paymentMethod = 'EWALLET';
+        } elseif (isset($xenditResponse['bank_code']) && isset($xenditResponse['virtual_account_info'])) {
+            $paymentMethod = 'VIRTUAL_ACCOUNT';
+        } elseif (isset($xenditResponse['bank_code'])) {
+            $paymentMethod = 'BANK_TRANSFER';
+        } elseif (isset($xenditResponse['card_type']) || isset($xenditResponse['masked_card_number'])) {
+            $paymentMethod = 'CREDIT_CARD';
+        } else {
+            // Fall back to generic payment method fields
+            $paymentMethod = $xenditResponse['payment_method']
+                ?? $xenditResponse['payment_channel']
+                ?? $xenditResponse['channel_code']
+                ?? null;
+        }
+
+        // Enhanced method detection based on response structure
+        if (!$paymentMethod) {
+            // Look for QR code patterns
+            if (isset($xenditResponse['qr_string']) || isset($xenditResponse['qr_code'])) {
+                $paymentMethod = 'QR_CODE';
+            }
+            // Look for external_id patterns (common in Xendit)
+            elseif (isset($xenditResponse['external_id'])) {
+                $externalId = strtolower($xenditResponse['external_id']);
+                if (strpos($externalId, 'qr') !== false || strpos($externalId, 'qris') !== false) {
+                    $paymentMethod = 'QR_CODE';
+                } elseif (strpos($externalId, 'va') !== false) {
+                    $paymentMethod = 'VIRTUAL_ACCOUNT';
+                } elseif (strpos($externalId, 'retail') !== false) {
+                    $paymentMethod = 'RETAIL_OUTLET';
+                }
+            }
+        }
+
+        // Fix: Ensure VIRTUAL_ACCOUNT is properly detected even without virtual_account_info
+        if ($paymentMethod === 'VIRTUAL_ACCOUNT' ||
+            (isset($xenditResponse['bank_code']) && $xenditResponse['payment_method'] === 'VIRTUAL_ACCOUNT')) {
+            $paymentMethod = 'VIRTUAL_ACCOUNT';
+        }
+
+        // Mapping from Xendit payment methods to our enum
+        $methodMap = [
+            'QR_CODE' => 'e_wallet',
+            'QRIS' => 'e_wallet',
+            'BANK_TRANSFER' => 'bank_transfer',
+            'VIRTUAL_ACCOUNT' => 'virtual_account',
+            'CREDIT_CARD' => 'credit_card',
+            'EWALLET' => 'e_wallet',
+            'RETAIL_OUTLET' => 'other', // Will be enhanced by payment_channel
+            'OTC' => 'other', // Over the counter
+            'ALFAMART' => 'other',
+            'INDOMARET' => 'other'
+        ];
+
+        Log::info('Enhanced payment method mapping', [
+            'payment_id' => $payment->id,
+            'raw_payment_method' => $paymentMethod,
+            'xendit_response_keys' => array_keys($xenditResponse),
+            'specific_indicators' => [
+                'has_retail_outlet' => isset($xenditResponse['retail_outlet_name']),
+                'has_ewallet_type' => isset($xenditResponse['ewallet_type']),
+                'has_bank_code' => isset($xenditResponse['bank_code']),
+                'has_va_info' => isset($xenditResponse['virtual_account_info']),
+                'has_card_info' => isset($xenditResponse['card_type']) || isset($xenditResponse['masked_card_number']),
+                'has_qr_code' => isset($xenditResponse['qr_string']) || isset($xenditResponse['qr_code'])
+            ],
+            'mapped_method' => $methodMap[$paymentMethod] ?? 'bank_transfer'
+        ]);
+
+        return $methodMap[$paymentMethod] ?? 'bank_transfer'; // Default to bank_transfer
+    }
+
+    /**
+     * Get payment channel from Xendit response
+     */
+    private function getPaymentChannel(Payment $payment): ?string
+    {
+        $xenditResponse = $payment->xendit_response ?? [];
+
+        // Try different possible keys in Xendit response
+        $channel = $xenditResponse['bank_code']
+            ?? $xenditResponse['ewallet_type']
+            ?? $xenditResponse['retail_outlet_name']
+            ?? $xenditResponse['channel_code']
+            ?? $xenditResponse['payment_channel']
+            ?? null;
+
+        // If no channel found, try to infer from payment method
+        if (!$channel) {
+            $paymentMethod = $xenditResponse['payment_method'] ?? null;
+            if ($paymentMethod === 'RETAIL_OUTLET') {
+                $channel = 'RETAIL_OUTLET';
+            } elseif ($paymentMethod === 'QR_CODE' || $paymentMethod === 'QRIS') {
+                $channel = 'QRIS';
+            }
+        }
+
+        return $channel ?? 'XENDIT';
+    }
+
+    /**
      * Debug payment data - temporary method
      */
     public function debugPaymentData()
@@ -2887,5 +3164,24 @@ class PaymentController extends Controller
             'total_amount' => $payment->amount,
             'formatted_amount' => $payment->formatted_amount,
         ]);
+    }
+
+    /**
+     * Map Payment status to BillPayment status
+     *
+     * @param string $paymentStatus
+     * @return string|null
+     */
+    private function mapPaymentStatusToBillStatus($paymentStatus)
+    {
+        $statusMap = [
+            'PAID' => 'completed',
+            'PENDING' => 'pending',
+            'EXPIRED' => 'expired',
+            'FAILED' => 'failed',
+            'CANCELLED' => 'cancelled'
+        ];
+
+        return $statusMap[$paymentStatus] ?? null;
     }
 }

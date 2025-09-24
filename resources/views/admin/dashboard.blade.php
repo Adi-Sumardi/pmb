@@ -113,18 +113,18 @@
                 </div>
             </div>
 
-            <!-- Total Revenue -->
+            <!-- Registration Revenue -->
             <div class="col-lg-3 col-md-6">
                 <div class="card border-0 shadow-sm h-100 stat-card rounded-4" data-aos="fade-up" data-aos-delay="400">
                     <div class="card-body p-4 position-relative">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Total Pemasukan</div>
+                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Pemasukan Formulir</div>
                                 <div class="display-6 fw-bold text-warning mb-2">
-                                    Rp {{ number_format($billingStats['total_revenue'], 0, ',', '.') }}
+                                    Rp {{ number_format($revenueStreams['registration_revenue']['amount'], 0, ',', '.') }}
                                 </div>
                                 <div class="text-muted small">
-                                    <span class="fw-semibold">{{ $billingStats['paid_bills'] }}</span> tagihan lunas
+                                    {{ $revenueStreams['registration_revenue']['description'] }}
                                 </div>
                             </div>
                             <div class="stat-icon bg-warning bg-opacity-10 rounded-4 p-3">
@@ -133,6 +133,112 @@
                         </div>
                         <div class="progress mt-3" style="height: 4px;">
                             <div class="progress-bar bg-warning" role="progressbar" style="width: 90%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Revenue Row -->
+        <div class="row g-4 mb-4">
+            <!-- Bill Revenue -->
+            <div class="col-lg-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100 stat-card rounded-4" data-aos="fade-up" data-aos-delay="450">
+                    <div class="card-body p-4 position-relative">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Pemasukan SPP</div>
+                                <div class="display-6 fw-bold text-danger mb-2">
+                                    Rp {{ number_format($revenueStreams['bill_revenue']['amount'], 0, ',', '.') }}
+                                </div>
+                                <div class="text-muted small">
+                                    {{ $revenueStreams['bill_revenue']['description'] }}
+                                </div>
+                            </div>
+                            <div class="stat-icon bg-danger bg-opacity-10 rounded-4 p-3">
+                                <i class="bi bi-receipt text-danger fs-3"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 4px;">
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: 85%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing Statistics -->
+            <div class="col-lg-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100 stat-card rounded-4" data-aos="fade-up" data-aos-delay="500">
+                    <div class="card-body p-4 position-relative">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Tagihan Lunas</div>
+                                <div class="display-6 fw-bold text-success mb-2">
+                                    {{ $billingStats['paid_bills'] }}
+                                </div>
+                                <div class="text-muted small">
+                                    dari {{ $billingStats['total_bills'] }} total tagihan
+                                </div>
+                            </div>
+                            <div class="stat-icon bg-success bg-opacity-10 rounded-4 p-3">
+                                <i class="bi bi-check-circle text-success fs-3"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 4px;">
+                            @php
+                            $paidPercentage = $billingStats['total_bills'] > 0 ? ($billingStats['paid_bills'] / $billingStats['total_bills']) * 100 : 0;
+                            @endphp
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ $paidPercentage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Uang Pangkal Revenue -->
+            <div class="col-lg-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100 stat-card rounded-4" data-aos="fade-up" data-aos-delay="550">
+                    <div class="card-body p-4 position-relative">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Pemasukan Uang Pangkal</div>
+                                <div class="display-6 fw-bold text-purple mb-2">
+                                    Rp {{ number_format($revenueStreams['uang_pangkal_revenue']['amount'], 0, ',', '.') }}
+                                </div>
+                                <div class="text-muted small">
+                                    {{ $revenueStreams['uang_pangkal_revenue']['description'] }}
+                                </div>
+                            </div>
+                            <div class="stat-icon bg-purple bg-opacity-10 rounded-4 p-3">
+                                <i class="bi bi-building text-purple fs-3"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 4px;">
+                            <div class="progress-bar bg-purple" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Payments -->
+            <div class="col-lg-3 col-md-6">
+                <div class="card border-0 shadow-sm h-100 stat-card rounded-4" data-aos="fade-up" data-aos-delay="600">
+                    <div class="card-body p-4 position-relative">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-1">Pembayaran Pending</div>
+                                <div class="display-6 fw-bold text-secondary mb-2">
+                                    {{ $billingStats['pending_payments'] }}
+                                </div>
+                                <div class="text-muted small">
+                                    Menunggu konfirmasi
+                                </div>
+                            </div>
+                            <div class="stat-icon bg-secondary bg-opacity-10 rounded-4 p-3">
+                                <i class="bi bi-hourglass-split text-secondary fs-3"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 4px;">
+                            <div class="progress-bar bg-secondary" role="progressbar" style="width: 60%"></div>
                         </div>
                     </div>
                 </div>

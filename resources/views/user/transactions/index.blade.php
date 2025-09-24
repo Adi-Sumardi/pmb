@@ -336,7 +336,7 @@
     <script>
         function printInvoice(paymentId) {
             // Redirect to detailed invoice page for printing
-            window.open(`/transactions/${paymentId}?print=1`, '_blank');
+            window.open(`/user/transactions/${paymentId}?print=1`, '_blank');
         }
     </script>
 </x-app-layout>

@@ -8,11 +8,19 @@ use App\Models\User;
 use App\Models\StudentBill;
 use App\Models\BillPayment;
 use App\Models\Payment;
+use App\Services\RevenueCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    protected $revenueService;
+
+    public function __construct(RevenueCalculationService $revenueService)
+    {
+        $this->revenueService = $revenueService;
+    }
+
     public function index()
     {
         // Basic statistics
@@ -34,15 +42,42 @@ class DashboardController extends Controller
             'transferred_students' => Pendaftar::where('student_status', 'transferred')->count(),
         ];
 
-        // Billing Statistics
+        // Revenue Streams - showing separate income sources
+        $revenueStreamsRaw = $this->revenueService->getRevenueStreams();
+
+        // Convert to expected format for dashboard compatibility
+        $revenueStreams = [];
+        foreach ($revenueStreamsRaw as $stream) {
+            $key = '';
+            switch ($stream['type']) {
+                case 'registration':
+                    $key = 'registration_revenue';
+                    break;
+                case 'bills':
+                    $key = 'bill_revenue';
+                    break;
+                case 'uang_pangkal':
+                    $key = 'uang_pangkal_revenue';
+                    break;
+                default:
+                    $key = strtolower($stream['source']) . '_revenue';
+            }
+
+            $revenueStreams[$key] = [
+                'amount' => $stream['amount'],
+                'description' => $stream['description'],
+                'source' => $stream['source'],
+                'type' => $stream['type']
+            ];
+        }
+
+        // Billing Statistics using RevenueCalculationService
+        $revenueStats = $this->revenueService->getRevenueStats();
         $billingStats = [
             'total_bills' => StudentBill::count(),
             'paid_bills' => StudentBill::where('remaining_amount', '<=', 0)->count(),
             'unpaid_bills' => StudentBill::where('remaining_amount', '>', 0)->count(),
-            'total_revenue' => BillPayment::where('status', 'completed')->sum('amount') +
-                              \App\Models\Payment::where('status', 'PAID')->sum('amount'),
-            'pending_payments' => BillPayment::where('status', 'pending')->count() +
-                                 \App\Models\Payment::where('status', 'PENDING')->count(),
+            'pending_payments' => $revenueStats['pending_registration_payments'] + $revenueStats['pending_bill_payments'],
         ];
 
         // Get recent pendaftar
@@ -104,20 +139,22 @@ class DashboardController extends Controller
             ->groupBy('student_status')
             ->get();
 
-        // Bill analytics
+        // Bill analytics using RevenueCalculationService
+        $monthlyRevenue = $this->revenueService->getRevenueByPeriod(
+            now()->startOfMonth(),
+            now()->endOfMonth()
+        );
+
+        $weeklyRevenue = $this->revenueService->getRevenueByPeriod(
+            now()->subDays(7),
+            now()
+        );
+
         $billAnalytics = [
-            'monthly_revenue' => BillPayment::where('status', 'completed')
-                ->whereMonth('confirmed_at', now()->month)
-                ->sum('amount') +
-                Payment::where('status', 'PAID')
-                ->whereMonth('paid_at', now()->month)
-                ->sum('amount'),
-            'weekly_revenue' => BillPayment::where('status', 'completed')
-                ->where('confirmed_at', '>=', now()->subDays(7))
-                ->sum('amount') +
-                Payment::where('status', 'PAID')
-                ->where('paid_at', '>=', now()->subDays(7))
-                ->sum('amount'),
+            'monthly_registration' => $monthlyRevenue['registration_revenue'],
+            'monthly_bills' => $monthlyRevenue['bill_revenue'],
+            'weekly_registration' => $weeklyRevenue['registration_revenue'],
+            'weekly_bills' => $weeklyRevenue['bill_revenue'],
             'overdue_bills' => StudentBill::where('remaining_amount', '>', 0)
                 ->where('due_date', '<', now())
                 ->count(),
@@ -127,6 +164,7 @@ class DashboardController extends Controller
             'stats',
             'studentStats',
             'billingStats',
+            'revenueStreams',
             'recent_pendaftar',
             'recent_users',
             'recentStatusChanges',

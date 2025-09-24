@@ -145,7 +145,55 @@ class BillPayment extends Model
         return $this->receipt_file_path ? asset('storage/' . $this->receipt_file_path) : null;
     }
 
-    // Methods
+    public function getFormattedPaymentMethodAttribute(): string
+    {
+        $methodMap = [
+            'bank_transfer' => 'Bank Transfer',
+            'virtual_account' => 'Virtual Account',
+            'e_wallet' => 'E-Wallet',
+            'credit_card' => 'Credit Card',
+            'cash' => 'Cash',
+            'check' => 'Check',
+            'other' => 'Other'
+        ];
+
+        $method = $methodMap[$this->payment_method] ?? 'Unknown';
+
+        // Enhanced formatting based on payment channel
+        if ($this->payment_channel && $this->payment_channel !== 'N/A' && $this->payment_channel !== 'SIMULATION') {
+            $channel = strtoupper($this->payment_channel);
+
+            // Special handling for retail outlets
+            if ($this->payment_method === 'other' && in_array($channel, ['RETAIL_OUTLET', 'ALFAMART', 'INDOMARET'])) {
+                if ($channel === 'RETAIL_OUTLET') {
+                    return 'Retail Outlet';
+                } else {
+                    return $channel; // ALFAMART, INDOMARET, etc.
+                }
+            }
+
+            // Special handling for e-wallets
+            if ($this->payment_method === 'e_wallet') {
+                if ($channel === 'QRIS') {
+                    return 'QRIS';
+                } elseif (in_array($channel, ['OVO', 'DANA', 'GOPAY', 'LINKAJA'])) {
+                    return $channel;
+                } else {
+                    return 'E-Wallet (' . $channel . ')';
+                }
+            }
+
+            // Special handling for virtual accounts
+            if ($this->payment_method === 'virtual_account') {
+                return 'Virtual Account (' . $channel . ')';
+            }
+
+            // For other methods, add channel in parentheses
+            $method .= ' (' . $channel . ')';
+        }
+
+        return $method;
+    }    // Methods
     public function markAsCompleted(?User $verifiedBy = null): void
     {
         $this->status = 'completed';
