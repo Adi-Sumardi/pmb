@@ -72,16 +72,23 @@ fi
 read -p "Do you want to drop the existing database? (y/N): " drop_db
 if [[ $drop_db =~ ^[Yy]$ ]]; then
     print_warning "This will delete ALL data in the database!"
-    read -s -p "Enter MySQL root password: " mysql_root_pass
-    echo ""
-    
-    mysql -u root -p$mysql_root_pass <<EOF
+
+    # Clean up PostgreSQL database
+    print_status "Attempting to clean PostgreSQL database..."
+
+    if sudo -u postgres psql <<EOF 2>/dev/null
 DROP DATABASE IF EXISTS ppdb_production;
-DROP USER IF EXISTS 'ppdb_user'@'localhost';
-FLUSH PRIVILEGES;
+DROP USER IF EXISTS ppdb_user;
 EOF
-    
-    print_success "Database cleaned up!"
+    then
+        print_success "PostgreSQL database cleaned up successfully!"
+    else
+        print_warning "Could not clean database automatically. You may need to clean it manually:"
+        print_warning "sudo -u postgres psql"
+        print_warning "DROP DATABASE IF EXISTS ppdb_production;"
+        print_warning "DROP USER IF EXISTS ppdb_user;"
+        print_warning "\\q"
+    fi
 fi
 
 # Clear Redis cache

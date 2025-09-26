@@ -55,10 +55,10 @@ sudo apt update
 
 # Install PHP 8.2 and extensions
 print_status "Installing PHP 8.2 dan extensions..."
-sudo apt install -y php8.2 php8.2-fpm php8.2-cli php8.2-common php8.2-mysql \
+sudo apt install -y php8.2 php8.2-fpm php8.2-cli php8.2-common php8.2-pgsql \
     php8.2-zip php8.2-gd php8.2-mbstring php8.2-curl php8.2-xml \
     php8.2-bcmath php8.2-json php8.2-intl php8.2-soap php8.2-redis \
-    php8.2-sqlite3 php8.2-pgsql php8.2-xdebug
+    php8.2-sqlite3 php8.2-xdebug
 
 # Install Composer
 print_status "Installing Composer..."
@@ -75,10 +75,10 @@ sudo apt install -y nodejs
 print_status "Installing Nginx..."
 sudo apt install -y nginx
 
-# Install MySQL
-print_status "Installing MySQL Server..."
-sudo apt install -y mysql-server
-print_warning "Jangan lupa jalankan 'sudo mysql_secure_installation' setelah script selesai!"
+# Install PostgreSQL
+print_status "Installing PostgreSQL Server..."
+sudo apt install -y postgresql postgresql-contrib
+print_warning "PostgreSQL akan dikonfigurasi secara otomatis!"
 
 # Configure PHP-FPM
 print_status "Configuring PHP-FPM..."
@@ -92,13 +92,13 @@ sudo sed -i 's/memory_limit = 128M/memory_limit = 512M/' /etc/php/8.2/fpm/php.in
 print_status "Starting services..."
 sudo systemctl enable nginx
 sudo systemctl enable php8.2-fpm
-sudo systemctl enable mysql
+sudo systemctl enable postgresql
 sudo systemctl enable redis-server
 sudo systemctl enable supervisor
 
 sudo systemctl start nginx
 sudo systemctl start php8.2-fpm
-sudo systemctl start mysql
+sudo systemctl start postgresql
 sudo systemctl start redis-server
 sudo systemctl start supervisor
 
@@ -107,12 +107,12 @@ print_status "Configuring UFW firewall..."
 sudo ufw --force enable
 sudo ufw allow ssh
 sudo ufw allow 'Nginx Full'
-sudo ufw allow 3306  # MySQL
+sudo ufw allow 5432  # PostgreSQL
 sudo ufw allow 6379  # Redis
 
 print_success "=== VPS Environment Setup Complete! ==="
 print_status "Next steps:"
-print_status "1. Run: sudo mysql_secure_installation"
+print_status "1. PostgreSQL is ready to use"
 print_status "2. Create database and user for the application"
 print_status "3. Clone your repository"
 print_status "4. Run the deployment script"
@@ -123,4 +123,4 @@ composer --version
 node --version
 npm --version
 nginx -v
-mysql --version | head -n 1
+sudo -u postgres psql --version

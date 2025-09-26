@@ -48,9 +48,6 @@ DB_USER=${input_db_user:-ppdb_user}
 read -s -p "Enter database password: " DB_PASSWORD
 echo ""
 
-read -s -p "Enter MySQL root password: " MYSQL_ROOT_PASSWORD
-echo ""
-
 # Create application directory
 print_status "Creating application directory..."
 sudo mkdir -p $APP_DIR
@@ -95,17 +92,20 @@ fi
 print_status "Generating application key..."
 php artisan key:generate --force
 
-# Create database and user
-print_status "Setting up database..."
-mysql -u root -p$MYSQL_ROOT_PASSWORD <<EOF
-CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
-GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
-FLUSH PRIVILEGES;
+# Create PostgreSQL database and user
+print_status "Setting up PostgreSQL database..."
+sudo -u postgres psql <<EOF
+CREATE DATABASE $DB_NAME;
+CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';
+GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
+ALTER USER $DB_USER CREATEDB;
 EOF
 
 # Update .env with database configuration
 print_status "Updating .env configuration..."
+sed -i "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" .env
+sed -i "s/DB_HOST=.*/DB_HOST=127.0.0.1/" .env
+sed -i "s/DB_PORT=.*/DB_PORT=5432/" .env
 sed -i "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" .env
 sed -i "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" .env
 sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" .env
@@ -240,7 +240,7 @@ APP_DIR="/var/www/ppdb-backend"
 mkdir -p $BACKUP_DIR
 
 # Database backup
-mysqldump -u root -p ppdb_production > $BACKUP_DIR/database_$DATE.sql
+sudo -u postgres pg_dump ppdb_production > $BACKUP_DIR/database_$DATE.sql
 
 # Files backup
 tar -czf $BACKUP_DIR/files_$DATE.tar.gz -C /var/www ppdb-backend
