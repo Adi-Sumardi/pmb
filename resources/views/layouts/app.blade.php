@@ -10,7 +10,7 @@
         default-src 'self';
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
         style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.bunny.net https://unpkg.com;
-        font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.bunny.net https://cdn.jsdelivr.net;
+        font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.bunny.net https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         img-src 'self' data: https:;
         connect-src 'self' https:;
     ">
@@ -70,6 +70,9 @@
 
     <!-- Scripts -->
     @stack('scripts')
+
+    <!-- Chart.js for Dashboard Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.min.js"></script>
 
     <!-- SweetAlert2 - Load once globally -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
