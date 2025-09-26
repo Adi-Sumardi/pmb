@@ -21,7 +21,7 @@ class WhatsAppController extends Controller
         }
 
         try {
-            // Kirim pesan teks dulu (jika ada)
+            // Kirim pesan teks saja (tidak ada pengiriman file)
             if (!empty($message)) {
                 $payload = [
                     "api_key"    => $apiKey,
@@ -38,53 +38,86 @@ class WhatsAppController extends Controller
                 $responses[] = json_decode((string)$resp->getBody(), true);
             }
 
-            // Kirim file PDF jika ada
-            if (!empty($bukti_pendaftaran)) {
-                if (strpos($bukti_pendaftaran, 'storage/') === 0) {
-                    $fileUrl = env('APP_URL') . $bukti_pendaftaran;
-                } else {
-                    $fileUrl = asset('storage/data/bukti_pendaftaran/' . $bukti_pendaftaran);
-                }
+            // File sending feature removed - only text messages now
+            // Bukti pendaftaran dapat diakses langsung melalui sistem
 
-                // Generate custom filename untuk WhatsApp
-                $customFileName = $this->generateCustomFileName($bukti_pendaftaran, $nama_murid, $no_pendaftaran);
-
-                try {
-                    $head = $client->head($fileUrl, ['http_errors' => false, 'timeout' => 10]);
-                    $status = $head->getStatusCode();
-                    if ($status < 200 || $status >= 400) {
-                        $responses[] = [
-                            'error' => 'File not publicly accessible',
-                            'url' => $fileUrl,
-                            'http_code' => $status,
-                        ];
-                    } else {
-                        $payloadFile = [
-                            "api_key"    => $apiKey,
-                            "number_key" => $numberKey,
-                            "phone_no"   => $phoneNumber,
-                            "url"        => $fileUrl,
-                            "caption"    => "Berikut bukti pendaftaran Anda dalam format PDF.",
-                            "filename"   => $customFileName, // Tambahkan custom filename
-                        ];
-
-                        $respFile = $client->post('https://api.watzap.id/v1/send_file_url', [
-                            'headers' => $headers,
-                            'json'    => $payloadFile,
-                        ]);
-
-                        $responses[] = json_decode((string)$respFile->getBody(), true);
-                    }
-                } catch (\Exception $e) {
-                    $responses[] = ['error' => 'HEAD check failed: ' . $e->getMessage(), 'url' => $fileUrl];
-                }
-            }
         } catch (RequestException $e) {
             $body = $e->hasResponse() ? (string) $e->getResponse()->getBody() : $e->getMessage();
             $responses[] = ['exception' => $body];
         }
 
         return $responses;
+    }
+
+    /**
+     * Send message dengan prioritas telp_ibu dulu, kemudian telp_ayah jika gagal
+     */
+    public function sendWithPriority($telp_ibu, $telp_ayah, $message, $nama_murid = null, $no_pendaftaran = null)
+    {
+        $responses = [];
+        $success = false;
+
+        // Format nomor telepon
+        $formatted_ibu = $this->formatPhoneNumber($telp_ibu);
+        $formatted_ayah = $this->formatPhoneNumber($telp_ayah);
+
+        // Prioritas 1: Coba kirim ke nomor ibu
+        if (!empty($formatted_ibu)) {
+            $responses['ibu'] = $this->sendMessages($formatted_ibu, $message, null, $nama_murid, $no_pendaftaran);
+
+            // Cek apakah pengiriman ke ibu berhasil
+            if (isset($responses['ibu'][0]) && !isset($responses['ibu'][0]['error']) && !isset($responses['ibu'][0]['exception'])) {
+                $success = true;
+                $responses['used_number'] = $formatted_ibu;
+                $responses['success_recipient'] = 'ibu';
+                $responses['original_number'] = $telp_ibu;
+            }
+        }
+
+        // Prioritas 2: Jika gagal ke ibu, coba ke ayah
+        if (!$success && !empty($formatted_ayah)) {
+            $responses['ayah'] = $this->sendMessages($formatted_ayah, $message, null, $nama_murid, $no_pendaftaran);
+
+            // Cek apakah pengiriman ke ayah berhasil
+            if (isset($responses['ayah'][0]) && !isset($responses['ayah'][0]['error']) && !isset($responses['ayah'][0]['exception'])) {
+                $success = true;
+                $responses['used_number'] = $formatted_ayah;
+                $responses['success_recipient'] = 'ayah';
+                $responses['original_number'] = $telp_ayah;
+            }
+        }
+
+        $responses['final_success'] = $success;
+
+        // Jika tidak ada nomor yang valid
+        if (empty($formatted_ibu) && empty($formatted_ayah)) {
+            $responses['error'] = 'No valid phone numbers provided';
+        }
+
+        return $responses;
+    }    /**
+     * Format phone number untuk WhatsApp API
+     */
+    private function formatPhoneNumber($phoneNumber)
+    {
+        if (empty($phoneNumber)) {
+            return null;
+        }
+
+        // Remove all non-numeric characters
+        $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
+
+        // If starts with 0, replace with 62
+        if (substr($phoneNumber, 0, 1) === '0') {
+            $phoneNumber = '62' . substr($phoneNumber, 1);
+        }
+
+        // If doesn't start with 62, add it
+        if (substr($phoneNumber, 0, 2) !== '62') {
+            $phoneNumber = '62' . $phoneNumber;
+        }
+
+        return $phoneNumber;
     }
 
     /**

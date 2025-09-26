@@ -363,8 +363,7 @@ class PendaftarController extends Controller
                 'user_id' => $user->id,
             ]);
 
-            // Kirim WhatsApp dengan informasi akun
-            $phoneNumber = $pendaftar->telp_ayah ?: $pendaftar->telp_ibu;
+            // Kirim WhatsApp dengan prioritas telp_ibu dulu, kemudian telp_ayah
             $message = "Yth. Orang Tua {$pendaftar->nama_murid},\n\n"
                 . "Selamat! Pendaftaran anak Anda di {$pendaftar->unit} telah DIVERIFIKASI.\n"
                 . "Nomor Pendaftaran: {$pendaftar->no_pendaftaran}\n\n"
@@ -372,32 +371,41 @@ class PendaftarController extends Controller
                 . "Email: {$email}\n"
                 . "Password: {$password}\n\n"
                 . "⚠️ PENTING:\n"
-                . "- Informasi akun juga tersedia di bukti PDF\n"
                 . "- Simpan informasi akun ini dengan aman\n"
                 . "- Ganti password setelah login pertama\n"
-                . "- Akun ini untuk akses sistem PMB lebih lanjut\n\n"
-                . "Bukti pendaftaran telah dikirimkan bersama pesan ini.\n\n"
+                . "- Akses sistem PMB: " . route('login') . "\n"
+                . "- Bukti pendaftaran tersedia di dashboard Anda\n\n"
+                . "📝 LANGKAH SELANJUTNYA:\n"
+                . "1. Login dengan akun yang telah dibuat\n"
+                . "2. Lakukan pembayaran uang formulir\n"
+                . "3. Lengkapi data yang diperlukan\n"
+                . "4. Selesai\n\n"
                 . "Terima kasih,\n"
                 . "Panitia Penerimaan Murid Baru {$pendaftar->unit}";
 
             $whatsAppController = new WhatsAppController();
-            $responses = $whatsAppController->sendMessages(
-                $phoneNumber,
+            $responses = $whatsAppController->sendWithPriority(
+                $pendaftar->telp_ibu,
+                $pendaftar->telp_ayah,
                 $message,
-                $fileName,
                 $pendaftar->nama_murid,
                 $pendaftar->no_pendaftaran
             );
 
-            $respStrings = array_map(function($r) {
-                if (is_array($r)) {
-                    return json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                }
-                return (string) $r;
-            }, $responses);
+            // Generate success message berdasarkan hasil pengiriman WhatsApp
+            $whatsappStatus = '';
+            if (isset($responses['final_success']) && $responses['final_success']) {
+                $recipient = $responses['success_recipient'] == 'ibu' ? 'Ibu' : 'Ayah';
+                $displayNumber = isset($responses['original_number']) ? $responses['original_number'] : $responses['used_number'];
+                $whatsappStatus = "Notifikasi WhatsApp berhasil dikirim ke nomor {$recipient}: {$displayNumber}";
+            } elseif (isset($responses['error'])) {
+                $whatsappStatus = "Gagal mengirim WhatsApp: " . $responses['error'];
+            } else {
+                $whatsappStatus = "Gagal mengirim WhatsApp ke semua nomor yang tersedia";
+            }
 
             return redirect()->route('admin.pendaftar.index')
-                ->with('success', 'Pendaftaran berhasil diverifikasi, akun user telah dibuat dengan email: ' . $email . ', dan bukti PDF (termasuk akun) telah dikirim. ' . implode(', ', $respStrings));
+                ->with('success', 'Pendaftaran berhasil diverifikasi dan akun user telah dibuat dengan email: ' . $email . '. ' . $whatsappStatus);
 
         } catch (\Exception $e) {
             Log::error('Error saat memverifikasi pendaftaran: ' . $e->getMessage());
