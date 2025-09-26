@@ -23,7 +23,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 DOMAIN="yapi-alazhar.id"
-APP_PATH="/var/www/ppdb-yapi"
+APP_PATH="/var/www/ppdb"
 DB_NAME="ppdb_yapi_production"
 DB_USER="ppdb_user"
 DEPLOY_USER="deploy"
@@ -166,7 +166,7 @@ install_nginx() {
 server {
     listen 80;
     server_name yapi-alazhar.id www.yapi-alazhar.id;
-    root /var/www/ppdb-yapi/public;
+    root /var/www/ppdb/public;
     index index.php index.html;
 
     # Security headers
@@ -180,7 +180,7 @@ server {
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private must-revalidate auth;
+    gzip_proxied expired no-cache no-store private auth;
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript;
 
     # Handle Laravel routes
@@ -259,7 +259,7 @@ deploy_application() {
     composer install --optimize-autoloader --no-dev
 
     print_step "Installing Node.js dependencies..."
-    npm ci --only=production
+    npm install --production
 
     print_step "Building assets..."
     npm run build
@@ -479,14 +479,14 @@ create_deployment_script() {
 echo "🚀 Starting deployment..."
 
 # Navigate to project directory
-cd /var/www/ppdb-yapi
+cd /var/www/ppdb
 
 # Pull latest changes
 git pull origin master
 
 # Install/update dependencies
 composer install --optimize-autoloader --no-dev
-npm ci --only=production
+npm install --production
 
 # Build assets
 npm run build
